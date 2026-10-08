@@ -4,8 +4,9 @@ import {
   computeMinDepthMm,
   computeMinCeilingMm,
   machineRowWidthMm,
+  validate,
 } from "./constraints";
-import type { CatalogMachine } from "./types";
+import type { CatalogMachine, ProjectState } from "./types";
 
 const stack: CatalogMachine = {
   id: "sq-stack",
@@ -43,9 +44,6 @@ describe("constraints — cálculo de mínimos", () => {
     expect(machineRowWidthMm([])).toBe(0);
   });
 });
-
-import { validate } from "./constraints";
-import type { ProjectState } from "./types";
 
 const catalog: CatalogMachine[] = [
   {
