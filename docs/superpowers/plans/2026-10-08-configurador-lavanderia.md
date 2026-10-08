@@ -1244,7 +1244,7 @@ interface ProjectStore extends ProjectState {
 
 const initialState: ProjectState = {
   roomWidthMm: 4000,
-  roomDepthMm: 3500,
+  roomDepthMm: 4000,
   ceilingHeightMm: 2700,
   machines: [{ catalogId: "sq-stack", qty: 3 }],
   doorEnabled: true,
