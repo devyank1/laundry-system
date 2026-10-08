@@ -174,9 +174,9 @@ sugestão" que corrige o campo automaticamente.
    `larguraFileira`.
 2. `larguraMinSala = larguraFileira + 500 + 500` (laterais). Se
    `roomWidth` menor, gera violação com a largura mínima sugerida.
-3. `profundidadeMinSala = profundidadeMaxMaquina + areaTecnica(1000 a 1100,
-   padrão 1050) + profundidadeMinSalao(1800)`. Se `roomDepth` menor, gera
-   violação.
+3. `profundidadeMinSala = areaTecnica(1000 a 1100, padrão 1050) +
+   profundidadeMaxMaquina + espessuraDrywall(100) + profundidadeMinSalao(1800)`.
+   Se `roomDepth` menor, gera violação.
 4. `peDireitoMin = alturaMaxMaquina + 300`. Se `ceilingHeight` menor, gera
    violação.
 5. Máquinas posicionadas em fileira ao longo da parede de fundo, começando
