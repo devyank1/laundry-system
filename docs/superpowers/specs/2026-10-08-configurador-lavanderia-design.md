@@ -80,7 +80,8 @@ O valor sugerido é editável — o usuário pode forçar outra capacidade.
 
 ## 3. Stack técnica
 
-React 18 + TypeScript + Vite. Estado global em Zustand. 3D com Three.js via
+React 19 + TypeScript + Vite (React 19 porque `@react-three/fiber` v9 exige
+React 19 como peer dependency). Estado global em Zustand. 3D com Three.js via
 `@react-three/fiber` + `@react-three/drei` (OrbitControls). 2D em SVG nativo
 do React. Sem backend — aplicação 100% client-side, deploy estático.
 Catálogo e projetos salvos em `localStorage`, com export/import em JSON.
