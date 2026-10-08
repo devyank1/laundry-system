@@ -15,15 +15,24 @@ export function subscribeCatalog(listener: Listener): () => void {
   return () => listeners.delete(listener);
 }
 
+let cachedRaw: string | null = null;
+let cachedCatalog: CatalogMachine[] = CATALOG_SEED;
+
 export function getCatalog(): CatalogMachine[] {
   const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return CATALOG_SEED;
+  if (raw === cachedRaw) return cachedCatalog;
+  cachedRaw = raw;
+  if (!raw) {
+    cachedCatalog = CATALOG_SEED;
+    return cachedCatalog;
+  }
   try {
     const parsed = JSON.parse(raw) as CatalogMachine[];
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : CATALOG_SEED;
+    cachedCatalog = Array.isArray(parsed) && parsed.length > 0 ? parsed : CATALOG_SEED;
   } catch {
-    return CATALOG_SEED;
+    cachedCatalog = CATALOG_SEED;
   }
+  return cachedCatalog;
 }
 
 function persist(list: CatalogMachine[]): void {

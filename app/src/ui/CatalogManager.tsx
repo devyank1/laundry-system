@@ -20,23 +20,8 @@ const emptyMachine: CatalogMachine = {
   heightMm: 0,
 };
 
-// Cache getCatalog to avoid infinite loops with useSyncExternalStore
-function getCatalogCached(): CatalogMachine[] {
-  const cached = getCatalogCached.cache;
-  const current = getCatalog();
-  const currentJson = JSON.stringify(current);
-
-  if (cached.json !== currentJson) {
-    cached.json = currentJson;
-    cached.value = current;
-  }
-
-  return cached.value;
-}
-getCatalogCached.cache = { value: getCatalog(), json: JSON.stringify(getCatalog()) };
-
 export function CatalogManager({ onClose }: { onClose: () => void }) {
-  const catalog = useSyncExternalStore(subscribeCatalog, getCatalogCached);
+  const catalog = useSyncExternalStore(subscribeCatalog, getCatalog);
   const [draft, setDraft] = useState<CatalogMachine>(emptyMachine);
 
   function handleAdd(): void {
