@@ -1,5 +1,7 @@
-import { Canvas } from "@react-three/fiber";
+import { useRef } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
+import type { Mesh } from "three";
 import { useLerpedVector3 } from "./useLerpedVector3";
 import { TOTEM_SIZE_MM } from "../engine/constants";
 import type { Layout, PlacedMachine } from "../engine/types";
@@ -10,10 +12,15 @@ function MachineMesh({ catalogId, instanceIndex, x, widthMm, depthMm, heightMm }
   const w = M(widthMm);
   const d = M(depthMm);
   const h = M(heightMm);
-  const position = useLerpedVector3([M(x) + w / 2, h / 2, d / 2]);
+  const targetPosition = useLerpedVector3([M(x) + w / 2, h / 2, d / 2]);
+  const meshRef = useRef<Mesh>(null);
+
+  useFrame(() => {
+    meshRef.current?.position.copy(targetPosition);
+  });
 
   return (
-    <mesh position={position} castShadow key={`${catalogId}-${instanceIndex}`}>
+    <mesh ref={meshRef} position={targetPosition} castShadow key={`${catalogId}-${instanceIndex}`}>
       <boxGeometry args={[w, h, d]} />
       <meshStandardMaterial color="#9fb8d9" />
     </mesh>
