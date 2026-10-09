@@ -8,7 +8,6 @@ class ResizeObserverStub {
   unobserve() {}
   disconnect() {}
 }
-// @ts-expect-error jsdom has no ResizeObserver
 globalThis.ResizeObserver ??= ResizeObserverStub;
 
 beforeEach(() => {
