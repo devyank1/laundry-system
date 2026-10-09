@@ -9,6 +9,8 @@ export const CEILING_CLEARANCE_MM = 300;
 
 export const TOTEM_SIZE_MM = { width: 450, depth: 450, height: 1100 };
 
+export const FURNITURE_BLOCK_WIDTH_MM = 1800; // mesa 900mm + 2x(cadeira 400mm + vão 50mm)
+
 export const DOOR_WIDTH_MM = 900;
 
 export const AC_SIZES_BTU = [9000, 12000, 18000, 22000, 30000, 36000, 48000, 60000];

@@ -8,6 +8,7 @@ import {
   restoreDefaults,
   subscribeCatalog,
 } from "../catalog/store";
+import { useProjectStore } from "../state/projectStore";
 import type { CatalogMachine } from "../engine/types";
 
 const emptyMachine: CatalogMachine = {
@@ -23,9 +24,22 @@ const emptyMachine: CatalogMachine = {
 export function CatalogManager({ onClose }: { onClose: () => void }) {
   const catalog = useSyncExternalStore(subscribeCatalog, getCatalog);
   const [draft, setDraft] = useState<CatalogMachine>(emptyMachine);
+  const [formError, setFormError] = useState<string | null>(null);
 
   function handleAdd(): void {
-    if (!draft.id || !draft.brand || !draft.model) return;
+    if (!draft.id || !draft.brand || !draft.model) {
+      setFormError("Preencha ID, marca e modelo.");
+      return;
+    }
+    if (catalog.some((m) => m.id === draft.id)) {
+      setFormError(`Já existe uma máquina com o ID "${draft.id}".`);
+      return;
+    }
+    if (draft.widthMm <= 0 || draft.depthMm <= 0 || draft.heightMm <= 0) {
+      setFormError("Largura, profundidade e altura devem ser maiores que zero.");
+      return;
+    }
+    setFormError(null);
     addMachine(draft);
     setDraft(emptyMachine);
   }
@@ -33,7 +47,15 @@ export function CatalogManager({ onClose }: { onClose: () => void }) {
   function handleImport(e: ChangeEvent<HTMLInputElement>): void {
     const file = e.target.files?.[0];
     if (!file) return;
-    file.text().then((text) => importCatalogJSON(text));
+    file
+      .text()
+      .then((text) => {
+        importCatalogJSON(text);
+        setFormError(null);
+      })
+      .catch((err: unknown) => {
+        setFormError(err instanceof Error ? err.message : "Falha ao importar o arquivo.");
+      });
   }
 
   function handleExport(): void {
@@ -67,7 +89,13 @@ export function CatalogManager({ onClose }: { onClose: () => void }) {
         {catalog.map((m) => (
           <li key={m.id}>
             {m.brand} {m.model} — {m.widthMm}×{m.depthMm}×{m.heightMm}mm
-            <button type="button" onClick={() => deleteMachine(m.id)}>
+            <button
+              type="button"
+              onClick={() => {
+                deleteMachine(m.id);
+                useProjectStore.getState().removeMachine(m.id);
+              }}
+            >
               Remover
             </button>
           </li>
@@ -87,6 +115,17 @@ export function CatalogManager({ onClose }: { onClose: () => void }) {
         <label>
           Modelo
           <input value={draft.model} onChange={(e) => setDraft({ ...draft, model: e.target.value })} />
+        </label>
+        <label>
+          Tipo
+          <select
+            value={draft.type}
+            onChange={(e) => setDraft({ ...draft, type: e.target.value as CatalogMachine["type"] })}
+          >
+            <option value="lavadora">Lavadora</option>
+            <option value="secadora">Secadora</option>
+            <option value="stack">Stack (lavadora + secadora)</option>
+          </select>
         </label>
         <label>
           Largura (mm)
@@ -112,6 +151,7 @@ export function CatalogManager({ onClose }: { onClose: () => void }) {
             onChange={(e) => setDraft({ ...draft, heightMm: Number(e.target.value) })}
           />
         </label>
+        {formError && <p role="alert">{formError}</p>}
         <button type="button" onClick={handleAdd}>
           Adicionar
         </button>

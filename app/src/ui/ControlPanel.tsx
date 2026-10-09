@@ -1,11 +1,14 @@
 import { useSyncExternalStore } from "react";
 import { useProjectStore } from "../state/projectStore";
 import { getCatalog, subscribeCatalog } from "../catalog/store";
+import { useLayout } from "../state/useLayout";
+import { AC_SIZES_BTU } from "../engine/constants";
 import type { TechAccessSide } from "../engine/types";
 
 export function ControlPanel() {
   const catalog = useSyncExternalStore(subscribeCatalog, getCatalog);
   const state = useProjectStore();
+  const { layout } = useLayout();
 
   return (
     <section aria-label="Parâmetros da lavanderia">
@@ -80,6 +83,28 @@ export function ControlPanel() {
         <input type="checkbox" checked={state.furnitureEnabled} onChange={state.toggleFurniture} />
         Mobiliário (mesa, cadeiras, totem, ar-condicionado)
       </label>
+
+      {state.furnitureEnabled && (
+        <label>
+          Ar-condicionado (BTU/h)
+          {layout && (
+            <p>Sugestão automática: {layout.acSuggestedBTU.toLocaleString("pt-BR")} BTU/h</p>
+          )}
+          <select
+            value={state.acOverrideBTU ?? "auto"}
+            onChange={(e) =>
+              state.setAcOverrideBTU(e.target.value === "auto" ? null : Number(e.target.value))
+            }
+          >
+            <option value="auto">Automático (sugerido)</option>
+            {AC_SIZES_BTU.map((btu) => (
+              <option key={btu} value={btu}>
+                {btu.toLocaleString("pt-BR")} BTU/h
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
     </section>
   );
 }

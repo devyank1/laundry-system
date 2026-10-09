@@ -38,4 +38,17 @@ describe("ControlPanel", () => {
     await userEvent.selectOptions(select, "left");
     expect(useProjectStore.getState().techAccessSide).toBe("left");
   });
+
+  it("mostra a sugestão de BTU quando o mobiliário está habilitado", () => {
+    useProjectStore.setState({ roomDepthMm: 4200 });
+    render(<ControlPanel />);
+    expect(screen.getByText(/Sugestão automática:/)).toBeInTheDocument();
+  });
+
+  it("permite sobrepor o BTU manualmente", async () => {
+    render(<ControlPanel />);
+    const select = screen.getByLabelText(/Ar-condicionado \(BTU/i);
+    await userEvent.selectOptions(select, "36000");
+    expect(useProjectStore.getState().acOverrideBTU).toBe(36000);
+  });
 });

@@ -53,4 +53,13 @@ describe("catalog store", () => {
   it("rejeita JSON que não é um array", () => {
     expect(() => importCatalogJSON('{"a":1}')).toThrow();
   });
+
+  it("rejeita import com array vazio", () => {
+    expect(() => importCatalogJSON("[]")).toThrow();
+  });
+
+  it("rejeita import com item faltando campos obrigatórios", () => {
+    const invalid = JSON.stringify([{ id: "x", brand: "Y" }]);
+    expect(() => importCatalogJSON(invalid)).toThrow();
+  });
 });

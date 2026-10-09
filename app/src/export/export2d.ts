@@ -26,26 +26,47 @@ export async function exportFloorPlanPDF(
   );
 
   const imgMargin = 10;
-  const imgWidth = pageWidth - imgMargin * 2;
-  const imgHeight = pageHeight - 30;
-  doc.addImage(pngDataUrl, "PNG", imgMargin, 24, imgWidth, imgHeight, undefined, "FAST");
+  const maxWidth = pageWidth - imgMargin * 2;
+  const maxHeight = pageHeight - 30;
+  const viewBox = svg.viewBox.baseVal;
+  const svgAspect = (viewBox.width || svg.clientWidth) / (viewBox.height || svg.clientHeight);
+
+  let imgWidth = maxWidth;
+  let imgHeight = imgWidth / svgAspect;
+  if (imgHeight > maxHeight) {
+    imgHeight = maxHeight;
+    imgWidth = imgHeight * svgAspect;
+  }
+  const imgX = imgMargin + (maxWidth - imgWidth) / 2;
+
+  doc.addImage(pngDataUrl, "PNG", imgX, 24, imgWidth, imgHeight, undefined, "FAST");
 
   doc.save(filename);
 }
 
 function svgToPngDataUrl(svg: SVGSVGElement): Promise<string> {
+  const PIXEL_RATIO = 3;
   return new Promise((resolve, reject) => {
+    const viewBox = svg.viewBox.baseVal;
+    const baseWidth = viewBox.width || svg.clientWidth;
+    const baseHeight = viewBox.height || svg.clientHeight;
+    const targetWidth = baseWidth * PIXEL_RATIO;
+    const targetHeight = baseHeight * PIXEL_RATIO;
+
+    const clone = svg.cloneNode(true) as SVGSVGElement;
+    clone.setAttribute("width", String(targetWidth));
+    clone.setAttribute("height", String(targetHeight));
+
     const serializer = new XMLSerializer();
-    const svgString = serializer.serializeToString(svg);
+    const svgString = serializer.serializeToString(clone);
     const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(svgBlob);
 
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement("canvas");
-      const viewBox = svg.viewBox.baseVal;
-      canvas.width = viewBox.width || svg.clientWidth;
-      canvas.height = viewBox.height || svg.clientHeight;
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
       const ctx = canvas.getContext("2d");
       if (!ctx) {
         reject(new Error("Canvas 2D context indisponível."));

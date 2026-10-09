@@ -40,12 +40,17 @@ export function computeLayout(state: ProjectState, catalog: CatalogMachine[]): L
       ? state.roomWidthMm - LATERAL_CLEARANCE_MM - rowWidth
       : LATERAL_CLEARANCE_MM;
 
+  const maxDepthMm = Math.max(...list.map((m) => m.depthMm));
+  const maxHeightMm = Math.max(...list.map((m) => m.heightMm));
+  const drywallY = TECH_AREA_DEFAULT_MM + maxDepthMm;
+
   let cursorX = startX;
   const placed: PlacedMachine[] = list.map((m, i) => {
     const p: PlacedMachine = {
       catalogId: m.id,
       instanceIndex: i,
       x: cursorX,
+      y: drywallY - m.depthMm,
       widthMm: m.widthMm,
       depthMm: m.depthMm,
       heightMm: m.heightMm,
@@ -53,10 +58,6 @@ export function computeLayout(state: ProjectState, catalog: CatalogMachine[]): L
     cursorX += m.widthMm + MACHINE_GAP_MM;
     return p;
   });
-
-  const maxDepthMm = Math.max(...list.map((m) => m.depthMm));
-  const maxHeightMm = Math.max(...list.map((m) => m.heightMm));
-  const drywallY = TECH_AREA_DEFAULT_MM + maxDepthMm;
 
   const openings: DrywallOpening[] = placed.map((p) => ({
     x: p.x,

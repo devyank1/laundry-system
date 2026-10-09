@@ -39,6 +39,7 @@ export interface PlacedMachine {
   catalogId: string;
   instanceIndex: number;
   x: number;
+  y: number;
   widthMm: number;
   depthMm: number;
   heightMm: number;
@@ -76,7 +77,8 @@ export type ViolationCode =
   | "NO_MACHINES"
   | "WIDTH_TOO_SMALL"
   | "DEPTH_TOO_SMALL"
-  | "CEILING_TOO_LOW";
+  | "CEILING_TOO_LOW"
+  | "FURNITURE_WIDTH_TOO_SMALL";
 
 export interface Violation {
   code: ViolationCode;

@@ -67,10 +67,28 @@ export function exportCatalogJSON(): string {
   return JSON.stringify(getCatalog(), null, 2);
 }
 
+function isValidMachine(m: unknown): m is CatalogMachine {
+  if (typeof m !== "object" || m === null) return false;
+  const c = m as Record<string, unknown>;
+  return (
+    typeof c.id === "string" && c.id.length > 0 &&
+    typeof c.brand === "string" && c.brand.length > 0 &&
+    typeof c.model === "string" && c.model.length > 0 &&
+    (c.type === "lavadora" || c.type === "secadora" || c.type === "stack") &&
+    typeof c.widthMm === "number" && c.widthMm > 0 &&
+    typeof c.depthMm === "number" && c.depthMm > 0 &&
+    typeof c.heightMm === "number" && c.heightMm > 0
+  );
+}
+
 export function importCatalogJSON(json: string): CatalogMachine[] {
-  const parsed = JSON.parse(json) as CatalogMachine[];
-  if (!Array.isArray(parsed)) {
-    throw new Error("JSON inválido: esperado um array de máquinas.");
+  const parsed = JSON.parse(json) as unknown;
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    throw new Error("JSON inválido: esperado um array não vazio de máquinas.");
+  }
+  const invalidIndex = parsed.findIndex((item) => !isValidMachine(item));
+  if (invalidIndex !== -1) {
+    throw new Error(`JSON inválido: item no índice ${invalidIndex} está incompleto ou com valores inválidos.`);
   }
   persist(parsed);
   return parsed;

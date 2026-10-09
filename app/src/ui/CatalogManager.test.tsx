@@ -42,4 +42,16 @@ describe("CatalogManager", () => {
     await userEvent.click(screen.getByRole("button", { name: /fechar/i }));
     expect(onClose).toHaveBeenCalled();
   });
+
+  it("mostra erro ao tentar adicionar máquina com ID duplicado", async () => {
+    render(<CatalogManager onClose={() => {}} />);
+    await userEvent.type(screen.getByLabelText("ID"), "sq-stack");
+    await userEvent.type(screen.getByLabelText("Marca"), "Teste");
+    await userEvent.type(screen.getByLabelText("Modelo"), "Teste");
+    await userEvent.type(screen.getByLabelText(/largura/i), "700");
+    await userEvent.type(screen.getByLabelText(/profundidade/i), "800");
+    await userEvent.type(screen.getByLabelText(/altura/i), "2000");
+    await userEvent.click(screen.getByRole("button", { name: /adicionar/i }));
+    expect(screen.getByRole("alert")).toHaveTextContent(/já existe/i);
+  });
 });

@@ -82,7 +82,10 @@ describe("validate", () => {
   });
 
   it("retorna WIDTH_TOO_SMALL com o valor mínimo sugerido", () => {
-    const violations = validate({ ...baseState, roomWidthMm: 1000 }, catalog);
+    const violations = validate(
+      { ...baseState, roomWidthMm: 1000, furnitureEnabled: false },
+      catalog
+    );
     expect(violations).toEqual([
       expect.objectContaining({
         code: "WIDTH_TOO_SMALL",
@@ -112,5 +115,23 @@ describe("validate", () => {
         suggestedValueMm: 1986 + 300,
       }),
     ]);
+  });
+
+  it("retorna FURNITURE_WIDTH_TOO_SMALL quando o mobiliário não cabe na largura", () => {
+    const violations = validate(
+      { ...baseState, roomWidthMm: 1700, furnitureEnabled: true },
+      catalog
+    );
+    expect(violations).toContainEqual(
+      expect.objectContaining({ code: "FURNITURE_WIDTH_TOO_SMALL", field: "roomWidthMm" })
+    );
+  });
+
+  it("não retorna FURNITURE_WIDTH_TOO_SMALL quando furnitureEnabled é false", () => {
+    const violations = validate(
+      { ...baseState, roomWidthMm: 1700, furnitureEnabled: false },
+      catalog
+    );
+    expect(violations.find((v) => v.code === "FURNITURE_WIDTH_TOO_SMALL")).toBeUndefined();
   });
 });

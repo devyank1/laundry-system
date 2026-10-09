@@ -5,6 +5,7 @@ import {
   DRYWALL_THICKNESS_MM,
   SALON_MIN_DEPTH_MM,
   CEILING_CLEARANCE_MM,
+  FURNITURE_BLOCK_WIDTH_MM,
 } from "./constants";
 import type { CatalogMachine, MachineSelection, ProjectState, Violation } from "./types";
 
@@ -81,6 +82,15 @@ export function validate(state: ProjectState, catalog: CatalogMachine[]): Violat
       message: `Largura insuficiente para o maquinário escolhido. Mínimo: ${(minWidth / 1000).toFixed(2)}m.`,
       field: "roomWidthMm",
       suggestedValueMm: minWidth,
+    });
+  }
+
+  if (state.furnitureEnabled && state.roomWidthMm < FURNITURE_BLOCK_WIDTH_MM) {
+    violations.push({
+      code: "FURNITURE_WIDTH_TOO_SMALL",
+      message: `Largura insuficiente para o mobiliário (mesa + cadeiras). Mínimo: ${(FURNITURE_BLOCK_WIDTH_MM / 1000).toFixed(2)}m.`,
+      field: "roomWidthMm",
+      suggestedValueMm: Math.max(minWidth, FURNITURE_BLOCK_WIDTH_MM),
     });
   }
 

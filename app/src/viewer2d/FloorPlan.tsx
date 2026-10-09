@@ -28,7 +28,7 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout }>(function 
         <rect
           key={`${machine.catalogId}-${machine.instanceIndex}`}
           x={mm(machine.x)}
-          y={0}
+          y={mm(machine.y)}
           width={mm(machine.widthMm)}
           height={mm(machine.depthMm)}
           fill="#9fb8d9"
@@ -38,6 +38,14 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout }>(function 
 
       <line
         x1={0}
+        y1={mm(layout.drywall.y)}
+        x2={mm(layout.techCorridor.x)}
+        y2={mm(layout.drywall.y)}
+        stroke="#8a5a2b"
+        strokeWidth={4}
+      />
+      <line
+        x1={mm(layout.techCorridor.x + layout.techCorridor.width)}
         y1={mm(layout.drywall.y)}
         x2={width}
         y2={mm(layout.drywall.y)}

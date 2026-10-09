@@ -100,4 +100,11 @@ describe("computeLayout", () => {
     const result = computeLayout({ ...validState, doorEnabled: false }, catalog);
     expect(result.layout!.frontDoor).toBeNull();
   });
+
+  it("alinha a face frontal de cada máquina com a linha do drywall", () => {
+    const result = computeLayout(validState, catalog);
+    for (const m of result.layout!.machines) {
+      expect(m.y + m.depthMm).toBe(result.layout!.drywall.y);
+    }
+  });
 });
