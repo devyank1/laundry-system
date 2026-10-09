@@ -1,0 +1,49 @@
+.app {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  grid-template-rows: auto auto 1fr;
+  gap: 16px;
+  padding: 16px;
+  min-height: 100vh;
+}
+
+.app > section[aria-label="Parâmetros da lavanderia"] {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+}
+
+.app > ul[role="alert"] {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.app > nav {
+  grid-column: 2;
+  grid-row: 2;
+  display: flex;
+  gap: 8px;
+}
+
+.app svg[role="img"],
+.app canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+@media (max-width: 768px) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+  }
+
+  .app > section[aria-label="Parâmetros da lavanderia"] {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .app > ul[role="alert"],
+  .app > nav {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}

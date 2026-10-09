@@ -6,7 +6,7 @@
 
 **Architecture:** Motor de layout puro (`engine/`) sem dependência de React/Three, 100% testável por unidade, consumido por um hook (`useLayout`) que combina estado Zustand (`projectStore`) + catálogo editável (`catalog/store`, persistido em `localStorage`). Dois viewers (SVG 2D e React-Three-Fiber 3D) renderizam a partir do mesmo objeto `Layout` — nunca divergem. Sem backend.
 
-**Tech Stack:** React 18 + TypeScript + Vite, Zustand, Three.js via `@react-three/fiber` + `@react-three/drei`, `jspdf` para export PDF, Vitest + Testing Library para testes.
+**Tech Stack:** React 19 + TypeScript + Vite, Zustand, Three.js via `@react-three/fiber` + `@react-three/drei`, `jspdf` para export PDF, Vitest + Testing Library para testes. (React 19 porque `@react-three/fiber` v9 exige React 19 como peer dependency — ver ruling no ledger da Task 1.)
 
 **Spec:** `docs/superpowers/specs/2026-10-08-configurador-lavanderia-design.md`
 
@@ -1244,7 +1244,7 @@ interface ProjectStore extends ProjectState {
 
 const initialState: ProjectState = {
   roomWidthMm: 4000,
-  roomDepthMm: 3500,
+  roomDepthMm: 4000,
   ceilingHeightMm: 2700,
   machines: [{ catalogId: "sq-stack", qty: 3 }],
   doorEnabled: true,
