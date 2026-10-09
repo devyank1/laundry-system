@@ -47,39 +47,43 @@ export function App() {
       {layout && tab === "2d" && (
         <>
           <FloorPlan ref={setSvgEl} layout={layout} />
-          <button
-            type="button"
-            disabled={!canExport || !svgEl}
-            onClick={() => svgEl && exportFloorPlanPNG(svgEl)}
-          >
-            Baixar PNG
-          </button>
-          <button
-            type="button"
-            disabled={!canExport || !svgEl}
-            onClick={() =>
-              svgEl &&
-              exportFloorPlanPDF(svgEl, {
-                projectName: "Minha Lavanderia",
-                areaM2: (layout.roomWidthMm / 1000) * (layout.roomDepthMm / 1000),
-              })
-            }
-          >
-            Baixar PDF
-          </button>
+          <div className="export-actions">
+            <button
+              type="button"
+              disabled={!canExport || !svgEl}
+              onClick={() => svgEl && exportFloorPlanPNG(svgEl)}
+            >
+              Baixar PNG
+            </button>
+            <button
+              type="button"
+              disabled={!canExport || !svgEl}
+              onClick={() =>
+                svgEl &&
+                exportFloorPlanPDF(svgEl, {
+                  projectName: "Minha Lavanderia",
+                  areaM2: (layout.roomWidthMm / 1000) * (layout.roomDepthMm / 1000),
+                })
+              }
+            >
+              Baixar PDF
+            </button>
+          </div>
         </>
       )}
 
       {layout && tab === "3d" && (
         <>
           <Scene layout={layout} onCanvasReady={setCanvasEl} />
-          <button
-            type="button"
-            disabled={!canExport || !canvasEl}
-            onClick={() => canvasEl && exportSceneScreenshot(canvasEl)}
-          >
-            Baixar imagem 3D
-          </button>
+          <div className="export-actions">
+            <button
+              type="button"
+              disabled={!canExport || !canvasEl}
+              onClick={() => canvasEl && exportSceneScreenshot(canvasEl)}
+            >
+              Baixar imagem 3D
+            </button>
+          </div>
         </>
       )}
     </div>

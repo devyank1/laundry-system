@@ -1,7 +1,7 @@
 .app {
   display: grid;
   grid-template-columns: 320px 1fr;
-  grid-template-rows: auto auto auto auto 1fr;
+  grid-template-rows: auto auto auto auto 1fr auto;
   gap: 20px;
   align-items: start;
   max-width: 1320px;
@@ -327,22 +327,27 @@
   animation: fade-in 220ms ease;
 }
 
-/* Export action buttons (Baixar PNG/PDF/imagem 3D) render as direct children of
-   .app, right after the svg/canvas, via React fragments (no wrapper element). */
-.app > button:not(:first-of-type) {
+/* Export action buttons (Baixar PNG/PDF/imagem 3D) sit in their own row,
+   below the viewer, laid out side by side. */
+.app > div.export-actions {
   grid-column: 2;
-  justify-self: start;
-  margin-top: 4px;
+  grid-row: 6;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.app div.export-actions button {
   background: var(--primary-bg);
   color: var(--primary);
   box-shadow: none;
 }
 
-.app > button:not(:first-of-type)::before {
+.app div.export-actions button::before {
   content: "⬇ ";
 }
 
-.app > button:not(:first-of-type):hover:not(:disabled) {
+.app div.export-actions button:hover:not(:disabled) {
   background: var(--accent-bg);
   color: var(--accent);
 }
@@ -550,7 +555,7 @@
   .app > p,
   .app svg[role="img"],
   .app canvas,
-  .app > button:not(:first-of-type) {
+  .app > div.export-actions {
     grid-column: 1;
     grid-row: auto;
   }
