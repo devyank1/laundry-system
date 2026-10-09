@@ -71,19 +71,22 @@ export function CatalogManager({ onClose }: { onClose: () => void }) {
 
   return (
     <div role="dialog" aria-label="Gerenciar catálogo de máquinas">
-      <button type="button" onClick={onClose}>
-        Fechar
+      <button type="button" onClick={onClose} className="dialog-close" aria-label="Fechar">
+        ✕
       </button>
-      <button type="button" onClick={() => restoreDefaults()}>
-        Restaurar padrão
-      </button>
-      <button type="button" onClick={handleExport}>
-        Exportar JSON
-      </button>
-      <label>
-        Importar JSON
-        <input type="file" accept="application/json" onChange={handleImport} />
-      </label>
+      <h2>Gerenciar máquinas</h2>
+      <div className="dialog-toolbar">
+        <button type="button" onClick={() => restoreDefaults()}>
+          Restaurar padrão
+        </button>
+        <button type="button" onClick={handleExport}>
+          Exportar JSON
+        </button>
+        <label>
+          Importar JSON
+          <input type="file" accept="application/json" onChange={handleImport} />
+        </label>
+      </div>
 
       <ul>
         {catalog.map((m) => (

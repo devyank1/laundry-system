@@ -2,29 +2,48 @@
   display: grid;
   grid-template-columns: 320px 1fr;
   grid-template-rows: auto auto auto auto 1fr;
-  gap: 16px;
+  gap: 20px;
   align-items: start;
-  max-width: 1280px;
+  max-width: 1320px;
   margin: 0 auto;
-  padding: 24px 16px;
+  padding: 28px 20px 60px;
   min-height: 100vh;
 }
+
+/* ---------- Header ---------- */
 
 .app > header {
   grid-column: 1 / -1;
   grid-row: 1;
   margin-bottom: 4px;
+  padding: 28px 32px;
+  border-radius: var(--radius-lg);
+  background: var(--gradient);
+  box-shadow: var(--shadow-lg);
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+
+.app > header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(420px circle at 85% -20%, rgba(255, 255, 255, 0.18), transparent 60%);
+  pointer-events: none;
 }
 
 .app > header h1 {
-  margin: 0 0 4px;
-  font-size: 22px;
+  margin: 0 0 6px;
+  font-size: 26px;
+  font-weight: 800;
+  color: #fff;
 }
 
 .app > header p {
   margin: 0;
-  color: var(--text-muted);
-  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14.5px;
 }
 
 /* ---------- Control panel (left sidebar) ---------- */
@@ -34,12 +53,12 @@
   grid-row: 2 / span 4;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
-  padding: 20px;
+  padding: 22px;
   align-self: start;
   position: sticky;
   top: 24px;
@@ -52,15 +71,16 @@
   flex-direction: column;
   gap: 6px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-muted);
 }
 
 .app section label:has(input[type="checkbox"]) {
   flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-size: 14px;
+  font-weight: 500;
   color: var(--text);
 }
 
@@ -68,44 +88,53 @@
 .app section input[type="text"],
 .app section select {
   font-size: 14px;
+  font-weight: 500;
   color: var(--text);
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 8px 10px;
-  transition: border-color var(--transition), box-shadow var(--transition);
+  padding: 9px 11px;
+  transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+}
+
+.app section input[type="number"]:hover,
+.app section select:hover {
+  border-color: var(--primary-soft);
 }
 
 .app section input[type="number"]:focus,
 .app section input[type="text"]:focus,
 .app section select:focus {
   outline: none;
-  border-color: var(--primary-soft);
-  box-shadow: 0 0 0 3px rgba(159, 184, 217, 0.4);
+  border-color: var(--accent);
+  background: #fff;
+  box-shadow: 0 0 0 4px var(--accent-bg);
 }
 
 .app section input[type="checkbox"] {
-  width: 17px;
-  height: 17px;
-  accent-color: var(--primary);
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  flex-shrink: 0;
 }
 
 .app fieldset {
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 12px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 10px;
   margin: 0;
+  background: linear-gradient(180deg, rgba(107, 63, 160, 0.03), transparent 40%);
 }
 
 .app fieldset legend {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11.5px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  color: var(--accent);
   padding: 0 4px;
 }
 
@@ -114,7 +143,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  font-weight: 400;
+  font-weight: 500;
   color: var(--text);
 }
 
@@ -125,34 +154,35 @@
 
 .app section label p {
   margin: 0;
-  font-size: 12px;
-  color: var(--text-muted);
+  font-size: 12.5px;
+  color: var(--accent);
+  font-weight: 600;
 }
 
 /* ---------- Generic buttons ---------- */
 
 .app button {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--primary);
   background: var(--primary-bg);
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
-  padding: 9px 16px;
-  transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+  padding: 10px 18px;
+  transition: all var(--transition);
 }
 
 .app button:hover:not(:disabled) {
-  background: var(--primary-soft);
-  color: #fff;
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
 }
 
 .app button:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: translateY(0) scale(0.98);
 }
 
 .app button:disabled {
-  color: var(--text-muted);
+  color: #a8b1c0;
   background: var(--border);
 }
 
@@ -160,6 +190,17 @@
   grid-column: 2;
   grid-row: 2;
   justify-self: start;
+  background: var(--gradient);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+.app > button::before {
+  content: "⚙️ ";
+}
+
+.app > button:hover:not(:disabled) {
+  box-shadow: var(--shadow);
 }
 
 /* ---------- Violations ---------- */
@@ -182,20 +223,26 @@
   justify-content: space-between;
   gap: 12px;
   background: var(--danger-bg);
-  border: 1px solid #f3c6c2;
+  border: 1px solid #f4cac5;
   color: var(--danger);
   border-radius: var(--radius-sm);
-  padding: 10px 14px;
-  font-size: 13px;
+  padding: 11px 16px;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.app > ul[role="alert"] li::before {
+  content: "⚠️";
+  margin-right: 6px;
 }
 
 .app > ul[role="alert"] button {
   flex-shrink: 0;
   background: #fff;
-  border: 1px solid var(--danger);
+  border: 1.5px solid var(--danger);
   color: var(--danger);
-  padding: 6px 12px;
-  font-size: 12px;
+  padding: 7px 14px;
+  font-size: 12.5px;
 }
 
 .app > ul[role="alert"] button:hover:not(:disabled) {
@@ -213,19 +260,31 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 4px;
+  padding: 5px;
   width: fit-content;
+  box-shadow: var(--shadow-sm);
 }
 
 .app > nav button {
   background: transparent;
   color: var(--text-muted);
   border-radius: var(--radius-sm);
+  padding: 9px 20px;
 }
 
 .app > nav button:hover:not(:disabled) {
   background: var(--primary-bg);
   color: var(--primary);
+  transform: none;
+  box-shadow: none;
+}
+
+.app > nav button:first-of-type::before {
+  content: "📐 ";
+}
+
+.app > nav button:last-of-type::before {
+  content: "🧊 ";
 }
 
 /* ---------- Viewer area ---------- */
@@ -233,8 +292,16 @@
 .app > p {
   grid-column: 2;
   grid-row: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 280px;
   color: var(--text-muted);
-  font-size: 14px;
+  font-size: 14.5px;
+  background: var(--surface);
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius-lg);
 }
 
 .app svg[role="img"] {
@@ -245,7 +312,7 @@
   height: auto;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   animation: fade-in 220ms ease;
 }
@@ -255,7 +322,7 @@
   grid-row: 5;
   width: 100%;
   aspect-ratio: 4 / 3;
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   animation: fade-in 220ms ease;
 }
@@ -266,6 +333,18 @@
   grid-column: 2;
   justify-self: start;
   margin-top: 4px;
+  background: var(--primary-bg);
+  color: var(--primary);
+  box-shadow: none;
+}
+
+.app > button:not(:first-of-type)::before {
+  content: "⬇ ";
+}
+
+.app > button:not(:first-of-type):hover:not(:disabled) {
+  background: var(--accent-bg);
+  color: var(--accent);
 }
 
 /* ---------- Catalog manager (modal) ---------- */
@@ -276,17 +355,67 @@
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 50;
-  width: min(480px, calc(100vw - 32px));
+  width: min(520px, calc(100vw - 32px));
   max-height: calc(100vh - 64px);
   overflow-y: auto;
   background: var(--surface);
-  border-radius: var(--radius);
-  padding: 24px;
+  border-radius: var(--radius-lg);
+  padding: 28px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  box-shadow: 0 0 0 100vmax rgba(15, 23, 42, 0.45), 0 20px 40px rgba(15, 23, 42, 0.25);
-  animation: pop-in 180ms ease;
+  box-shadow: 0 0 0 100vmax rgba(15, 20, 35, 0.5), var(--shadow-lg);
+  animation: pop-in 200ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+.app div[role="dialog"] h2 {
+  margin: 0;
+  font-size: 19px;
+  padding-right: 32px;
+}
+
+.app div[role="dialog"] .dialog-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  color: var(--text-muted);
+  border-radius: 50%;
+}
+
+.app div[role="dialog"] .dialog-close:hover {
+  background: var(--danger-bg);
+  color: var(--danger);
+  transform: none;
+}
+
+.app div[role="dialog"] .dialog-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.app div[role="dialog"] .dialog-toolbar label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.app div[role="dialog"] .dialog-toolbar input[type="file"] {
+  font-size: 12px;
+  max-width: 180px;
 }
 
 .app div[role="dialog"] ul {
@@ -307,8 +436,15 @@
   gap: 12px;
   background: var(--bg);
   border-radius: var(--radius-sm);
-  padding: 8px 12px;
+  padding: 10px 14px;
   font-size: 13px;
+}
+
+.app div[role="dialog"] li button {
+  background: #fff;
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  font-size: 12px;
 }
 
 .app div[role="dialog"] fieldset {
@@ -317,33 +453,40 @@
   gap: 10px;
 }
 
+.app div[role="dialog"] fieldset legend {
+  grid-column: 1 / -1;
+}
+
 .app div[role="dialog"] fieldset label {
   flex-direction: column;
   align-items: stretch;
-  font-weight: 400;
+  font-weight: 600;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 11.5px;
 }
 
 .app div[role="dialog"] fieldset input,
 .app div[role="dialog"] fieldset select {
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 7px 9px;
+  padding: 8px 10px;
   font-size: 13px;
 }
 
 .app div[role="dialog"] fieldset button {
   grid-column: 1 / -1;
+  background: var(--gradient);
+  color: #fff;
 }
 
 .app div[role="dialog"] > [role="alert"] {
   background: var(--danger-bg);
   color: var(--danger);
   border-radius: var(--radius-sm);
-  padding: 8px 12px;
+  padding: 10px 14px;
   font-size: 13px;
   margin: 0;
+  font-weight: 500;
 }
 
 /* ---------- Animations ---------- */
@@ -351,9 +494,11 @@
 @keyframes fade-in {
   from {
     opacity: 0;
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -371,7 +516,7 @@
 @keyframes pop-in {
   from {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.96);
+    transform: translate(-50%, -50%) scale(0.94);
   }
   to {
     opacity: 1;
@@ -384,7 +529,11 @@
 @media (max-width: 860px) {
   .app {
     grid-template-columns: 1fr;
-    padding: 16px;
+    padding: 16px 16px 48px;
+  }
+
+  .app > header {
+    padding: 22px 20px;
   }
 
   .app > section[aria-label="Parâmetros da lavanderia"] {
@@ -408,5 +557,9 @@
 
   .app canvas {
     aspect-ratio: 4 / 3;
+  }
+
+  .app div[role="dialog"] fieldset {
+    grid-template-columns: 1fr;
   }
 }
