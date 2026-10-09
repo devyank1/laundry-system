@@ -1,0 +1,1 @@
+21:22:38 [session-end] WARNING: save-session.sh --force exited 1 at session end -- this session's unsaved tail may be lost. See /home/seidor/Documents/lavanderia/.remember/logs/autonomous/session-end-212235-213579.log for what save-session.sh itself logged.
