@@ -20,6 +20,11 @@ export function App() {
 
   return (
     <div className="app">
+      <header>
+        <h1>Configurador de Lavanderia</h1>
+        <p>Monte a planta da sua lavanderia e baixe em 2D ou 3D.</p>
+      </header>
+
       <ControlPanel />
       <ViolationsPanel violations={violations} />
 
