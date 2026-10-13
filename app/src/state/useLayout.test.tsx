@@ -27,8 +27,8 @@ describe("useLayout", () => {
   it("recalcula quando o estado do projeto muda", () => {
     const { result } = renderHook(() => useLayout());
     act(() => {
-      useProjectStore.getState().setMachineQty("sq-stack", 5);
+      useProjectStore.getState().setMachineQty("sq-stack", 4);
     });
-    expect(result.current.layout?.machines).toHaveLength(5);
+    expect(result.current.layout?.machines).toHaveLength(4);
   });
 });

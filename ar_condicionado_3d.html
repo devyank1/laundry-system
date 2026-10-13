@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modelo 3D - Ar Condicionado Split Moderno</title>
+    
+    <!-- Three.js Library and OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #f3f4f6; /* Base background matching the wall */
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 12px 24px;
+            border-radius: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        h1 { margin: 0; font-size: 16px; color: #1f2937; font-weight: 600; }
+        p { margin: 4px 0 0 0; font-size: 12px; color: #4b5563; }
+
+        /* Loader */
+        #loader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: 600;
+            color: #1f2937;
+            z-index: 5;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <h1>Ar Condicionado Split 3D</h1>
+        <p>Arraste para girar • Role para zoom</p>
+    </div>
+    <div id="loader">Carregando Modelo 3D...</div>
+    <div id="canvas-container"></div>
+
+    <script>
+        let scene, camera, renderer, controls;
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            // Scene Setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf3f4f6);
+
+            // Camera Setup
+            camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, -0.5, 6); // Positioned directly in front, slightly below
+
+            // Renderer Setup
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            // Tone mapping for realistic lighting
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.0;
+            container.appendChild(renderer.domElement);
+
+            // OrbitControls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(0, 0, 0); 
+            // Restrict camera to keep the wall in the background
+            controls.maxPolarAngle = Math.PI / 2 + 0.2; 
+            controls.minAzimuthAngle = -Math.PI / 3;
+            controls.maxAzimuthAngle = Math.PI / 3;
+            controls.minDistance = 3;
+            controls.maxDistance = 12;
+
+            setupLighting();
+            buildACUnit();
+            buildEnvironment();
+
+            // Hide loader
+            document.getElementById('loader').style.display = 'none';
+
+            window.addEventListener('resize', onWindowResize, false);
+            animate();
+        }
+
+        function setupLighting() {
+            // Soft ambient light
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            // Main Directional Light (Key Light) - casts shadows
+            const keyLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            keyLight.position.set(3, 5, 4);
+            keyLight.castShadow = true;
+            keyLight.shadow.mapSize.width = 2048;
+            keyLight.shadow.mapSize.height = 2048;
+            keyLight.shadow.bias = -0.0005;
+            scene.add(keyLight);
+
+            // Fill light from the opposite side
+            const fillLight = new THREE.DirectionalLight(0xe0e7ff, 0.4);
+            fillLight.position.set(-4, 2, 3);
+            scene.add(fillLight);
+            
+            // Point light directly in front to create a crisp specular highlight on the glossy plastic
+            const highlightLight = new THREE.PointLight(0xffffff, 0.5);
+            highlightLight.position.set(0, 1, 3);
+            scene.add(highlightLight);
+        }
+
+        function buildACUnit() {
+            const acGroup = new THREE.Group();
+
+            // --- MATERIALS ---
+            // Glossy White Plastic
+            const glossyWhite = new THREE.MeshStandardMaterial({ 
+                color: 0xffffff, 
+                roughness: 0.1,  // Very smooth
+                metalness: 0.1,  // Slight metallic feel to plastic
+                clearcoat: 1.0,  // Adds a secondary reflective layer
+                clearcoatRoughness: 0.05
+            });
+
+            // Dark matte plastic for vents
+            const darkMatte = new THREE.MeshStandardMaterial({ 
+                color: 0x111111, 
+                roughness: 0.8, 
+                metalness: 0.2 
+            });
+
+            // --- MAIN BODY (Extruded Profile) ---
+            const profile = new THREE.Shape();
+            // Start at bottom back
+            profile.moveTo(0, 0);
+            // Top back
+            profile.lineTo(0, 1.0);
+            // Top front
+            profile.lineTo(0.5, 1.0);
+            // Rounded top-front corner
+            profile.quadraticCurveTo(0.65, 1.0, 0.65, 0.85);
+            // Sloped front face
+            profile.lineTo(0.72, 0.25);
+            // Rounded bottom-front corner
+            profile.quadraticCurveTo(0.73, 0.1, 0.6, 0.1);
+            // Bottom lip
+            profile.lineTo(0.5, 0.1);
+            // Up into vent cavity
+            profile.lineTo(0.5, 0.25);
+            // Back into vent cavity
+            profile.lineTo(0.15, 0.25);
+            // Down from vent cavity
+            profile.lineTo(0.15, 0);
+            // Close shape
+            profile.lineTo(0, 0);
+
+            const extrudeSettings = {
+                depth: 4.0, // This will be the width
+                bevelEnabled: true,
+                bevelSegments: 5,
+                bevelSteps: 2,
+                bevelThickness: 0.02,
+                bevelSize: 0.02
+            };
+
+            const bodyGeo = new THREE.ExtrudeGeometry(profile, extrudeSettings);
+            bodyGeo.center(); // Center the geometry
+
+            const mainBody = new THREE.Mesh(bodyGeo, glossyWhite);
+            // The extrusion goes along Z. We drew it in XY (X=depth, Y=height).
+            // Rotate so Width (Extrusion Z) becomes X, Depth (Profile X) becomes Z.
+            mainBody.rotation.y = -Math.PI / 2;
+            mainBody.castShadow = true;
+            mainBody.receiveShadow = true;
+            acGroup.add(mainBody);
+
+            // --- DARK VENT INTERIOR ---
+            // Fill the hollow vent area created by the profile
+            const ventInteriorGeo = new THREE.BoxGeometry(3.9, 0.18, 0.35);
+            const ventInterior = new THREE.Mesh(ventInteriorGeo, darkMatte);
+            // Position it inside the cavity
+            // Width is X. Height is Y. Depth is Z.
+            // Based on profile and centering:
+            ventInterior.position.set(0, -0.38, 0.05); 
+            acGroup.add(ventInterior);
+
+            // --- LOUVERS (Aletas) ---
+            // Main horizontal flap
+            const flapGeo = new THREE.BoxGeometry(3.8, 0.015, 0.15);
+            const flap = new THREE.Mesh(flapGeo, glossyWhite);
+            flap.position.set(0, -0.42, 0.15);
+            flap.rotation.x = Math.PI / 6; // Angled downwards
+            acGroup.add(flap);
+
+            // Small vertical directional dividers
+            const dividerGeo = new THREE.BoxGeometry(0.01, 0.08, 0.12);
+            for(let i = -5; i <= 5; i++) {
+                const divider = new THREE.Mesh(dividerGeo, darkMatte);
+                divider.position.set(i * 0.35, -0.38, 0.12);
+                divider.rotation.y = -Math.PI / 12; // Slightly angled left
+                acGroup.add(divider);
+            }
+
+            // --- HIDDEN LED TEMPERATURE DISPLAY ---
+            const ledCanvas = document.createElement('canvas');
+            ledCanvas.width = 256;
+            ledCanvas.height = 128;
+            const ctx = ledCanvas.getContext('2d');
+            
+            // Black background (will be filtered out by AdditiveBlending)
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, 256, 128);
+            
+            // Glowing White/Cyan Text
+            ctx.fillStyle = '#e0ffff'; // Light cyan glow
+            ctx.shadowColor = '#00ffff';
+            ctx.shadowBlur = 15;
+            ctx.font = 'bold 80px "Inter", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('24', 110, 95);
+            
+            // Degree symbol
+            ctx.font = 'bold 30px "Inter", sans-serif';
+            ctx.fillText('°', 170, 45);
+
+            const ledTexture = new THREE.CanvasTexture(ledCanvas);
+            const ledMaterial = new THREE.MeshStandardMaterial({
+                map: ledTexture,
+                emissiveMap: ledTexture,
+                emissive: new THREE.Color(0xffffff),
+                emissiveIntensity: 1.5,
+                transparent: true,
+                blending: THREE.AdditiveBlending, // Makes black transparent
+                depthWrite: false
+            });
+
+            const ledGeo = new THREE.PlaneGeometry(0.5, 0.25);
+            const ledDisplay = new THREE.Mesh(ledGeo, ledMaterial);
+            
+            // Position carefully on the curved front surface
+            ledDisplay.position.set(0, 0, 0.32);
+            // Tilt it to match the sloped front face (-0.1 radians approx)
+            ledDisplay.rotation.x = -0.15;
+            acGroup.add(ledDisplay);
+
+            // --- BRAND LOGO (Subtle) ---
+            const logoCanvas = document.createElement('canvas');
+            logoCanvas.width = 256;
+            logoCanvas.height = 64;
+            const logoCtx = logoCanvas.getContext('2d');
+            logoCtx.fillStyle = '#888888'; // Subtle gray
+            logoCtx.font = 'bold 24px "Inter", sans-serif';
+            logoCtx.fillText('COOLAIR', 10, 40);
+
+            const logoTexture = new THREE.CanvasTexture(logoCanvas);
+            const logoMaterial = new THREE.MeshBasicMaterial({
+                map: logoTexture,
+                transparent: true,
+                depthWrite: false
+            });
+
+            const logoMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.15), logoMaterial);
+            logoMesh.position.set(-1.6, 0.35, 0.24); // Top left
+            logoMesh.rotation.x = -0.05;
+            acGroup.add(logoMesh);
+
+            // Add entire AC unit to scene
+            scene.add(acGroup);
+        }
+
+        function buildEnvironment() {
+            // A simple large wall behind the AC
+            const wallGeo = new THREE.PlaneGeometry(30, 20);
+            const wallMat = new THREE.MeshStandardMaterial({ 
+                color: 0xe5e7eb, // Light gray wall
+                roughness: 0.9,
+                metalness: 0.0
+            });
+            const wall = new THREE.Mesh(wallGeo, wallMat);
+            // Position it just behind the back of the AC
+            wall.position.set(0, 0, -0.38);
+            wall.receiveShadow = true;
+            scene.add(wall);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update(); 
+            renderer.render(scene, camera);
+        }
+
+        // Initialize on load
+        window.onload = init;
+    </script>
+</body>
+</html>

@@ -56,15 +56,17 @@ export type DrywallOpening = Rect;
 
 export interface FurnitureLayout {
   table: Rect;
-  chairs: Rect[];
+  poufs: Rect[];
   totem: Rect;
   ac: Rect;
+  acWall: "left" | "right";
 }
 
 export interface Layout {
   machines: PlacedMachine[];
   drywall: { y: number; openings: DrywallOpening[]; heightMm: number };
   techCorridor: Rect;
+  techDoor: Rect;
   frontDoor: Rect | null;
   furniture: FurnitureLayout | null;
   acSuggestedBTU: number;

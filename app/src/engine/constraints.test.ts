@@ -24,10 +24,10 @@ describe("constraints — cálculo de mínimos", () => {
     expect(machineRowWidthMm(list)).toBe(683 * 3 + 20 * 2);
   });
 
-  it("largura mínima da sala = fileira + 500mm de cada lado", () => {
+  it("largura mínima da sala = recuo 500mm + fileira + parede do totem 500mm + porta técnica 700mm", () => {
     const list = [stack, stack, stack];
     const rowWidth = machineRowWidthMm(list);
-    expect(computeMinWidthMm(list)).toBe(rowWidth + 500 + 500);
+    expect(computeMinWidthMm(list)).toBe(500 + rowWidth + 500 + 700);
   });
 
   it("profundidade mínima = área técnica + máquina mais funda + drywall + salão mínimo", () => {
@@ -90,7 +90,7 @@ describe("validate", () => {
       expect.objectContaining({
         code: "WIDTH_TOO_SMALL",
         field: "roomWidthMm",
-        suggestedValueMm: 683 + 500 + 500,
+        suggestedValueMm: 500 + 683 + 500 + 700,
       }),
     ]);
   });
@@ -124,6 +124,16 @@ describe("validate", () => {
     );
     expect(violations).toContainEqual(
       expect.objectContaining({ code: "FURNITURE_WIDTH_TOO_SMALL", field: "roomWidthMm" })
+    );
+  });
+
+  it("exige 2,00m de largura para mesa + poofs de 50cm", () => {
+    const violations = validate({ ...baseState, roomWidthMm: 1950 }, catalog);
+    expect(violations).toContainEqual(
+      expect.objectContaining({
+        code: "FURNITURE_WIDTH_TOO_SMALL",
+        message: expect.stringContaining("Mínimo: 2.00m"),
+      })
     );
   });
 

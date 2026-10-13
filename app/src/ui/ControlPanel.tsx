@@ -13,6 +13,18 @@ export function ControlPanel() {
   return (
     <section aria-label="Parâmetros da lavanderia">
       <label>
+        Área Total (m²)
+        <input
+          type="number"
+          step={0.5}
+          min={0}
+          disabled={state.roomWidthMm <= 0}
+          value={Math.round((state.roomWidthMm * state.roomDepthMm) / 10_000) / 100}
+          onChange={(e) => state.setRoomAreaM2(Number(e.target.value))}
+        />
+      </label>
+
+      <label>
         Largura (m)
         <input
           type="number"
@@ -24,7 +36,7 @@ export function ControlPanel() {
       </label>
 
       <label>
-        Profundidade (m)
+        Comprimento (m)
         <input
           type="number"
           step={0.1}

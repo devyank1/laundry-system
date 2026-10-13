@@ -32,6 +32,30 @@ describe("ControlPanel", () => {
     expect(useProjectStore.getState().roomWidthMm).toBe(6000);
   });
 
+  it("mostra a área total calculada a partir de largura x comprimento", () => {
+    render(<ControlPanel />);
+    expect(screen.getByLabelText(/área total/i)).toHaveValue(14);
+  });
+
+  it("recalcula o comprimento ao digitar a área, mantendo a largura", async () => {
+    useProjectStore.setState({ roomWidthMm: 5000 });
+    render(<ControlPanel />);
+    const input = screen.getByLabelText(/área total/i);
+    await userEvent.clear(input);
+    await userEvent.type(input, "45");
+    expect(useProjectStore.getState().roomWidthMm).toBe(5000);
+    expect(useProjectStore.getState().roomDepthMm).toBe(9000);
+    expect(screen.getByLabelText(/comprimento/i)).toHaveValue(9);
+  });
+
+  it("recalcula a área ao mudar o comprimento", async () => {
+    render(<ControlPanel />);
+    const input = screen.getByLabelText(/comprimento/i);
+    await userEvent.clear(input);
+    await userEvent.type(input, "5");
+    expect(screen.getByLabelText(/área total/i)).toHaveValue(20);
+  });
+
   it("alterna o lado de acesso técnico", async () => {
     render(<ControlPanel />);
     const select = screen.getByLabelText(/lado de acesso técnico/i);

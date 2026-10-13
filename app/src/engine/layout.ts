@@ -7,12 +7,17 @@ import {
 } from "./constraints";
 import { suggestBTU } from "./btu";
 import {
+  AC_DEPTH_MM,
+  AC_WIDTH_MM,
   DOOR_WIDTH_MM,
   DRYWALL_THICKNESS_MM,
   LATERAL_CLEARANCE_MM,
   MACHINE_GAP_MM,
+  POUF_DIAMETER_MM,
   TECH_AREA_DEFAULT_MM,
+  TECH_DOOR_WIDTH_MM,
   TOTEM_SIZE_MM,
+  TOTEM_WALL_MM,
 } from "./constants";
 import type {
   CatalogMachine,
@@ -66,15 +71,16 @@ export function computeLayout(state: ProjectState, catalog: CatalogMachine[]): L
     height: p.heightMm,
   }));
 
-  const corridorX = state.techAccessSide === "left" ? 0 : state.roomWidthMm - LATERAL_CLEARANCE_MM;
-  const techCorridor: Rect = { x: corridorX, y: 0, width: LATERAL_CLEARANCE_MM, height: drywallY };
+  const corridorX = state.techAccessSide === "left" ? 0 : state.roomWidthMm - TECH_DOOR_WIDTH_MM;
+  const techCorridor: Rect = { x: corridorX, y: 0, width: TECH_DOOR_WIDTH_MM, height: drywallY };
+  const techDoor: Rect = { x: corridorX, y: drywallY, width: TECH_DOOR_WIDTH_MM, height: 0 };
 
   const dryerCount = countDryers(resolved);
   const areaM2 = (state.roomWidthMm / 1000) * (state.roomDepthMm / 1000);
   const acSuggestedBTU = state.acOverrideBTU ?? suggestBTU(areaM2, dryerCount);
 
   const furniture = state.furnitureEnabled
-    ? placeFurniture(state, drywallY, corridorX)
+    ? placeFurniture(state, drywallY, startX, startX + rowWidth)
     : null;
 
   const frontDoor: Rect | null = state.doorEnabled
@@ -85,6 +91,7 @@ export function computeLayout(state: ProjectState, catalog: CatalogMachine[]): L
     machines: placed,
     drywall: { y: drywallY, openings, heightMm: maxHeightMm + 200 },
     techCorridor,
+    techDoor,
     frontDoor,
     furniture,
     acSuggestedBTU,
@@ -96,12 +103,21 @@ export function computeLayout(state: ProjectState, catalog: CatalogMachine[]): L
   return { layout, violations: [] };
 }
 
-function placeFurniture(state: ProjectState, drywallY: number, corridorX: number): FurnitureLayout {
+function placeFurniture(
+  state: ProjectState,
+  drywallY: number,
+  rowStartX: number,
+  rowEndX: number
+): FurnitureLayout {
   const salonFrontY = drywallY + DRYWALL_THICKNESS_MM;
+  // Ar-condicionado fica do lado oposto à porta técnica.
+  const oppositeSide = state.techAccessSide === "left" ? "right" : "left";
 
+  // Totem embutido no trecho de 50cm de drywall entre a última máquina e a porta técnica.
+  const totemWallX = state.techAccessSide === "left" ? rowStartX - TOTEM_WALL_MM : rowEndX;
   const totem: Rect = {
-    x: corridorX + (LATERAL_CLEARANCE_MM - TOTEM_SIZE_MM.width) / 2,
-    y: salonFrontY,
+    x: totemWallX + (TOTEM_WALL_MM - TOTEM_SIZE_MM.width) / 2,
+    y: drywallY,
     width: TOTEM_SIZE_MM.width,
     height: TOTEM_SIZE_MM.depth,
   };
@@ -116,30 +132,36 @@ function placeFurniture(state: ProjectState, drywallY: number, corridorX: number
     height: tableDepth,
   };
 
-  const chairSize = 400;
-  const chairs: Rect[] = [
+  const pouf = POUF_DIAMETER_MM;
+  const poufs: Rect[] = [
     {
-      x: table.x - chairSize - 50,
-      y: table.y + tableDepth / 2 - chairSize / 2,
-      width: chairSize,
-      height: chairSize,
+      x: table.x - pouf - 50,
+      y: table.y + tableDepth / 2 - pouf / 2,
+      width: pouf,
+      height: pouf,
     },
     {
       x: table.x + tableWidth + 50,
-      y: table.y + tableDepth / 2 - chairSize / 2,
-      width: chairSize,
-      height: chairSize,
+      y: table.y + tableDepth / 2 - pouf / 2,
+      width: pouf,
+      height: pouf,
     },
     {
-      x: table.x + tableWidth / 2 - chairSize / 2,
+      x: table.x + tableWidth / 2 - pouf / 2,
       y: table.y + tableDepth + 50,
-      width: chairSize,
-      height: chairSize,
+      width: pouf,
+      height: pouf,
     },
   ];
 
-  const acWidth = 900;
-  const ac: Rect = { x: state.roomWidthMm / 2 - acWidth / 2, y: 0, width: acWidth, height: 200 };
+  // Ar-condicionado na parede lateral, no meio do salão onde o cliente circula.
+  const salonCenterY = (salonFrontY + state.roomDepthMm) / 2;
+  const ac: Rect = {
+    x: oppositeSide === "left" ? 0 : state.roomWidthMm - AC_DEPTH_MM,
+    y: salonCenterY - AC_WIDTH_MM / 2,
+    width: AC_DEPTH_MM,
+    height: AC_WIDTH_MM,
+  };
 
-  return { table, chairs, totem, ac };
+  return { table, poufs, totem, ac, acWall: oppositeSide };
 }

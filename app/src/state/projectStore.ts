@@ -4,6 +4,7 @@ import type { MachineSelection, ProjectState, TechAccessSide } from "../engine/t
 interface ProjectStore extends ProjectState {
   setRoomWidthMm: (mm: number) => void;
   setRoomDepthMm: (mm: number) => void;
+  setRoomAreaM2: (areaM2: number) => void;
   setCeilingHeightMm: (mm: number) => void;
   setMachineQty: (catalogId: string, qty: number) => void;
   removeMachine: (catalogId: string) => void;
@@ -28,6 +29,12 @@ export const useProjectStore = create<ProjectStore>()((set) => ({
   ...initialState,
   setRoomWidthMm: (mm) => set({ roomWidthMm: mm }),
   setRoomDepthMm: (mm) => set({ roomDepthMm: mm }),
+  setRoomAreaM2: (areaM2) =>
+    set((state) =>
+      state.roomWidthMm > 0
+        ? { roomDepthMm: Math.round((areaM2 * 1_000_000) / state.roomWidthMm) }
+        : {}
+    ),
   setCeilingHeightMm: (mm) => set({ ceilingHeightMm: mm }),
   setMachineQty: (catalogId, qty) =>
     set((state) => {

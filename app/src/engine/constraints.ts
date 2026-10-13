@@ -6,6 +6,8 @@ import {
   SALON_MIN_DEPTH_MM,
   CEILING_CLEARANCE_MM,
   FURNITURE_BLOCK_WIDTH_MM,
+  TECH_DOOR_WIDTH_MM,
+  TOTEM_WALL_MM,
 } from "./constants";
 import type { CatalogMachine, MachineSelection, ProjectState, Violation } from "./types";
 
@@ -37,7 +39,8 @@ export function machineRowWidthMm(list: CatalogMachine[]): number {
 }
 
 export function computeMinWidthMm(list: CatalogMachine[]): number {
-  return machineRowWidthMm(list) + LATERAL_CLEARANCE_MM * 2;
+  // Recuo de 50cm + fileira + parede de 50cm do totem + porta técnica.
+  return LATERAL_CLEARANCE_MM + machineRowWidthMm(list) + TOTEM_WALL_MM + TECH_DOOR_WIDTH_MM;
 }
 
 export function computeMinDepthMm(list: CatalogMachine[]): number {
@@ -88,7 +91,7 @@ export function validate(state: ProjectState, catalog: CatalogMachine[]): Violat
   if (state.furnitureEnabled && state.roomWidthMm < FURNITURE_BLOCK_WIDTH_MM) {
     violations.push({
       code: "FURNITURE_WIDTH_TOO_SMALL",
-      message: `Largura insuficiente para o mobiliário (mesa + cadeiras). Mínimo: ${(FURNITURE_BLOCK_WIDTH_MM / 1000).toFixed(2)}m.`,
+      message: `Largura insuficiente para o mobiliário (mesa + poofs). Mínimo: ${(FURNITURE_BLOCK_WIDTH_MM / 1000).toFixed(2)}m.`,
       field: "roomWidthMm",
       suggestedValueMm: Math.max(minWidth, FURNITURE_BLOCK_WIDTH_MM),
     });

@@ -28,6 +28,19 @@ describe("useProjectStore", () => {
     expect(getState().ceilingHeightMm).toBe(2900);
   });
 
+  it("define a área mantendo a largura e recalculando o comprimento", () => {
+    getState().setRoomWidthMm(5000);
+    getState().setRoomAreaM2(45);
+    expect(getState().roomWidthMm).toBe(5000);
+    expect(getState().roomDepthMm).toBe(9000);
+  });
+
+  it("ignora a área quando a largura é zero", () => {
+    getState().setRoomWidthMm(0);
+    getState().setRoomAreaM2(45);
+    expect(getState().roomDepthMm).toBe(3000);
+  });
+
   it("adiciona uma nova seleção de máquina quando o catalogId não existe ainda", () => {
     getState().setMachineQty("mamute-smart10", 2);
     expect(getState().machines).toContainEqual({ catalogId: "mamute-smart10", qty: 2 });

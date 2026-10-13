@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualização 3D - Totem de Pagamento</title>
+    
+    <!-- Three.js Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #e5e7eb;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 12px 24px;
+            border-radius: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 16px;
+            color: #1f2937;
+        }
+
+        p {
+            margin: 4px 0 0 0;
+            font-size: 12px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <h1>Totem de Autoatendimento</h1>
+        <p>Clique e arraste para girar • Role para zoom</p>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script>
+        let scene, camera, renderer, controls;
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            // 1. Scene Setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xe5e7eb); // Tailwind gray-200
+            scene.fog = new THREE.Fog(0xe5e7eb, 10, 30);
+
+            // 2. Camera Setup
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(4, 3, 6);
+
+            // 3. Renderer Setup
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // 4. Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(0, 1.2, 0);
+            controls.maxPolarAngle = Math.PI / 2 - 0.05; // Prevent going under the floor
+            controls.minDistance = 3;
+            controls.maxDistance = 15;
+
+            // Ambient Light
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            // Directional Light (Sun)
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(5, 10, 5);
+            dirLight.castShadow = true;
+            dirLight.shadow.camera.top = 5;
+            dirLight.shadow.camera.bottom = -5;
+            dirLight.shadow.camera.left = -5;
+            dirLight.shadow.camera.right = 5;
+            dirLight.shadow.camera.near = 0.1;
+            dirLight.shadow.camera.far = 20;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            scene.add(dirLight);
+
+            // Floor
+            const floorGeo = new THREE.PlaneGeometry(50, 50);
+            const floorMat = new THREE.MeshStandardMaterial({ 
+                color: 0xcfcfcf, 
+                roughness: 0.8, 
+                metalness: 0.2 
+            });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            buildTotem();
+
+            // Handle Resize
+            window.addEventListener('resize', onWindowResize, false);
+            
+            animate();
+        }
+
+        function buildTotem() {
+            const totemGroup = new THREE.Group();
+
+            // Materials
+            const metalMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x111111, // Dark gray/black
+                roughness: 0.7, 
+                metalness: 0.6 
+            });
+
+            // Base Plate
+            const baseGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.05, 32);
+            const baseMesh = new THREE.Mesh(baseGeo, metalMaterial);
+            baseMesh.position.y = 0.025;
+            baseMesh.castShadow = true;
+            baseMesh.receiveShadow = true;
+            
+            // Add some "feet" extensions to match the image style
+            const footGeo = new THREE.BoxGeometry(2.5, 0.04, 0.5);
+            const foot1 = new THREE.Mesh(footGeo, metalMaterial);
+            foot1.position.y = 0.02;
+            foot1.rotation.y = Math.PI / 4;
+            foot1.castShadow = true;
+            foot1.receiveShadow = true;
+            totemGroup.add(foot1);
+
+            const foot2 = new THREE.Mesh(footGeo, metalMaterial);
+            foot2.position.y = 0.02;
+            foot2.rotation.y = -Math.PI / 4;
+            foot2.castShadow = true;
+            foot2.receiveShadow = true;
+            totemGroup.add(foot2);
+
+            // Main Body Setup
+            const bodyWidth = 1.2;
+            const bodyHeight = 2.4;
+            const bodyDepth = 0.5;
+            const bodyGeo = new THREE.BoxGeometry(bodyWidth, bodyHeight, bodyDepth);
+            const bodyMesh = new THREE.Mesh(bodyGeo, metalMaterial);
+            
+            // Position and tilt the body
+            bodyMesh.position.set(0, 1.2, 0);
+            bodyMesh.rotation.x = -Math.PI / 6; // Tilt backwards (30 degrees)
+            bodyMesh.castShadow = true;
+            bodyMesh.receiveShadow = true;
+            totemGroup.add(bodyMesh);
+
+            // Side guards
+            const guardGeo = new THREE.BoxGeometry(0.05, bodyHeight, bodyDepth + 0.1);
+            const leftGuard = new THREE.Mesh(guardGeo, metalMaterial);
+            leftGuard.position.set(-bodyWidth/2 + 0.025, 0, 0.05);
+            bodyMesh.add(leftGuard);
+
+            const rightGuard = new THREE.Mesh(guardGeo, metalMaterial);
+            rightGuard.position.set(bodyWidth/2 - 0.025, 0, 0.05);
+            bodyMesh.add(rightGuard);
+
+            // Screen Canvas Generation
+            const screenCanvas = document.createElement('canvas');
+            screenCanvas.width = 600;
+            screenCanvas.height = 1000;
+            const ctx = screenCanvas.getContext('2d');
+
+            // White Background
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, 600, 1000);
+
+            // Logo Text
+            ctx.fillStyle = '#1e3a8a'; // Dark blue
+            ctx.font = 'bold 60px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('PagLave', 300, 120);
+
+            // Helper to draw UI Buttons
+            function drawButton(y, color, text) {
+                // Shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                ctx.beginPath();
+                ctx.roundRect(50, y + 5, 500, 120, 20);
+                ctx.fill();
+
+                // Button Body
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.roundRect(50, y, 500, 120, 20);
+                ctx.fill();
+                
+                // Button Text
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 40px sans-serif';
+                ctx.fillText(text, 300, y + 75);
+            }
+
+            // Draw the buttons based on the reference
+            drawButton(200, '#2563eb', 'LAVAR');       // Blue
+            drawButton(350, '#f59e0b', 'SECAR');       // Orange
+            drawButton(500, '#10b981', 'PACOTES');     // Green
+            drawButton(650, '#6d28d9', 'FIDELIDADE');  // Purple
+
+            // Bottom Footer
+            ctx.fillStyle = '#e5e7eb';
+            ctx.fillRect(0, 880, 600, 120);
+            ctx.fillStyle = '#1e3a8a';
+            ctx.font = 'bold 40px sans-serif';
+            ctx.fillText('PagLave', 300, 950);
+
+            // Apply texture to plane
+            const screenTexture = new THREE.CanvasTexture(screenCanvas);
+            screenTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            const screenMaterial = new THREE.MeshBasicMaterial({ map: screenTexture });
+            
+            const screenGeo = new THREE.PlaneGeometry(1.0, 1.8);
+            const screenMesh = new THREE.Mesh(screenGeo, screenMaterial);
+            // Place screen slightly in front of the body
+            screenMesh.position.set(0, -0.1, bodyDepth / 2 + 0.01); 
+            bodyMesh.add(screenMesh);
+
+            // Inner bezel to frame the screen
+            const bezelGeo = new THREE.RingGeometry(0, 0, 4); // Fake geometry just to represent logic
+            
+            // Top Green Module
+            const topGroup = new THREE.Group();
+            
+            const greenColor = 0x84cc16; // Lime green
+            const greenMaterial = new THREE.MeshStandardMaterial({ 
+                color: greenColor, 
+                roughness: 0.3, 
+                metalness: 0.1 
+            });
+
+            // Module base
+            const topModuleGeo = new THREE.BoxGeometry(1.1, 0.6, 0.7);
+            const topModuleMesh = new THREE.Mesh(topModuleGeo, greenMaterial);
+            topModuleMesh.position.set(0, 0.3, 0);
+            topModuleMesh.castShadow = true;
+            topModuleMesh.receiveShadow = true;
+            topGroup.add(topModuleMesh);
+
+            // Printer slot
+            const slotGeo = new THREE.BoxGeometry(0.8, 0.05, 0.1);
+            const slotMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            const slotMesh = new THREE.Mesh(slotGeo, slotMat);
+            slotMesh.position.set(0, 0.1, 0.36);
+            topGroup.add(slotMesh);
+
+            // NFC Contactless Icon via Canvas
+            const nfcCanvas = document.createElement('canvas');
+            nfcCanvas.width = 256;
+            nfcCanvas.height = 256;
+            const nfcCtx = nfcCanvas.getContext('2d');
+            
+            // Green background matching the material
+            nfcCtx.fillStyle = '#84cc16';
+            nfcCtx.fillRect(0, 0, 256, 256);
+            
+            // Draw NFC waves
+            nfcCtx.strokeStyle = '#1f2937'; // Dark gray
+            nfcCtx.lineWidth = 12;
+            nfcCtx.lineCap = 'round';
+            
+            const centerX = 100;
+            const centerY = 128;
+            
+            for(let i=1; i<=4; i++) {
+                nfcCtx.beginPath();
+                nfcCtx.arc(centerX, centerY, 30 * i, -Math.PI/4, Math.PI/4);
+                nfcCtx.stroke();
+            }
+
+            // Draw a simple hand/card icon representation
+            nfcCtx.fillStyle = '#1f2937';
+            nfcCtx.beginPath();
+            nfcCtx.roundRect(160, 98, 60, 40, 5);
+            nfcCtx.fill();
+
+            const nfcTexture = new THREE.CanvasTexture(nfcCanvas);
+            const nfcMaterial = new THREE.MeshStandardMaterial({ 
+                map: nfcTexture, 
+                color: greenColor, // Base color to blend
+                roughness: 0.3
+            });
+
+            const nfcMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.8), nfcMaterial);
+            nfcMesh.rotation.x = -Math.PI / 2; // Lay flat on top
+            nfcMesh.position.set(0, 0.61, 0); // Slightly above the top module
+            topGroup.add(nfcMesh);
+
+            // Position top module on the main body
+            topGroup.position.set(0, bodyHeight / 2, 0.1);
+            bodyMesh.add(topGroup);
+
+            scene.add(totemGroup);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update(); // Required for damping
+            renderer.render(scene, camera);
+        }
+
+        // Boot everything up
+        window.onload = init;
+    </script>
+</body>
+</html>
