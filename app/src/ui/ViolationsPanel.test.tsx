@@ -14,6 +14,7 @@ beforeEach(() => {
     doorEnabled: true,
     techAccessSide: "right",
     furnitureEnabled: true,
+    furnitureSide: "left",
     acOverrideBTU: null,
   });
 });

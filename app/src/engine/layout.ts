@@ -11,6 +11,7 @@ import {
   AC_WIDTH_MM,
   DOOR_WIDTH_MM,
   DRYWALL_THICKNESS_MM,
+  FURNITURE_MARGIN_MM,
   LATERAL_CLEARANCE_MM,
   MACHINE_GAP_MM,
   POUF_DIAMETER_MM,
@@ -79,9 +80,7 @@ export function computeLayout(state: ProjectState, catalog: CatalogMachine[]): L
   const areaM2 = (state.roomWidthMm / 1000) * (state.roomDepthMm / 1000);
   const acSuggestedBTU = state.acOverrideBTU ?? suggestBTU(areaM2, dryerCount);
 
-  const furniture = state.furnitureEnabled
-    ? placeFurniture(state, drywallY, startX, startX + rowWidth)
-    : null;
+  const furniture = state.furnitureEnabled ? placeFurniture(state, drywallY) : null;
 
   const frontDoor: Rect | null = state.doorEnabled
     ? { x: state.roomWidthMm / 2 - DOOR_WIDTH_MM / 2, y: state.roomDepthMm, width: DOOR_WIDTH_MM, height: 0 }
@@ -103,18 +102,14 @@ export function computeLayout(state: ProjectState, catalog: CatalogMachine[]): L
   return { layout, violations: [] };
 }
 
-function placeFurniture(
-  state: ProjectState,
-  drywallY: number,
-  rowStartX: number,
-  rowEndX: number
-): FurnitureLayout {
+function placeFurniture(state: ProjectState, drywallY: number): FurnitureLayout {
   const salonFrontY = drywallY + DRYWALL_THICKNESS_MM;
-  // Ar-condicionado fica do lado oposto à porta técnica.
-  const oppositeSide = state.techAccessSide === "left" ? "right" : "left";
 
-  // Totem embutido no trecho de 50cm de drywall entre a última máquina e a porta técnica.
-  const totemWallX = state.techAccessSide === "left" ? rowStartX - TOTEM_WALL_MM : rowEndX;
+  // Totem embutido no seu próprio trecho de 50cm de drywall, no lado OPOSTO
+  // à porta técnica — a porta (70cm) já cobre sozinha os 50cm daquele lado,
+  // então o totem usa o recuo do outro lado em vez de se espremer ao lado da porta.
+  const totemSide = state.techAccessSide === "left" ? "right" : "left";
+  const totemWallX = totemSide === "left" ? 0 : state.roomWidthMm - TOTEM_WALL_MM;
   const totem: Rect = {
     x: totemWallX + (TOTEM_WALL_MM - TOTEM_SIZE_MM.width) / 2,
     y: drywallY,
@@ -122,46 +117,58 @@ function placeFurniture(
     height: TOTEM_SIZE_MM.depth,
   };
 
-  const salonDepth = state.roomDepthMm - salonFrontY;
+  // Mesa + poofs + ar-condicionado formam um bloco só, encostado no canto do
+  // lado escolhido pelo usuário (furnitureSide) — não mais centralizado.
+  const side = state.furnitureSide;
   const tableWidth = 900;
   const tableDepth = 700;
+  const pouf = POUF_DIAMETER_MM;
+  const poufGap = 50;
+
+  const clusterOuterX =
+    side === "left" ? FURNITURE_MARGIN_MM : state.roomWidthMm - FURNITURE_MARGIN_MM;
+  const tableX =
+    side === "left"
+      ? clusterOuterX + pouf + poufGap
+      : clusterOuterX - poufGap - pouf - tableWidth;
+
+  const salonDepth = state.roomDepthMm - salonFrontY;
   const table: Rect = {
-    x: state.roomWidthMm / 2 - tableWidth / 2,
+    x: tableX,
     y: salonFrontY + salonDepth / 2 - tableDepth / 2,
     width: tableWidth,
     height: tableDepth,
   };
 
-  const pouf = POUF_DIAMETER_MM;
   const poufs: Rect[] = [
     {
-      x: table.x - pouf - 50,
+      x: table.x - pouf - poufGap,
       y: table.y + tableDepth / 2 - pouf / 2,
       width: pouf,
       height: pouf,
     },
     {
-      x: table.x + tableWidth + 50,
+      x: table.x + tableWidth + poufGap,
       y: table.y + tableDepth / 2 - pouf / 2,
       width: pouf,
       height: pouf,
     },
     {
       x: table.x + tableWidth / 2 - pouf / 2,
-      y: table.y + tableDepth + 50,
+      y: table.y + tableDepth + poufGap,
       width: pouf,
       height: pouf,
     },
   ];
 
-  // Ar-condicionado na parede lateral, no meio do salão onde o cliente circula.
+  // Ar-condicionado na mesma parede lateral do bloco mesa/poofs.
   const salonCenterY = (salonFrontY + state.roomDepthMm) / 2;
   const ac: Rect = {
-    x: oppositeSide === "left" ? 0 : state.roomWidthMm - AC_DEPTH_MM,
+    x: side === "left" ? 0 : state.roomWidthMm - AC_DEPTH_MM,
     y: salonCenterY - AC_WIDTH_MM / 2,
     width: AC_DEPTH_MM,
     height: AC_WIDTH_MM,
   };
 
-  return { table, poufs, totem, ac, acWall: oppositeSide };
+  return { table, poufs, totem, ac, acWall: side };
 }

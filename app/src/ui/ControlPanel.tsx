@@ -98,6 +98,19 @@ export function ControlPanel() {
 
       {state.furnitureEnabled && (
         <label>
+          Lado do mobiliário (mesa, cadeiras, ar-condicionado)
+          <select
+            value={state.furnitureSide}
+            onChange={(e) => state.setFurnitureSide(e.target.value as TechAccessSide)}
+          >
+            <option value="left">Esquerda</option>
+            <option value="right">Direita</option>
+          </select>
+        </label>
+      )}
+
+      {state.furnitureEnabled && (
+        <label>
           Ar-condicionado (BTU/h)
           {layout && (
             <p>Sugestão automática: {layout.acSuggestedBTU.toLocaleString("pt-BR")} BTU/h</p>

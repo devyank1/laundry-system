@@ -7,7 +7,6 @@ import {
   CEILING_CLEARANCE_MM,
   FURNITURE_BLOCK_WIDTH_MM,
   TECH_DOOR_WIDTH_MM,
-  TOTEM_WALL_MM,
 } from "./constants";
 import type { CatalogMachine, MachineSelection, ProjectState, Violation } from "./types";
 
@@ -39,8 +38,9 @@ export function machineRowWidthMm(list: CatalogMachine[]): number {
 }
 
 export function computeMinWidthMm(list: CatalogMachine[]): number {
-  // Recuo de 50cm + fileira + parede de 50cm do totem + porta técnica.
-  return LATERAL_CLEARANCE_MM + machineRowWidthMm(list) + TOTEM_WALL_MM + TECH_DOOR_WIDTH_MM;
+  // Recuo de 50cm do lado do totem (lado oposto à porta técnica) + fileira +
+  // porta técnica de 70cm (já cobre, com folga, os 50cm desse outro lado).
+  return LATERAL_CLEARANCE_MM + machineRowWidthMm(list) + TECH_DOOR_WIDTH_MM;
 }
 
 export function computeMinDepthMm(list: CatalogMachine[]): number {

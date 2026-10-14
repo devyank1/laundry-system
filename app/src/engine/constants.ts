@@ -19,7 +19,8 @@ export const TECH_DOOR_HEIGHT_MM = 2100;
 export const POUF_DIAMETER_MM = 500;
 export const POUF_HEIGHT_MM = 420;
 
-export const FURNITURE_BLOCK_WIDTH_MM = 2000; // mesa 900mm + 2x(poof 500mm + vão 50mm)
+export const FURNITURE_MARGIN_MM = 100; // vão entre a parede e o bloco mesa/poofs
+export const FURNITURE_BLOCK_WIDTH_MM = 2100; // vão 100mm + mesa 900mm + 2x(poof 500mm + vão 50mm)
 
 export const AC_WIDTH_MM = 900; // ao longo da parede
 export const AC_DEPTH_MM = 200;

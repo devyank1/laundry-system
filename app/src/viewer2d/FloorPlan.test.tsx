@@ -24,6 +24,7 @@ const state: ProjectState = {
   doorEnabled: true,
   techAccessSide: "right",
   furnitureEnabled: true,
+  furnitureSide: "left",
   acOverrideBTU: null,
 };
 

@@ -22,6 +22,7 @@ const validState: ProjectState = {
   doorEnabled: true,
   techAccessSide: "right",
   furnitureEnabled: true,
+  furnitureSide: "left",
   acOverrideBTU: null,
 };
 
@@ -98,34 +99,46 @@ describe("computeLayout", () => {
     }
   });
 
-  it("embute o totem no trecho de 50cm de drywall entre a última máquina e a porta técnica", () => {
+  it("embute o totem no seu próprio trecho de 50cm, no lado OPOSTO à porta técnica", () => {
+    // validState: techAccessSide="right" → porta técnica fica na direita,
+    // então o totem (lado oposto) deve ficar na faixa de 50cm da esquerda,
+    // independente de onde a fileira de máquinas termina.
     const layout = computeLayout(validState, catalog).layout!;
     const totem = layout.furniture!.totem;
-    const last = layout.machines[layout.machines.length - 1];
-    const rowEnd = last.x + last.widthMm;
     expect(totem.y).toBe(layout.drywall.y);
     expect(totem.width).toBe(400);
-    expect(totem.x).toBe(rowEnd + 50);
-    expect(totem.x + totem.width).toBeLessThanOrEqual(layout.techDoor.x);
+    expect(totem.x).toBe((500 - 400) / 2); // centralizado na faixa [0, 500]
+    expect(totem.x + totem.width).toBeLessThanOrEqual(500);
 
     const left = computeLayout({ ...validState, techAccessSide: "left" }, catalog).layout!;
     const leftTotem = left.furniture!.totem;
-    expect(leftTotem.x + leftTotem.width).toBe(left.machines[0].x - 50);
-    expect(leftTotem.x).toBeGreaterThanOrEqual(left.techDoor.x + left.techDoor.width);
+    const leftStripX = left.roomWidthMm - 500; // faixa [roomWidth-500, roomWidth] do lado direito
+    expect(leftTotem.x).toBe(leftStripX + (500 - 400) / 2);
+    expect(leftTotem.x).toBeGreaterThanOrEqual(leftStripX);
   });
 
-  it("põe o ar-condicionado na parede lateral oposta à porta técnica, no meio do salão", () => {
-    const layout = computeLayout(validState, catalog).layout!;
-    const { ac, acWall } = layout.furniture!;
+  it("agrupa mesa+poofs+ar-condicionado num bloco só, encostado no canto do lado escolhido (furnitureSide)", () => {
+    const layout = computeLayout(validState, catalog).layout!; // furnitureSide: "left"
+    const { ac, acWall, table, poufs } = layout.furniture!;
     const salonFront = layout.drywall.y + 100;
     const salonCenter = (salonFront + validState.roomDepthMm) / 2;
+
     expect(acWall).toBe("left");
     expect(ac.x).toBe(0);
     expect(ac.y + ac.height / 2).toBeCloseTo(salonCenter, 0);
 
-    const left = computeLayout({ ...validState, techAccessSide: "left" }, catalog).layout!;
-    expect(left.furniture!.acWall).toBe("right");
-    expect(left.furniture!.ac.x + left.furniture!.ac.width).toBe(validState.roomWidthMm);
+    // bloco mesa+poofs encostado no canto esquerdo, não mais centralizado na sala
+    const leftChair = poufs[0];
+    expect(leftChair.x).toBe(100); // margem (FURNITURE_MARGIN_MM), poof encostado nela
+    expect(table.x).toBe(leftChair.x + 500 + 50); // depois do poof + vão
+    expect(table.x).toBeLessThan(validState.roomWidthMm / 2);
+
+    const right = computeLayout({ ...validState, furnitureSide: "right" }, catalog).layout!;
+    expect(right.furniture!.acWall).toBe("right");
+    expect(right.furniture!.ac.x + right.furniture!.ac.width).toBe(validState.roomWidthMm);
+    const rightChair = right.furniture!.poufs[1];
+    expect(rightChair.x + rightChair.width).toBe(validState.roomWidthMm - 100); // encostado na margem direita
+    expect(right.furniture!.table.x).toBeGreaterThan(validState.roomWidthMm / 2);
   });
 
   it("omite mobiliário quando furnitureEnabled=false", () => {

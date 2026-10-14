@@ -14,6 +14,7 @@ beforeEach(() => {
     doorEnabled: true,
     techAccessSide: "right",
     furnitureEnabled: true,
+    furnitureSide: "left",
     acOverrideBTU: null,
   });
 });
@@ -61,6 +62,13 @@ describe("ControlPanel", () => {
     const select = screen.getByLabelText(/lado de acesso técnico/i);
     await userEvent.selectOptions(select, "left");
     expect(useProjectStore.getState().techAccessSide).toBe("left");
+  });
+
+  it("alterna o lado do mobiliário", async () => {
+    render(<ControlPanel />);
+    const select = screen.getByLabelText(/lado do mobiliário/i);
+    await userEvent.selectOptions(select, "right");
+    expect(useProjectStore.getState().furnitureSide).toBe("right");
   });
 
   it("mostra a sugestão de BTU quando o mobiliário está habilitado", () => {

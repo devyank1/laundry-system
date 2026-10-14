@@ -15,6 +15,7 @@ describe("useProjectStore", () => {
       doorEnabled: true,
       techAccessSide: "right",
       furnitureEnabled: true,
+      furnitureSide: "left",
       acOverrideBTU: null,
     });
   });
@@ -71,6 +72,11 @@ describe("useProjectStore", () => {
   it("define o lado de acesso técnico", () => {
     getState().setTechAccessSide("left");
     expect(getState().techAccessSide).toBe("left");
+  });
+
+  it("define o lado do mobiliário", () => {
+    getState().setFurnitureSide("right");
+    expect(getState().furnitureSide).toBe("right");
   });
 
   it("define o override de BTU", () => {
