@@ -291,16 +291,14 @@ export function Scene({
                 0,
                 M(layout.furniture.table.y + layout.furniture.table.height / 2),
               ]}
-              rotation={[0, layout.furniture.acWall === "left" ? Math.PI / 2 : -Math.PI / 2, 0]}
             >
-              {/* A mesa é comprida (2m) e corre ao longo da parede: FitBox usa as
-                  medidas nativas da mesa (eixo comprido = height do Rect) e o grupo
-                  já está girado 90° para a mesa ficar encostada na parede lateral. */}
+              {/* Mesa virada: comprimento (2m) entra sala adentro, perpendicular
+                  à parede — já bate com a orientação nativa do modelo, sem rotação. */}
               <FitBox
                 size={[
-                  M(layout.furniture.table.height),
-                  M(TABLE_HEIGHT_MM),
                   M(layout.furniture.table.width),
+                  M(TABLE_HEIGHT_MM),
+                  M(layout.furniture.table.height),
                 ]}
               >
                 <StainlessTable />

@@ -134,18 +134,19 @@ describe("computeLayout", () => {
     expect(ac.x).toBe(0);
     expect(ac.y + ac.height / 2).toBeCloseTo(salonCenter, 0);
 
-    // mesa comprida (2m) encostada na parede esquerda, logo no início do
-    // salão (perto das máquinas) — não mais centralizada
+    // mesa virada (2m de comprimento entrando sala adentro, perpendicular à
+    // parede esquerda), com uma folga extra até o totem/drywall — não mais
+    // centralizada nem encostada direto na linha do salão
     expect(table.x).toBe(0);
-    expect(table.y).toBe(salonFrontY);
-    expect(table.width).toBe(800);
-    expect(table.height).toBe(2000);
+    expect(table.y).toBe(salonFrontY + 300);
+    expect(table.width).toBe(2000);
+    expect(table.height).toBe(800);
 
     const right = computeLayout({ ...validState, furnitureSide: "right" }, catalog).layout!;
     expect(right.furniture!.acWall).toBe("right");
     expect(right.furniture!.ac.x + right.furniture!.ac.width).toBe(validState.roomWidthMm);
     expect(right.furniture!.table.x + right.furniture!.table.width).toBe(validState.roomWidthMm);
-    expect(right.furniture!.table.y).toBe(salonFrontY);
+    expect(right.furniture!.table.y).toBe(salonFrontY + 300);
   });
 
   it("omite mobiliário quando furnitureEnabled=false", () => {

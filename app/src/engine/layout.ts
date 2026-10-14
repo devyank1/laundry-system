@@ -12,6 +12,7 @@ import {
   CHAIR_SIZE_MM,
   DOOR_WIDTH_MM,
   DRYWALL_THICKNESS_MM,
+  FURNITURE_FRONT_GAP_MM,
   FURNITURE_MARGIN_MM,
   LATERAL_CLEARANCE_MM,
   MACHINE_GAP_MM,
@@ -119,18 +120,19 @@ function placeFurniture(state: ProjectState, drywallY: number): FurnitureLayout 
     height: TOTEM_SIZE_MM.depth,
   };
 
-  // Mesa + 2 cadeiras em fileira encostada na parede do lado escolhido pelo
-  // usuário (furnitureSide), começando perto das máquinas (logo no início
-  // do salão) e seguindo em direção à frente: mesa, cadeira, cadeira — como
-  // visto de quem está na máquina olhando para a parede lateral.
+  // Mesa (virada: comprimento de 2m entrando sala adentro, perpendicular à
+  // parede) + 2 cadeiras em fileira, do lado escolhido pelo usuário
+  // (furnitureSide). Começa um pouco mais longe do totem/drywall (folga
+  // extra) e segue em direção à frente: mesa, cadeira, cadeira — como visto
+  // de quem está na máquina olhando para a parede lateral.
   const side = state.furnitureSide;
   const gap = FURNITURE_MARGIN_MM;
 
   const table: Rect = {
-    x: side === "left" ? 0 : state.roomWidthMm - TABLE_DEPTH_MM,
-    y: salonFrontY,
-    width: TABLE_DEPTH_MM, // o quanto ela entra sala adentro
-    height: TABLE_WIDTH_MM, // comprimento, ao longo da parede
+    x: side === "left" ? 0 : state.roomWidthMm - TABLE_WIDTH_MM,
+    y: salonFrontY + FURNITURE_FRONT_GAP_MM,
+    width: TABLE_WIDTH_MM, // comprimento, agora entrando sala adentro
+    height: TABLE_DEPTH_MM, // o quanto ela corre junto da parede
   };
 
   const chairX = side === "left" ? 0 : state.roomWidthMm - CHAIR_SIZE_MM;
