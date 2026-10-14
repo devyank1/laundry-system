@@ -24,10 +24,15 @@ export interface MachineSelection {
 
 export type TechAccessSide = "left" | "right";
 
+// "back" (padrão): fileira de máquinas contra a parede de fundo (como hoje).
+// "side": fileira girada 90°, contra uma parede lateral.
+export type LayoutOrientation = "back" | "side";
+
 export interface ProjectState {
   roomWidthMm: number;
   roomDepthMm: number;
   ceilingHeightMm: number;
+  orientation: LayoutOrientation;
   machines: MachineSelection[];
   doorEnabled: boolean;
   techAccessSide: TechAccessSide;
@@ -67,7 +72,13 @@ export interface FurnitureLayout {
 }
 
 export interface Layout {
+  orientation: LayoutOrientation;
   machines: PlacedMachine[];
+  // "y" é a distância até a parede que a fileira encosta. Em orientation="back"
+  // isso é uma posição Y de verdade (desenhar como linha HORIZONTAL). Em
+  // orientation="side" o motor já girou tudo e esse mesmo valor passa a ser
+  // uma posição X (desenhar como linha VERTICAL) — o viewer decide com base
+  // em `orientation`, o nome do campo não muda pra não precisar duplicar tipo.
   drywall: { y: number; openings: DrywallOpening[]; heightMm: number };
   techCorridor: Rect;
   techDoor: Rect;

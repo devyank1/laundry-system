@@ -1,11 +1,17 @@
 import { create } from "zustand";
-import type { MachineSelection, ProjectState, TechAccessSide } from "../engine/types";
+import type {
+  LayoutOrientation,
+  MachineSelection,
+  ProjectState,
+  TechAccessSide,
+} from "../engine/types";
 
 interface ProjectStore extends ProjectState {
   setRoomWidthMm: (mm: number) => void;
   setRoomDepthMm: (mm: number) => void;
   setRoomAreaM2: (areaM2: number) => void;
   setCeilingHeightMm: (mm: number) => void;
+  setOrientation: (orientation: LayoutOrientation) => void;
   setMachineQty: (catalogId: string, qty: number) => void;
   removeMachine: (catalogId: string) => void;
   toggleDoor: () => void;
@@ -22,6 +28,7 @@ const initialState: ProjectState = {
   roomWidthMm: 5000,
   roomDepthMm: 6000, // 30m² de área padrão
   ceilingHeightMm: 2800, // pé-direito recomendado pro primeiro passo do projeto
+  orientation: "back",
   machines: [{ catalogId: "sq-stack", qty: 3 }],
   doorEnabled: true,
   techAccessSide: "right",
@@ -46,6 +53,7 @@ export const useProjectStore = create<ProjectStore>()((set) => ({
         : {}
     ),
   setCeilingHeightMm: (mm) => set({ ceilingHeightMm: mm }),
+  setOrientation: (orientation) => set({ orientation }),
   setMachineQty: (catalogId, qty) =>
     set((state) => {
       const exists = state.machines.some((m) => m.catalogId === catalogId);

@@ -17,6 +17,7 @@ const catalog: CatalogMachine[] = [
 const validState: ProjectState = {
   roomWidthMm: 5000,
   roomDepthMm: 5500, // dá espaço pra fileira mesa+2 cadeiras encostada na parede (~3,0m)
+  orientation: "back",
   ceilingHeightMm: 2400,
   machines: [{ catalogId: "sq-stack", qty: 3 }],
   doorEnabled: true,
@@ -240,5 +241,83 @@ describe("computeLayout", () => {
     for (const m of result.layout!.machines) {
       expect(m.y + m.depthMm).toBe(result.layout!.drywall.y);
     }
+  });
+});
+
+describe("computeLayout — orientation=side (fileira na parede lateral)", () => {
+  const sideState: ProjectState = { ...validState, orientation: "side" };
+
+  it("a fileira corre ao longo de roomDepthMm, não mais roomWidthMm", () => {
+    const layout = computeLayout(sideState, catalog).layout!;
+    // todas as máquinas ficam na mesma posição "across" (x constante, perto
+    // da parede lateral), e se espalham em y (que agora é o eixo da fileira)
+    const xs = new Set(layout.machines.map((m) => m.x));
+    expect(xs.size).toBe(1); // mesma profundidade (794mm), mesmo x
+    const ys = layout.machines.map((m) => m.y).sort((a, b) => a - b);
+    expect(ys[0]).toBe(500); // LATERAL_CLEARANCE_MM, igual ao back mode (só no outro eixo)
+    for (let i = 1; i < ys.length; i++) {
+      expect(ys[i]).toBeGreaterThan(ys[i - 1]);
+    }
+    // toda a fileira cabe dentro de roomDepthMm (o eixo "along" agora) —
+    // usa a largura real do catálogo (683mm), não `last.widthMm` (que já
+    // foi trocada de eixo e virou a extensão "across" = profundidade)
+    const last = layout.machines[layout.machines.length - 1];
+    expect(last.y + 683).toBeLessThanOrEqual(sideState.roomDepthMm);
+  });
+
+  it("a face frontal de cada máquina (agora em x) alinha com a linha do drywall", () => {
+    const layout = computeLayout(sideState, catalog).layout!;
+    for (const m of layout.machines) {
+      // em orientation=side, widthMm é quem virou a extensão "across"
+      // (profundidade real da máquina) — depthMm virou a extensão "along".
+      expect(m.x + m.widthMm).toBe(layout.drywall.y);
+    }
+  });
+
+  it("widthMm/depthMm das máquinas trocam de eixo (a máquina gira junto)", () => {
+    const back = computeLayout(validState, catalog).layout!.machines[0];
+    const side = computeLayout(sideState, catalog).layout!.machines[0];
+    expect(side.widthMm).toBe(back.depthMm);
+    expect(side.depthMm).toBe(back.widthMm);
+    expect(side.heightMm).toBe(back.heightMm); // altura nunca gira
+  });
+
+  it("corredor técnico e porta técnica ficam na parede lateral (across=0), ao longo de roomDepthMm", () => {
+    const layout = computeLayout(sideState, catalog).layout!;
+    expect(layout.techCorridor.x).toBe(0);
+    expect(layout.techCorridor.width).toBe(layout.drywall.y); // da parede de fundo até o drywall
+    expect(layout.techCorridor.height).toBe(700); // TECH_DOOR_WIDTH_MM, agora em Y
+    expect(layout.techCorridor.y).toBe(sideState.roomDepthMm - 700); // techAccessSide="right" = fim do eixo along
+    expect(layout.techDoor.y).toBe(sideState.roomDepthMm - 700);
+  });
+
+  it("mesa+cadeiras+totem+AC continuam dentro da sala, girados 90°", () => {
+    const layout = computeLayout(sideState, catalog).layout!;
+    const f = layout.furniture!;
+    // tableSide="left" → mesa encostada em y=0 (início do eixo along), não mais x=0
+    expect(f.table.y).toBe(0);
+    expect(f.table.x).toBe(layout.drywall.y + 1000); // 1,00m de trânsito, agora em x
+    expect(f.table.width).toBe(800); // TABLE_DEPTH_MM e TABLE_WIDTH_MM trocaram de eixo
+    expect(f.table.height).toBe(2000);
+    for (const c of f.poufs) {
+      expect(c.x).toBeGreaterThanOrEqual(0);
+      expect(c.x).toBeLessThanOrEqual(sideState.roomWidthMm);
+      expect(c.y).toBeGreaterThanOrEqual(0);
+      expect(c.y).toBeLessThanOrEqual(sideState.roomDepthMm);
+    }
+  });
+
+  it("violação de largura mínima aponta pra roomDepthMm quando orientation=side", () => {
+    const violations = computeLayout({ ...sideState, roomDepthMm: 1000 }, catalog).violations;
+    expect(violations).toContainEqual(
+      expect.objectContaining({ code: "WIDTH_TOO_SMALL", field: "roomDepthMm" })
+    );
+  });
+
+  it("violação de profundidade mínima aponta pra roomWidthMm quando orientation=side", () => {
+    const violations = computeLayout({ ...sideState, roomWidthMm: 1000 }, catalog).violations;
+    expect(violations).toContainEqual(
+      expect.objectContaining({ code: "DEPTH_TOO_SMALL", field: "roomWidthMm" })
+    );
   });
 });

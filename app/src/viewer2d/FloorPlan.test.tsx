@@ -19,6 +19,7 @@ const catalog: CatalogMachine[] = [
 const state: ProjectState = {
   roomWidthMm: 5000,
   roomDepthMm: 4200,
+  orientation: "back",
   ceilingHeightMm: 2400,
   machines: [{ catalogId: "sq-stack", qty: 2 }],
   doorEnabled: true,
@@ -83,5 +84,52 @@ describe("FloorPlan", () => {
     const { layout } = computeLayout(state, catalog);
     const { container } = render(<FloorPlan layout={layout!} />);
     expect(container.querySelectorAll("circle[data-pouf]")).toHaveLength(3);
+  });
+});
+
+describe("FloorPlan — orientation=side (fileira na parede lateral)", () => {
+  const sideState: ProjectState = { ...state, orientation: "side" };
+
+  it("renderiza sem quebrar, com uma caixa por máquina", () => {
+    const { layout } = computeLayout(sideState, catalog);
+    render(<FloorPlan layout={layout!} />);
+    const svg = screen.getByRole("img", { name: /planta baixa/i });
+    expect(svg.querySelectorAll("rect").length).toBeGreaterThanOrEqual(layout!.machines.length);
+  });
+
+  it("desenha a linha do drywall como VERTICAL (x1===x2), não mais horizontal", () => {
+    const { layout } = computeLayout(sideState, catalog);
+    const { container } = render(<FloorPlan layout={layout!} />);
+    const lines = Array.from(container.querySelectorAll("line")).filter(
+      (l) => l.getAttribute("stroke-width") === "4"
+    );
+    // são sempre 2 segmentos (um de cada lado do vão do corredor técnico);
+    // um deles pode ter comprimento zero quando o corredor encosta bem na
+    // quina (mesmo comportamento já esperado no modo "back", só que agora
+    // no eixo Y em vez de X) — o que importa é que pelo menos um é real.
+    expect(lines.length).toBe(2);
+    for (const line of lines) {
+      expect(line.getAttribute("x1")).toBe(line.getAttribute("x2"));
+    }
+    const hasRealSegment = lines.some(
+      (l) => l.getAttribute("y1") !== l.getAttribute("y2")
+    );
+    expect(hasRealSegment).toBe(true);
+  });
+
+  it("continua desenhando os dois arcos de porta (técnica e frontal)", () => {
+    const { layout } = computeLayout(sideState, catalog);
+    const { container } = render(<FloorPlan layout={layout!} />);
+    expect(container.querySelector('path[data-door="tech"]')).not.toBeNull();
+    expect(container.querySelector('path[data-door="front"]')).not.toBeNull();
+  });
+
+  it("a porta frontal fica na parede oposta à fileira (x constante = largura da sala)", () => {
+    const { layout } = computeLayout(sideState, catalog);
+    const { container } = render(<FloorPlan layout={layout!} />);
+    const frontLine = container.querySelector('path[data-door="front"]')!
+      .previousElementSibling as SVGLineElement;
+    expect(frontLine.tagName).toBe("line");
+    expect(frontLine.getAttribute("x1")).toBe(frontLine.getAttribute("x2"));
   });
 });

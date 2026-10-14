@@ -60,6 +60,7 @@ const catalog: CatalogMachine[] = [
 const baseState: ProjectState = {
   roomWidthMm: 5000,
   roomDepthMm: 4200,
+  orientation: "back",
   ceilingHeightMm: 2400,
   machines: [{ catalogId: "sq-stack", qty: 1 }],
   doorEnabled: true,

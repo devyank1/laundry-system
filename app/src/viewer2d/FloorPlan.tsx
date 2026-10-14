@@ -38,17 +38,46 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout }>(function 
   const legendTop = PAD_TOP + height + 28;
   const viewHeight = legendTop + legendRows * LEGEND_ROW_HEIGHT + 12;
 
+  const isSide = layout.orientation === "side";
+  const alongLengthMm = isSide ? layout.roomDepthMm : layout.roomWidthMm;
+
+  // Converte uma posição/retângulo em termos (along, across) — along é o
+  // eixo em que a fileira de máquinas corre, across é da parede dela até a
+  // frente — pra coordenadas de tela, já na escala de px. Em orientation=
+  // "back" along=X e across=Y (como sempre foi); em "side" eles trocam de
+  // eixo. É o espelho, no viewer, do mesmo toXY()/orientedRect() do motor —
+  // os retângulos que já vêm prontos de `layout` (máquinas, totem, mesa,
+  // cadeiras, AC, corredor) não precisam disso, só os elementos que esse
+  // componente desenha "na mão" (linha do drywall, arco das portas, área
+  // técnica), que até aqui sempre assumiram a parede de fundo horizontal.
+  function alongAcrossPoint(alongMm: number, acrossMm: number): { x: number; y: number } {
+    return isSide ? { x: mm(acrossMm), y: mm(alongMm) } : { x: mm(alongMm), y: mm(acrossMm) };
+  }
+  function alongAcrossRect(alongMm: number, acrossMm: number, alongExtMm: number, acrossExtMm: number) {
+    return isSide
+      ? { x: mm(acrossMm), y: mm(alongMm), w: mm(acrossExtMm), h: mm(alongExtMm) }
+      : { x: mm(alongMm), y: mm(acrossMm), w: mm(alongExtMm), h: mm(acrossExtMm) };
+  }
+
   const techDepthMm =
     layout.machines.length > 0 ? Math.min(...layout.machines.map((m) => m.y)) : 0;
   const areaM2 = (layout.roomWidthMm / 1000) * (layout.roomDepthMm / 1000);
+  const techAreaRect = alongAcrossRect(0, 0, alongLengthMm, techDepthMm);
+  const techAreaLabelCenter = alongAcrossPoint(alongLengthMm / 2, techDepthMm / 2);
 
   // Porta técnica: dobradiça do lado da parede, abrindo para a área técnica.
+  // techDoor.x/.y já vêm do motor na orientação certa; aqui só decidimos de
+  // qual lado do eixo "along" ela está (hingeAtStart) pra desenhar o gonzo
+  // e o arco apontando pro lado certo em qualquer orientação.
   const techDoor = layout.techDoor;
-  const doorW = mm(techDoor.width);
-  const doorY = mm(techDoor.y);
-  const hingeOnLeft = techDoor.x === 0;
-  const hingeX = hingeOnLeft ? mm(techDoor.x) : mm(techDoor.x) + doorW;
-  const closedTipX = hingeOnLeft ? hingeX + doorW : hingeX - doorW;
+  const doorAlongMm = isSide ? techDoor.y : techDoor.x;
+  const doorAcrossMm = isSide ? techDoor.x : techDoor.y;
+  const hingeAtStart = doorAlongMm === 0;
+  const hingeAlongMm = hingeAtStart ? doorAlongMm : doorAlongMm + techDoor.width;
+  const hinge = alongAcrossPoint(hingeAlongMm, doorAcrossMm);
+  const swingEnd = alongAcrossPoint(hingeAlongMm, doorAcrossMm - techDoor.width);
+  const closedTip = alongAcrossPoint(doorAlongMm + (hingeAtStart ? techDoor.width : 0), doorAcrossMm);
+  const doorSweepFlag = isSide ? (hingeAtStart ? 1 : 0) : hingeAtStart ? 0 : 1;
 
   return (
     <svg
@@ -80,18 +109,18 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout }>(function 
         {techDepthMm > 0 && (
           <>
             <rect
-              x={0}
-              y={0}
-              width={width}
-              height={mm(techDepthMm)}
+              x={techAreaRect.x}
+              y={techAreaRect.y}
+              width={techAreaRect.w}
+              height={techAreaRect.h}
               fill={PLAN_COLORS.techArea}
               fillOpacity={0.15}
               stroke={PLAN_COLORS.techArea}
               strokeDasharray="5 3"
             />
             <text
-              x={width / 2}
-              y={mm(techDepthMm) / 2 + 3}
+              x={techAreaLabelCenter.x}
+              y={techAreaLabelCenter.y + 3}
               textAnchor="middle"
               fontSize={8}
               fontWeight={700}
@@ -112,44 +141,67 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout }>(function 
           strokeDasharray="6 4"
         />
 
-        <line
-          x1={0}
-          y1={mm(layout.drywall.y)}
-          x2={mm(layout.techCorridor.x)}
-          y2={mm(layout.drywall.y)}
-          stroke={PLAN_COLORS.drywall}
-          strokeWidth={4}
-        />
-        <line
-          x1={mm(layout.techCorridor.x + layout.techCorridor.width)}
-          y1={mm(layout.drywall.y)}
-          x2={width}
-          y2={mm(layout.drywall.y)}
-          stroke={PLAN_COLORS.drywall}
-          strokeWidth={4}
-        />
+        {isSide ? (
+          <>
+            <line
+              x1={mm(layout.drywall.y)}
+              y1={0}
+              x2={mm(layout.drywall.y)}
+              y2={mm(layout.techCorridor.y)}
+              stroke={PLAN_COLORS.drywall}
+              strokeWidth={4}
+            />
+            <line
+              x1={mm(layout.drywall.y)}
+              y1={mm(layout.techCorridor.y + layout.techCorridor.height)}
+              x2={mm(layout.drywall.y)}
+              y2={height}
+              stroke={PLAN_COLORS.drywall}
+              strokeWidth={4}
+            />
+          </>
+        ) : (
+          <>
+            <line
+              x1={0}
+              y1={mm(layout.drywall.y)}
+              x2={mm(layout.techCorridor.x)}
+              y2={mm(layout.drywall.y)}
+              stroke={PLAN_COLORS.drywall}
+              strokeWidth={4}
+            />
+            <line
+              x1={mm(layout.techCorridor.x + layout.techCorridor.width)}
+              y1={mm(layout.drywall.y)}
+              x2={width}
+              y2={mm(layout.drywall.y)}
+              stroke={PLAN_COLORS.drywall}
+              strokeWidth={4}
+            />
+          </>
+        )}
 
         <line
-          x1={hingeX}
-          y1={doorY}
-          x2={hingeX}
-          y2={doorY - doorW}
+          x1={hinge.x}
+          y1={hinge.y}
+          x2={swingEnd.x}
+          y2={swingEnd.y}
           stroke={PLAN_COLORS.door}
           strokeWidth={3}
         />
         <path
           data-door="tech"
-          d={`M ${closedTipX} ${doorY} A ${doorW} ${doorW} 0 0 ${hingeOnLeft ? 0 : 1} ${hingeX} ${
-            doorY - doorW
-          }`}
+          d={`M ${closedTip.x} ${closedTip.y} A ${mm(techDoor.width)} ${mm(
+            techDoor.width
+          )} 0 0 ${doorSweepFlag} ${swingEnd.x} ${swingEnd.y}`}
           fill="none"
           stroke={PLAN_COLORS.door}
           strokeDasharray="4 3"
         />
         <text
-          x={hingeOnLeft ? hingeX + 3 : hingeX - 3}
-          y={doorY + 12}
-          textAnchor={hingeOnLeft ? "start" : "end"}
+          x={hinge.x + (hingeAtStart ? 3 : -3)}
+          y={hinge.y + 12}
+          textAnchor={hingeAtStart ? "start" : "end"}
           fontSize={7}
           fontWeight={700}
           fill={PLAN_COLORS.door}
@@ -200,39 +252,46 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout }>(function 
           strokeWidth={3}
         />
 
-        {layout.frontDoor && (
-          <>
-            <line
-              x1={mm(layout.frontDoor.x)}
-              y1={height}
-              x2={mm(layout.frontDoor.x + layout.frontDoor.width)}
-              y2={height}
-              stroke={PLAN_COLORS.door}
-              strokeWidth={5}
-            />
-            <path
-              data-door="front"
-              d={`M ${mm(layout.frontDoor.x)} ${height} A ${mm(layout.frontDoor.width)} ${mm(
-                layout.frontDoor.width
-              )} 0 0 1 ${mm(layout.frontDoor.x + layout.frontDoor.width)} ${
-                height - mm(layout.frontDoor.width)
-              }`}
-              fill="none"
-              stroke={PLAN_COLORS.door}
-              strokeDasharray="4 3"
-            />
-            <text
-              x={mm(layout.frontDoor.x + layout.frontDoor.width / 2)}
-              y={height + 14}
-              textAnchor="middle"
-              fontSize={8}
-              fontWeight={700}
-              fill={PLAN_COLORS.door}
-            >
-              {`PORTA ${formatMeters(layout.frontDoor.width)}m`}
-            </text>
-          </>
-        )}
+        {layout.frontDoor &&
+          (() => {
+            const fd = layout.frontDoor;
+            const alongMm = isSide ? fd.y : fd.x;
+            const acrossMm = isSide ? fd.x : fd.y; // parede da frente (canto oposto à fileira)
+            const wallStart = alongAcrossPoint(alongMm, acrossMm);
+            const wallEnd = alongAcrossPoint(alongMm + fd.width, acrossMm);
+            const openEnd = alongAcrossPoint(alongMm, acrossMm - fd.width);
+            const labelCenter = alongAcrossPoint(alongMm + fd.width / 2, acrossMm);
+            return (
+              <>
+                <line
+                  x1={wallStart.x}
+                  y1={wallStart.y}
+                  x2={wallEnd.x}
+                  y2={wallEnd.y}
+                  stroke={PLAN_COLORS.door}
+                  strokeWidth={5}
+                />
+                <path
+                  data-door="front"
+                  d={`M ${wallEnd.x} ${wallEnd.y} A ${mm(fd.width)} ${mm(fd.width)} 0 0 1 ${openEnd.x} ${openEnd.y}`}
+                  fill="none"
+                  stroke={PLAN_COLORS.door}
+                  strokeDasharray="4 3"
+                />
+                <text
+                  x={labelCenter.x}
+                  y={labelCenter.y + (isSide ? 0 : 14)}
+                  dx={isSide ? 14 : 0}
+                  textAnchor="middle"
+                  fontSize={8}
+                  fontWeight={700}
+                  fill={PLAN_COLORS.door}
+                >
+                  {`PORTA ${formatMeters(fd.width)}m`}
+                </text>
+              </>
+            );
+          })()}
 
         {layout.furniture && (
           <>

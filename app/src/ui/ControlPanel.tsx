@@ -3,7 +3,7 @@ import { useProjectStore } from "../state/projectStore";
 import { getCatalog, subscribeCatalog } from "../catalog/store";
 import { useLayout } from "../state/useLayout";
 import { AC_SIZES_BTU } from "../engine/constants";
-import type { TechAccessSide } from "../engine/types";
+import type { LayoutOrientation, TechAccessSide } from "../engine/types";
 
 export function ControlPanel() {
   const catalog = useSyncExternalStore(subscribeCatalog, getCatalog);
@@ -12,6 +12,17 @@ export function ControlPanel() {
 
   return (
     <section aria-label="Parâmetros da lavanderia">
+      <label>
+        Orientação
+        <select
+          value={state.orientation}
+          onChange={(e) => state.setOrientation(e.target.value as LayoutOrientation)}
+        >
+          <option value="back">Fileira na parede de fundo</option>
+          <option value="side">Fileira na parede lateral</option>
+        </select>
+      </label>
+
       <label>
         Área Total (m²)
         <input

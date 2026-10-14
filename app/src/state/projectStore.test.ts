@@ -20,7 +20,14 @@ describe("useProjectStore", () => {
       chairsSide: "left",
       acSide: "left",
       acOverrideBTU: null,
+      orientation: "back",
     });
+  });
+
+  it("define a orientação da fileira (fundo ou lateral)", () => {
+    expect(getState().orientation).toBe("back");
+    getState().setOrientation("side");
+    expect(getState().orientation).toBe("side");
   });
 
   it("atualiza largura, profundidade e pé-direito", () => {

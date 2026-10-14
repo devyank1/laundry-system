@@ -19,6 +19,7 @@ beforeEach(() => {
     chairsSide: "left",
     acSide: "left",
     acOverrideBTU: null,
+    orientation: "back",
   });
 });
 
@@ -26,6 +27,13 @@ describe("ControlPanel", () => {
   it("mostra a largura atual em metros", () => {
     render(<ControlPanel />);
     expect(screen.getByLabelText(/largura/i)).toHaveValue(4);
+  });
+
+  it("alterna a orientação da fileira", async () => {
+    render(<ControlPanel />);
+    const select = screen.getByLabelText(/orientação/i);
+    await userEvent.selectOptions(select, "side");
+    expect(useProjectStore.getState().orientation).toBe("side");
   });
 
   it("atualiza a largura no store ao digitar", async () => {

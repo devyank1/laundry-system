@@ -79,37 +79,46 @@ export function validate(state: ProjectState, catalog: CatalogMachine[]): Violat
 
   const violations: Violation[] = [];
 
+  // Em orientation="side" a fileira corre ao longo de roomDepthMm (não
+  // roomWidthMm), e a área técnica/salão passam a ser medidos na largura —
+  // os dois eixos trocam de papel. "along" = parede da fileira, "across" =
+  // parede de fundo até a frente.
+  const alongField = state.orientation === "side" ? "roomDepthMm" : "roomWidthMm";
+  const acrossField = state.orientation === "side" ? "roomWidthMm" : "roomDepthMm";
+  const alongLengthMm = state[alongField];
+  const acrossLengthMm = state[acrossField];
+
   // Quando o totem cai do MESMO lado da porta técnica, ele precisa do seu
   // próprio trecho de 50cm além do vão da porta — largura extra.
   const totemSharesDoorSide = state.furnitureEnabled && state.totemSide === state.techAccessSide;
-  const minWidth = computeMinWidthMm(list) + (totemSharesDoorSide ? TOTEM_WALL_MM : 0);
-  if (state.roomWidthMm < minWidth) {
+  const minAlong = computeMinWidthMm(list) + (totemSharesDoorSide ? TOTEM_WALL_MM : 0);
+  if (alongLengthMm < minAlong) {
     violations.push({
       code: "WIDTH_TOO_SMALL",
-      message: `Largura insuficiente para o maquinário escolhido${
+      message: `Espaço insuficiente ao longo da parede das máquinas${
         totemSharesDoorSide ? " + totem do lado da porta técnica" : ""
-      }. Mínimo: ${(minWidth / 1000).toFixed(2)}m.`,
-      field: "roomWidthMm",
-      suggestedValueMm: minWidth,
+      }. Mínimo: ${(minAlong / 1000).toFixed(2)}m.`,
+      field: alongField,
+      suggestedValueMm: minAlong,
     });
   }
 
-  if (state.furnitureEnabled && state.roomWidthMm < FURNITURE_BLOCK_WIDTH_MM) {
+  if (state.furnitureEnabled && alongLengthMm < FURNITURE_BLOCK_WIDTH_MM) {
     violations.push({
       code: "FURNITURE_WIDTH_TOO_SMALL",
-      message: `Largura insuficiente para a mesa encostada na parede. Mínimo: ${(FURNITURE_BLOCK_WIDTH_MM / 1000).toFixed(2)}m.`,
-      field: "roomWidthMm",
-      suggestedValueMm: Math.max(minWidth, FURNITURE_BLOCK_WIDTH_MM),
+      message: `Espaço insuficiente ao longo da parede pra mesa encostada. Mínimo: ${(FURNITURE_BLOCK_WIDTH_MM / 1000).toFixed(2)}m.`,
+      field: alongField,
+      suggestedValueMm: Math.max(minAlong, FURNITURE_BLOCK_WIDTH_MM),
     });
   }
 
-  const minDepth = computeMinDepthMm(list);
-  if (state.roomDepthMm < minDepth) {
+  const minAcross = computeMinDepthMm(list);
+  if (acrossLengthMm < minAcross) {
     violations.push({
       code: "DEPTH_TOO_SMALL",
-      message: `Profundidade insuficiente para área técnica, maquinário e salão. Mínimo: ${(minDepth / 1000).toFixed(2)}m.`,
-      field: "roomDepthMm",
-      suggestedValueMm: minDepth,
+      message: `Espaço insuficiente (da parede das máquinas até a frente) para área técnica, maquinário e salão. Mínimo: ${(minAcross / 1000).toFixed(2)}m.`,
+      field: acrossField,
+      suggestedValueMm: minAcross,
     });
   }
 
