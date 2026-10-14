@@ -21,7 +21,7 @@ interface ProjectStore extends ProjectState {
 const initialState: ProjectState = {
   roomWidthMm: 5000,
   roomDepthMm: 6000, // 30m² de área padrão
-  ceilingHeightMm: 2700,
+  ceilingHeightMm: 2800, // pé-direito recomendado pro primeiro passo do projeto
   machines: [{ catalogId: "sq-stack", qty: 3 }],
   doorEnabled: true,
   techAccessSide: "right",

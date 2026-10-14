@@ -50,7 +50,6 @@ export function computeLayout(state: ProjectState, catalog: CatalogMachine[]): L
       : LATERAL_CLEARANCE_MM;
 
   const maxDepthMm = Math.max(...list.map((m) => m.depthMm));
-  const maxHeightMm = Math.max(...list.map((m) => m.heightMm));
   const drywallY = TECH_AREA_DEFAULT_MM + maxDepthMm;
 
   let cursorX = startX;
@@ -91,7 +90,7 @@ export function computeLayout(state: ProjectState, catalog: CatalogMachine[]): L
 
   const layout: Layout = {
     machines: placed,
-    drywall: { y: drywallY, openings, heightMm: maxHeightMm + 200 },
+    drywall: { y: drywallY, openings, heightMm: state.ceilingHeightMm },
     techCorridor,
     techDoor,
     frontDoor,
