@@ -22,7 +22,10 @@ const validState: ProjectState = {
   doorEnabled: true,
   techAccessSide: "right",
   furnitureEnabled: true,
-  furnitureSide: "left",
+  totemSide: "left",
+  tableSide: "left",
+  chairsSide: "left",
+  acSide: "left",
   acOverrideBTU: null,
 };
 
@@ -88,28 +91,30 @@ describe("computeLayout", () => {
   it("inclui mobiliário quando furnitureEnabled=true", () => {
     const result = computeLayout(validState, catalog);
     expect(result.layout!.furniture).not.toBeNull();
-    expect(result.layout!.furniture!.poufs).toHaveLength(2);
+    expect(result.layout!.furniture!.poufs).toHaveLength(3);
   });
 
-  it("usa cadeiras quadradas de 42cm, em fileira logo depois da mesa", () => {
+  it("usa 3 cadeiras quadradas de 42cm, em fileira logo depois da mesa", () => {
     const furniture = computeLayout(validState, catalog).layout!.furniture!;
-    const [chair1, chair2] = furniture.poufs;
+    const [chair1, chair2, chair3] = furniture.poufs;
+    expect(furniture.poufs).toHaveLength(3);
     for (const c of furniture.poufs) {
       expect(c.width).toBe(420);
       expect(c.height).toBe(420);
     }
-    // encostadas na mesma parede da mesa (furnitureSide="left" → x=0), uma
-    // logo depois da outra em y, continuando a fileira a partir da mesa
+    // encostadas na mesma parede da mesa (tableSide="left" → x=0), uma logo
+    // depois da outra em y, continuando a fileira a partir da mesa
     expect(chair1.x).toBe(0);
     expect(chair1.y).toBe(furniture.table.y + furniture.table.height + 100);
     expect(chair2.x).toBe(0);
     expect(chair2.y).toBe(chair1.y + 420 + 100);
+    expect(chair3.x).toBe(0);
+    expect(chair3.y).toBe(chair2.y + 420 + 100);
   });
 
-  it("embute o totem no seu próprio trecho de 50cm, no lado OPOSTO à porta técnica", () => {
-    // validState: techAccessSide="right" → porta técnica fica na direita,
-    // então o totem (lado oposto) deve ficar na faixa de 50cm da esquerda,
-    // independente de onde a fileira de máquinas termina.
+  it("embute o totem no seu próprio trecho de 50cm, quando totemSide é OPOSTO à porta técnica", () => {
+    // validState: techAccessSide="right", totemSide="left" (lados opostos)
+    // → o totem usa a faixa de 50cm inteira da esquerda, livre do corredor.
     const layout = computeLayout(validState, catalog).layout!;
     const totem = layout.furniture!.totem;
     expect(totem.y).toBe(layout.drywall.y);
@@ -117,15 +122,33 @@ describe("computeLayout", () => {
     expect(totem.x).toBe((500 - 400) / 2); // centralizado na faixa [0, 500]
     expect(totem.x + totem.width).toBeLessThanOrEqual(500);
 
-    const left = computeLayout({ ...validState, techAccessSide: "left" }, catalog).layout!;
+    // mesmo com techAccessSide="left", enquanto totemSide continuar "right"
+    // (oposto), o totem usa a faixa inteira de 50cm da direita
+    const left = computeLayout(
+      { ...validState, techAccessSide: "left", totemSide: "right" },
+      catalog
+    ).layout!;
     const leftTotem = left.furniture!.totem;
     const leftStripX = left.roomWidthMm - 500; // faixa [roomWidth-500, roomWidth] do lado direito
     expect(leftTotem.x).toBe(leftStripX + (500 - 400) / 2);
     expect(leftTotem.x).toBeGreaterThanOrEqual(leftStripX);
   });
 
-  it("encosta a mesa na parede perto das máquinas (início do salão), lado escolhido (furnitureSide)", () => {
-    const layout = computeLayout(validState, catalog).layout!; // furnitureSide: "left"
+  it("quando totemSide é o MESMO lado da porta técnica, o totem encosta logo antes do vão do corredor", () => {
+    const layout = computeLayout(
+      { ...validState, techAccessSide: "right", totemSide: "right" },
+      catalog
+    ).layout!;
+    const totem = layout.furniture!.totem;
+    // faixa do totem fica logo à esquerda do corredor (que tem 700mm,
+    // encostado na parede direita), sem sobrepor
+    const expectedStripX = validState.roomWidthMm - 700 - 500;
+    expect(totem.x).toBe(expectedStripX + (500 - 400) / 2);
+    expect(totem.x + totem.width).toBeLessThanOrEqual(layout.techCorridor.x);
+  });
+
+  it("encosta a mesa na parede perto das máquinas (início do salão), lado escolhido (tableSide)", () => {
+    const layout = computeLayout(validState, catalog).layout!; // tableSide/acSide: "left"
     const { ac, acWall, table } = layout.furniture!;
     const salonFrontY = layout.drywall.y + 100;
     const salonCenter = (salonFrontY + validState.roomDepthMm) / 2;
@@ -142,11 +165,44 @@ describe("computeLayout", () => {
     expect(table.width).toBe(2000);
     expect(table.height).toBe(800);
 
-    const right = computeLayout({ ...validState, furnitureSide: "right" }, catalog).layout!;
+    const right = computeLayout(
+      { ...validState, tableSide: "right", acSide: "right" },
+      catalog
+    ).layout!;
     expect(right.furniture!.acWall).toBe("right");
     expect(right.furniture!.ac.x + right.furniture!.ac.width).toBe(validState.roomWidthMm);
     expect(right.furniture!.table.x + right.furniture!.table.width).toBe(validState.roomWidthMm);
     expect(right.furniture!.table.y).toBe(right.drywall.y + 1000);
+  });
+
+  it("cada item de mobiliário pode ir pra um lado diferente, de forma independente", () => {
+    // totem na esquerda, mesa+cadeiras na direita, AC na esquerda — tudo junto
+    const mixed = computeLayout(
+      {
+        ...validState,
+        totemSide: "left",
+        tableSide: "right",
+        chairsSide: "right",
+        acSide: "left",
+      },
+      catalog
+    ).layout!.furniture!;
+
+    expect(mixed.totem.x).toBeLessThan(500); // lado esquerdo
+    expect(mixed.table.x + mixed.table.width).toBe(validState.roomWidthMm); // encostada na direita
+    expect(mixed.poufs[0].x + mixed.poufs[0].width).toBe(validState.roomWidthMm); // cadeiras também na direita
+    expect(mixed.ac.x).toBe(0); // AC na esquerda, junto com o totem
+    expect(mixed.acWall).toBe("left");
+  });
+
+  it("cadeiras começam do zero (1,00m da máquina) quando ficam num lado diferente da mesa", () => {
+    const layout = computeLayout(
+      { ...validState, tableSide: "left", chairsSide: "right" },
+      catalog
+    ).layout!;
+    const firstChair = layout.furniture!.poufs[0];
+    expect(firstChair.x + firstChair.width).toBe(validState.roomWidthMm); // lado direito
+    expect(firstChair.y).toBe(layout.drywall.y + 1000); // não depende da mesa, que está na esquerda
   });
 
   it("omite mobiliário quando furnitureEnabled=false", () => {

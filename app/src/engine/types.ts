@@ -32,7 +32,10 @@ export interface ProjectState {
   doorEnabled: boolean;
   techAccessSide: TechAccessSide;
   furnitureEnabled: boolean;
-  furnitureSide: TechAccessSide;
+  totemSide: TechAccessSide;
+  tableSide: TechAccessSide;
+  chairsSide: TechAccessSide;
+  acSide: TechAccessSide;
   acOverrideBTU: number | null;
 }
 

@@ -15,7 +15,10 @@ describe("useProjectStore", () => {
       doorEnabled: true,
       techAccessSide: "right",
       furnitureEnabled: true,
-      furnitureSide: "left",
+      totemSide: "left",
+      tableSide: "left",
+      chairsSide: "left",
+      acSide: "left",
       acOverrideBTU: null,
     });
   });
@@ -74,9 +77,15 @@ describe("useProjectStore", () => {
     expect(getState().techAccessSide).toBe("left");
   });
 
-  it("define o lado do mobiliário", () => {
-    getState().setFurnitureSide("right");
-    expect(getState().furnitureSide).toBe("right");
+  it("define o lado de cada item de mobiliário de forma independente", () => {
+    getState().setTotemSide("right");
+    getState().setTableSide("right");
+    getState().setChairsSide("left");
+    getState().setAcSide("left");
+    expect(getState().totemSide).toBe("right");
+    expect(getState().tableSide).toBe("right");
+    expect(getState().chairsSide).toBe("left");
+    expect(getState().acSide).toBe("left");
   });
 
   it("define o override de BTU", () => {

@@ -97,16 +97,51 @@ export function ControlPanel() {
       </label>
 
       {state.furnitureEnabled && (
-        <label>
-          Lado do mobiliário (mesa, cadeiras, ar-condicionado)
-          <select
-            value={state.furnitureSide}
-            onChange={(e) => state.setFurnitureSide(e.target.value as TechAccessSide)}
-          >
-            <option value="left">Esquerda</option>
-            <option value="right">Direita</option>
-          </select>
-        </label>
+        <>
+          <label>
+            Lado do totem
+            <select
+              value={state.totemSide}
+              onChange={(e) => state.setTotemSide(e.target.value as TechAccessSide)}
+            >
+              <option value="left">Esquerda</option>
+              <option value="right">Direita</option>
+            </select>
+          </label>
+
+          <label>
+            Lado da mesa
+            <select
+              value={state.tableSide}
+              onChange={(e) => state.setTableSide(e.target.value as TechAccessSide)}
+            >
+              <option value="left">Esquerda</option>
+              <option value="right">Direita</option>
+            </select>
+          </label>
+
+          <label>
+            Lado das cadeiras
+            <select
+              value={state.chairsSide}
+              onChange={(e) => state.setChairsSide(e.target.value as TechAccessSide)}
+            >
+              <option value="left">Esquerda</option>
+              <option value="right">Direita</option>
+            </select>
+          </label>
+
+          <label>
+            Lado do ar-condicionado
+            <select
+              value={state.acSide}
+              onChange={(e) => state.setAcSide(e.target.value as TechAccessSide)}
+            >
+              <option value="left">Esquerda</option>
+              <option value="right">Direita</option>
+            </select>
+          </label>
+        </>
       )}
 
       {state.furnitureEnabled && (

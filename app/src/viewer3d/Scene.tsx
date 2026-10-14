@@ -308,7 +308,7 @@ export function Scene({
               <group
                 key={i}
                 position={[M(p.x + p.width / 2), 0, M(p.y + p.height / 2)]}
-                rotation={[0, layout.furniture!.acWall === "left" ? Math.PI / 2 : -Math.PI / 2, 0]}
+                rotation={[0, p.x === 0 ? Math.PI / 2 : -Math.PI / 2, 0]}
               >
                 <FitBox size={[M(p.width), M(CHAIR_HEIGHT_MM), M(p.height)]}>
                   <Chair />

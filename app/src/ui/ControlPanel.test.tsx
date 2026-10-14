@@ -14,7 +14,10 @@ beforeEach(() => {
     doorEnabled: true,
     techAccessSide: "right",
     furnitureEnabled: true,
-    furnitureSide: "left",
+    totemSide: "left",
+    tableSide: "left",
+    chairsSide: "left",
+    acSide: "left",
     acOverrideBTU: null,
   });
 });
@@ -64,11 +67,16 @@ describe("ControlPanel", () => {
     expect(useProjectStore.getState().techAccessSide).toBe("left");
   });
 
-  it("alterna o lado do mobiliário", async () => {
+  it("alterna o lado de cada item de mobiliário de forma independente", async () => {
     render(<ControlPanel />);
-    const select = screen.getByLabelText(/lado do mobiliário/i);
-    await userEvent.selectOptions(select, "right");
-    expect(useProjectStore.getState().furnitureSide).toBe("right");
+    await userEvent.selectOptions(screen.getByLabelText(/lado do totem/i), "right");
+    await userEvent.selectOptions(screen.getByLabelText(/lado da mesa/i), "right");
+    await userEvent.selectOptions(screen.getByLabelText(/lado das cadeiras/i), "left");
+    await userEvent.selectOptions(screen.getByLabelText(/lado do ar-condicionado/i), "left");
+    expect(useProjectStore.getState().totemSide).toBe("right");
+    expect(useProjectStore.getState().tableSide).toBe("right");
+    expect(useProjectStore.getState().chairsSide).toBe("left");
+    expect(useProjectStore.getState().acSide).toBe("left");
   });
 
   it("mostra a sugestão de BTU quando o mobiliário está habilitado", () => {

@@ -105,56 +105,68 @@ export function computeLayout(state: ProjectState, catalog: CatalogMachine[]): L
   return { layout, violations: [] };
 }
 
+// Posição X da faixa de 50cm do totem, embutida no drywall. Quando o totem
+// está do lado OPOSTO à porta técnica, usa o canto todo pra ele (não disputa
+// espaço com o corredor). Quando o usuário escolhe o MESMO lado da porta
+// técnica, encosta logo antes do vão do corredor/porta, sem sobrepor —
+// esse caso precisa de largura extra, cobrada em validate() (constraints.ts).
+function totemWallX(state: ProjectState): number {
+  const side = state.totemSide;
+  if (side !== state.techAccessSide) {
+    return side === "left" ? 0 : state.roomWidthMm - TOTEM_WALL_MM;
+  }
+  return side === "left"
+    ? TECH_DOOR_WIDTH_MM
+    : state.roomWidthMm - TECH_DOOR_WIDTH_MM - TOTEM_WALL_MM;
+}
+
+const CHAIR_COUNT = 3;
+
 function placeFurniture(state: ProjectState, drywallY: number): FurnitureLayout {
   const salonFrontY = drywallY + DRYWALL_THICKNESS_MM;
+  const gap = FURNITURE_MARGIN_MM;
 
-  // Totem embutido no seu próprio trecho de 50cm de drywall, no lado OPOSTO
-  // à porta técnica — a porta (70cm) já cobre sozinha os 50cm daquele lado,
-  // então o totem usa o recuo do outro lado em vez de se espremer ao lado da porta.
-  const totemSide = state.techAccessSide === "left" ? "right" : "left";
-  const totemWallX = totemSide === "left" ? 0 : state.roomWidthMm - TOTEM_WALL_MM;
+  // Totem: embutido no drywall, lado independente (totemSide).
   const totem: Rect = {
-    x: totemWallX + (TOTEM_WALL_MM - TOTEM_SIZE_MM.width) / 2,
+    x: totemWallX(state) + (TOTEM_WALL_MM - TOTEM_SIZE_MM.width) / 2,
     y: drywallY,
     width: TOTEM_SIZE_MM.width,
     height: TOTEM_SIZE_MM.depth,
   };
 
-  // Mesa (virada: comprimento de 2m entrando sala adentro, perpendicular à
-  // parede) + 2 cadeiras em fileira, do lado escolhido pelo usuário
-  // (furnitureSide). Fica a 1,00m da frente da máquina (linha do drywall),
-  // pra trânsito de pessoas, e segue em direção à frente: mesa, cadeira,
-  // cadeira — como visto de quem está na máquina olhando pra parede lateral.
-  const side = state.furnitureSide;
-  const gap = FURNITURE_MARGIN_MM;
-
+  // Mesa: virada (2m de comprimento entrando sala adentro, perpendicular à
+  // parede), a 1,00m da frente da máquina (linha do drywall) pra trânsito
+  // de pessoas. Lado independente (tableSide).
   const table: Rect = {
-    x: side === "left" ? 0 : state.roomWidthMm - TABLE_WIDTH_MM,
+    x: state.tableSide === "left" ? 0 : state.roomWidthMm - TABLE_WIDTH_MM,
     y: drywallY + FURNITURE_CIRCULATION_GAP_MM,
-    width: TABLE_WIDTH_MM, // comprimento, agora entrando sala adentro
-    height: TABLE_DEPTH_MM, // o quanto ela corre junto da parede
+    width: TABLE_WIDTH_MM,
+    height: TABLE_DEPTH_MM,
   };
 
-  const chairX = side === "left" ? 0 : state.roomWidthMm - CHAIR_SIZE_MM;
-  const chair1Y = table.y + table.height + gap;
-  const poufs: Rect[] = [
-    { x: chairX, y: chair1Y, width: CHAIR_SIZE_MM, height: CHAIR_SIZE_MM },
-    {
-      x: chairX,
-      y: chair1Y + CHAIR_SIZE_MM + gap,
-      width: CHAIR_SIZE_MM,
-      height: CHAIR_SIZE_MM,
-    },
-  ];
+  // Cadeiras: lado independente (chairsSide). Se caírem do mesmo lado da
+  // mesa, continuam a fileira logo depois dela; senão, começam do zero na
+  // mesma distância de trânsito (1,00m da máquina), no seu próprio lado.
+  const chairX = state.chairsSide === "left" ? 0 : state.roomWidthMm - CHAIR_SIZE_MM;
+  const chairsStartY =
+    state.chairsSide === state.tableSide
+      ? table.y + table.height + gap
+      : drywallY + FURNITURE_CIRCULATION_GAP_MM;
+  const poufs: Rect[] = Array.from({ length: CHAIR_COUNT }, (_, i) => ({
+    x: chairX,
+    y: chairsStartY + i * (CHAIR_SIZE_MM + gap),
+    width: CHAIR_SIZE_MM,
+    height: CHAIR_SIZE_MM,
+  }));
 
-  // Ar-condicionado na mesma parede lateral do bloco mesa/poofs.
+  // Ar-condicionado: lado independente (acSide), no meio do salão.
   const salonCenterY = (salonFrontY + state.roomDepthMm) / 2;
   const ac: Rect = {
-    x: side === "left" ? 0 : state.roomWidthMm - AC_DEPTH_MM,
+    x: state.acSide === "left" ? 0 : state.roomWidthMm - AC_DEPTH_MM,
     y: salonCenterY - AC_WIDTH_MM / 2,
     width: AC_DEPTH_MM,
     height: AC_WIDTH_MM,
   };
 
-  return { table, poufs, totem, ac, acWall: side };
+  return { table, poufs, totem, ac, acWall: state.acSide };
 }

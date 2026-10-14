@@ -20,7 +20,10 @@ beforeEach(() => {
     doorEnabled: true,
     techAccessSide: "right",
     furnitureEnabled: true,
-    furnitureSide: "left",
+    totemSide: "left",
+    tableSide: "left",
+    chairsSide: "left",
+    acSide: "left",
     acOverrideBTU: null,
   });
 });

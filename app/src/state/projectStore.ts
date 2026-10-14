@@ -11,7 +11,10 @@ interface ProjectStore extends ProjectState {
   toggleDoor: () => void;
   setTechAccessSide: (side: TechAccessSide) => void;
   toggleFurniture: () => void;
-  setFurnitureSide: (side: TechAccessSide) => void;
+  setTotemSide: (side: TechAccessSide) => void;
+  setTableSide: (side: TechAccessSide) => void;
+  setChairsSide: (side: TechAccessSide) => void;
+  setAcSide: (side: TechAccessSide) => void;
   setAcOverrideBTU: (btu: number | null) => void;
 }
 
@@ -23,7 +26,12 @@ const initialState: ProjectState = {
   doorEnabled: true,
   techAccessSide: "right",
   furnitureEnabled: true,
-  furnitureSide: "left",
+  // Por padrão tudo agrupado do lado oposto à porta técnica (arranjo mais
+  // econômico de espaço), mas cada item pode ser movido independentemente.
+  totemSide: "left",
+  tableSide: "left",
+  chairsSide: "left",
+  acSide: "left",
   acOverrideBTU: null,
 };
 
@@ -51,6 +59,9 @@ export const useProjectStore = create<ProjectStore>()((set) => ({
   toggleDoor: () => set((state) => ({ doorEnabled: !state.doorEnabled })),
   setTechAccessSide: (side) => set({ techAccessSide: side }),
   toggleFurniture: () => set((state) => ({ furnitureEnabled: !state.furnitureEnabled })),
-  setFurnitureSide: (side) => set({ furnitureSide: side }),
+  setTotemSide: (side) => set({ totemSide: side }),
+  setTableSide: (side) => set({ tableSide: side }),
+  setChairsSide: (side) => set({ chairsSide: side }),
+  setAcSide: (side) => set({ acSide: side }),
   setAcOverrideBTU: (btu) => set({ acOverrideBTU: btu }),
 }));

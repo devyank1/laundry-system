@@ -24,7 +24,10 @@ const state: ProjectState = {
   doorEnabled: true,
   techAccessSide: "right",
   furnitureEnabled: true,
-  furnitureSide: "left",
+  totemSide: "left",
+  tableSide: "left",
+  chairsSide: "left",
+  acSide: "left",
   acOverrideBTU: null,
 };
 
@@ -79,6 +82,6 @@ describe("FloorPlan", () => {
   it("desenha um círculo por poof ao redor da mesa", () => {
     const { layout } = computeLayout(state, catalog);
     const { container } = render(<FloorPlan layout={layout!} />);
-    expect(container.querySelectorAll("circle[data-pouf]")).toHaveLength(2);
+    expect(container.querySelectorAll("circle[data-pouf]")).toHaveLength(3);
   });
 });

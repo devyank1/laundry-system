@@ -7,6 +7,7 @@ import {
   CEILING_CLEARANCE_MM,
   FURNITURE_BLOCK_WIDTH_MM,
   TECH_DOOR_WIDTH_MM,
+  TOTEM_WALL_MM,
 } from "./constants";
 import type { CatalogMachine, MachineSelection, ProjectState, Violation } from "./types";
 
@@ -78,11 +79,16 @@ export function validate(state: ProjectState, catalog: CatalogMachine[]): Violat
 
   const violations: Violation[] = [];
 
-  const minWidth = computeMinWidthMm(list);
+  // Quando o totem cai do MESMO lado da porta técnica, ele precisa do seu
+  // próprio trecho de 50cm além do vão da porta — largura extra.
+  const totemSharesDoorSide = state.furnitureEnabled && state.totemSide === state.techAccessSide;
+  const minWidth = computeMinWidthMm(list) + (totemSharesDoorSide ? TOTEM_WALL_MM : 0);
   if (state.roomWidthMm < minWidth) {
     violations.push({
       code: "WIDTH_TOO_SMALL",
-      message: `Largura insuficiente para o maquinário escolhido. Mínimo: ${(minWidth / 1000).toFixed(2)}m.`,
+      message: `Largura insuficiente para o maquinário escolhido${
+        totemSharesDoorSide ? " + totem do lado da porta técnica" : ""
+      }. Mínimo: ${(minWidth / 1000).toFixed(2)}m.`,
       field: "roomWidthMm",
       suggestedValueMm: minWidth,
     });

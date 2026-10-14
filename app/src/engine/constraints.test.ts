@@ -65,7 +65,10 @@ const baseState: ProjectState = {
   doorEnabled: true,
   techAccessSide: "right",
   furnitureEnabled: true,
-  furnitureSide: "left",
+  totemSide: "left",
+  tableSide: "left",
+  chairsSide: "left",
+  acSide: "left",
   acOverrideBTU: null,
 };
 
@@ -94,6 +97,19 @@ describe("validate", () => {
         suggestedValueMm: 500 + 683 + 700,
       }),
     ]);
+  });
+
+  it("exige largura extra (500mm) quando o totem fica do mesmo lado da porta técnica", () => {
+    const violations = validate(
+      { ...baseState, roomWidthMm: 1200, totemSide: "right" }, // techAccessSide: "right" também
+      catalog
+    );
+    expect(violations).toContainEqual(
+      expect.objectContaining({
+        code: "WIDTH_TOO_SMALL",
+        suggestedValueMm: 500 + 683 + 700 + 500,
+      })
+    );
   });
 
   it("retorna DEPTH_TOO_SMALL com o valor mínimo sugerido", () => {
