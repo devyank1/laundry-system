@@ -25,7 +25,8 @@ export const TABLE_WIDTH_MM = 2000; // comprimento, corre ao longo da parede
 export const TABLE_DEPTH_MM = 800; // o quanto ela entra sala adentro
 
 export const FURNITURE_MARGIN_MM = 100; // vão entre itens
-export const FURNITURE_FRONT_GAP_MM = 300; // distância extra da mesa até o totem/drywall
+// Distância da frente da máquina (linha do drywall) até a mesa — trânsito de pessoas.
+export const FURNITURE_CIRCULATION_GAP_MM = 1000;
 // Mesa fica perpendicular à parede (comprimento de 2m entrando sala adentro),
 // então a sala precisa ter largura suficiente pra ela + a folga da parede.
 export const FURNITURE_BLOCK_WIDTH_MM = TABLE_WIDTH_MM + FURNITURE_MARGIN_MM;
