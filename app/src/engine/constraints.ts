@@ -91,7 +91,7 @@ export function validate(state: ProjectState, catalog: CatalogMachine[]): Violat
   if (state.furnitureEnabled && state.roomWidthMm < FURNITURE_BLOCK_WIDTH_MM) {
     violations.push({
       code: "FURNITURE_WIDTH_TOO_SMALL",
-      message: `Largura insuficiente para o mobiliário (mesa + poofs). Mínimo: ${(FURNITURE_BLOCK_WIDTH_MM / 1000).toFixed(2)}m.`,
+      message: `Largura insuficiente para a mesa encostada na parede. Mínimo: ${(FURNITURE_BLOCK_WIDTH_MM / 1000).toFixed(2)}m.`,
       field: "roomWidthMm",
       suggestedValueMm: Math.max(minWidth, FURNITURE_BLOCK_WIDTH_MM),
     });

@@ -21,7 +21,7 @@ const LEGEND = [
   { label: "Totem (embutido)", fill: PLAN_COLORS.totem },
   { label: "Área Técnica", fill: PLAN_COLORS.techArea },
   { label: "Ar-condicionado", fill: PLAN_COLORS.ac },
-  { label: "Poofs", fill: "#475569" },
+  { label: "Cadeiras", fill: "#475569" },
 ];
 
 export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout }>(function FloorPlan(

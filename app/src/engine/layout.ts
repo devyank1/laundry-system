@@ -9,12 +9,14 @@ import { suggestBTU } from "./btu";
 import {
   AC_DEPTH_MM,
   AC_WIDTH_MM,
+  CHAIR_SIZE_MM,
   DOOR_WIDTH_MM,
   DRYWALL_THICKNESS_MM,
   FURNITURE_MARGIN_MM,
   LATERAL_CLEARANCE_MM,
   MACHINE_GAP_MM,
-  POUF_DIAMETER_MM,
+  TABLE_DEPTH_MM,
+  TABLE_WIDTH_MM,
   TECH_AREA_DEFAULT_MM,
   TECH_DOOR_WIDTH_MM,
   TOTEM_SIZE_MM,
@@ -117,47 +119,29 @@ function placeFurniture(state: ProjectState, drywallY: number): FurnitureLayout 
     height: TOTEM_SIZE_MM.depth,
   };
 
-  // Mesa + poofs + ar-condicionado formam um bloco só, encostado no canto do
-  // lado escolhido pelo usuário (furnitureSide) — não mais centralizado.
+  // Mesa + 2 cadeiras em fileira encostada na parede do lado escolhido pelo
+  // usuário (furnitureSide), começando perto das máquinas (logo no início
+  // do salão) e seguindo em direção à frente: mesa, cadeira, cadeira — como
+  // visto de quem está na máquina olhando para a parede lateral.
   const side = state.furnitureSide;
-  const tableWidth = 900;
-  const tableDepth = 700;
-  const pouf = POUF_DIAMETER_MM;
-  const poufGap = 50;
+  const gap = FURNITURE_MARGIN_MM;
 
-  const clusterOuterX =
-    side === "left" ? FURNITURE_MARGIN_MM : state.roomWidthMm - FURNITURE_MARGIN_MM;
-  const tableX =
-    side === "left"
-      ? clusterOuterX + pouf + poufGap
-      : clusterOuterX - poufGap - pouf - tableWidth;
-
-  const salonDepth = state.roomDepthMm - salonFrontY;
   const table: Rect = {
-    x: tableX,
-    y: salonFrontY + salonDepth / 2 - tableDepth / 2,
-    width: tableWidth,
-    height: tableDepth,
+    x: side === "left" ? 0 : state.roomWidthMm - TABLE_DEPTH_MM,
+    y: salonFrontY,
+    width: TABLE_DEPTH_MM, // o quanto ela entra sala adentro
+    height: TABLE_WIDTH_MM, // comprimento, ao longo da parede
   };
 
+  const chairX = side === "left" ? 0 : state.roomWidthMm - CHAIR_SIZE_MM;
+  const chair1Y = table.y + table.height + gap;
   const poufs: Rect[] = [
+    { x: chairX, y: chair1Y, width: CHAIR_SIZE_MM, height: CHAIR_SIZE_MM },
     {
-      x: table.x - pouf - poufGap,
-      y: table.y + tableDepth / 2 - pouf / 2,
-      width: pouf,
-      height: pouf,
-    },
-    {
-      x: table.x + tableWidth + poufGap,
-      y: table.y + tableDepth / 2 - pouf / 2,
-      width: pouf,
-      height: pouf,
-    },
-    {
-      x: table.x + tableWidth / 2 - pouf / 2,
-      y: table.y + tableDepth + poufGap,
-      width: pouf,
-      height: pouf,
+      x: chairX,
+      y: chair1Y + CHAIR_SIZE_MM + gap,
+      width: CHAIR_SIZE_MM,
+      height: CHAIR_SIZE_MM,
     },
   ];
 

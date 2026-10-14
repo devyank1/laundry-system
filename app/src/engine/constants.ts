@@ -16,11 +16,19 @@ export const TOTEM_WALL_MM = 500; // trecho de drywall entre a última máquina 
 export const TECH_DOOR_WIDTH_MM = 700;
 export const TECH_DOOR_HEIGHT_MM = 2100;
 
-export const POUF_DIAMETER_MM = 500;
-export const POUF_HEIGHT_MM = 420;
+// Cadeira plástica (porta_pl_stica_3d.html) — assento quadrado de 42cm.
+export const CHAIR_SIZE_MM = 420;
+export const CHAIR_HEIGHT_MM = 900;
 
-export const FURNITURE_MARGIN_MM = 100; // vão entre a parede e o bloco mesa/poofs
-export const FURNITURE_BLOCK_WIDTH_MM = 2100; // vão 100mm + mesa 900mm + 2x(poof 500mm + vão 50mm)
+// Mesa inox com cestos (mesa_inox_com_cestos.html) — 2,00 x 0,80m reais.
+export const TABLE_WIDTH_MM = 2000; // comprimento, corre ao longo da parede
+export const TABLE_DEPTH_MM = 800; // o quanto ela entra sala adentro
+
+export const FURNITURE_MARGIN_MM = 100; // vão entre itens e entre a mesa/cadeiras e a parede da frente
+// Mesa+cadeiras agora ficam em fileira encostada na parede (perto das máquinas,
+// mesa primeiro, depois as cadeiras), então a sala só precisa ter largura
+// suficiente para a mesa entrar (profundidade dela) + a folga da parede.
+export const FURNITURE_BLOCK_WIDTH_MM = TABLE_DEPTH_MM + FURNITURE_MARGIN_MM;
 
 export const AC_WIDTH_MM = 900; // ao longo da parede
 export const AC_DEPTH_MM = 200;

@@ -118,9 +118,9 @@ describe("validate", () => {
     ]);
   });
 
-  it("retorna FURNITURE_WIDTH_TOO_SMALL quando o mobiliário não cabe na largura", () => {
+  it("retorna FURNITURE_WIDTH_TOO_SMALL quando a mesa não cabe encostada na parede", () => {
     const violations = validate(
-      { ...baseState, roomWidthMm: 1700, furnitureEnabled: true },
+      { ...baseState, roomWidthMm: 800, furnitureEnabled: true },
       catalog
     );
     expect(violations).toContainEqual(
@@ -128,19 +128,19 @@ describe("validate", () => {
     );
   });
 
-  it("exige 2,10m de largura para o bloco mesa + poofs encostado no canto", () => {
-    const violations = validate({ ...baseState, roomWidthMm: 2050 }, catalog);
+  it("exige 0,90m de largura (profundidade da mesa 0,80m + folga 0,10m)", () => {
+    const violations = validate({ ...baseState, roomWidthMm: 800 }, catalog);
     expect(violations).toContainEqual(
       expect.objectContaining({
         code: "FURNITURE_WIDTH_TOO_SMALL",
-        message: expect.stringContaining("Mínimo: 2.10m"),
+        message: expect.stringContaining("Mínimo: 0.90m"),
       })
     );
   });
 
   it("não retorna FURNITURE_WIDTH_TOO_SMALL quando furnitureEnabled é false", () => {
     const violations = validate(
-      { ...baseState, roomWidthMm: 1700, furnitureEnabled: false },
+      { ...baseState, roomWidthMm: 800, furnitureEnabled: false },
       catalog
     );
     expect(violations.find((v) => v.code === "FURNITURE_WIDTH_TOO_SMALL")).toBeUndefined();

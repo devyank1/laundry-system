@@ -4,18 +4,18 @@ import { Environment, Lightformer, OrbitControls } from "@react-three/drei";
 import type { Group } from "three";
 import { useLerpedVector3 } from "./useLerpedVector3";
 import {
+  CHAIR_HEIGHT_MM,
   DRYWALL_THICKNESS_MM,
-  POUF_HEIGHT_MM,
   TECH_DOOR_HEIGHT_MM,
   TOTEM_MOUNT_CENTER_MM,
   TOTEM_SIZE_MM,
 } from "../engine/constants";
 import type { Layout, PlacedMachine } from "../engine/types";
 import { PLAN_COLORS } from "../viewer2d/planTheme";
+import { Chair } from "./models/Chair";
 import { FitBox } from "./models/FitBox";
 import { machineModelFor } from "./models/machineModel";
 import { PaymentTotem } from "./models/PaymentTotem";
-import { Pouf } from "./models/Pouf";
 import { SpeedQueenStack } from "./models/SpeedQueenStack";
 import { SplitAC } from "./models/SplitAC";
 import { StainlessTable } from "./models/StainlessTable";
@@ -37,7 +37,7 @@ const LEGEND = [
   { label: "Porta Técnica 0,70m", color: PLAN_COLORS.door },
   { label: "Totem PagLave (embutido)", color: "#84cc16" },
   { label: "Ar-condicionado no salão", color: "#ffffff" },
-  { label: "Poofs", color: "#64748b" },
+  { label: "Cadeiras", color: "#64748b" },
 ];
 
 function Box({
@@ -291,21 +291,29 @@ export function Scene({
                 0,
                 M(layout.furniture.table.y + layout.furniture.table.height / 2),
               ]}
+              rotation={[0, layout.furniture.acWall === "left" ? Math.PI / 2 : -Math.PI / 2, 0]}
             >
+              {/* A mesa é comprida (2m) e corre ao longo da parede: FitBox usa as
+                  medidas nativas da mesa (eixo comprido = height do Rect) e o grupo
+                  já está girado 90° para a mesa ficar encostada na parede lateral. */}
               <FitBox
                 size={[
-                  M(layout.furniture.table.width),
-                  M(TABLE_HEIGHT_MM),
                   M(layout.furniture.table.height),
+                  M(TABLE_HEIGHT_MM),
+                  M(layout.furniture.table.width),
                 ]}
               >
                 <StainlessTable />
               </FitBox>
             </group>
             {layout.furniture.poufs.map((p, i) => (
-              <group key={i} position={[M(p.x + p.width / 2), 0, M(p.y + p.height / 2)]}>
-                <FitBox size={[M(p.width), M(POUF_HEIGHT_MM), M(p.height)]}>
-                  <Pouf />
+              <group
+                key={i}
+                position={[M(p.x + p.width / 2), 0, M(p.y + p.height / 2)]}
+                rotation={[0, layout.furniture!.acWall === "left" ? Math.PI / 2 : -Math.PI / 2, 0]}
+              >
+                <FitBox size={[M(p.width), M(CHAIR_HEIGHT_MM), M(p.height)]}>
+                  <Chair />
                 </FitBox>
               </group>
             ))}

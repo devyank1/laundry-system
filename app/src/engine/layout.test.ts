@@ -16,7 +16,7 @@ const catalog: CatalogMachine[] = [
 
 const validState: ProjectState = {
   roomWidthMm: 5000,
-  roomDepthMm: 4200,
+  roomDepthMm: 5500, // dá espaço pra fileira mesa+2 cadeiras encostada na parede (~3,0m)
   ceilingHeightMm: 2400,
   machines: [{ catalogId: "sq-stack", qty: 3 }],
   doorEnabled: true,
@@ -88,15 +88,22 @@ describe("computeLayout", () => {
   it("inclui mobiliário quando furnitureEnabled=true", () => {
     const result = computeLayout(validState, catalog);
     expect(result.layout!.furniture).not.toBeNull();
-    expect(result.layout!.furniture!.poufs).toHaveLength(3);
+    expect(result.layout!.furniture!.poufs).toHaveLength(2);
   });
 
-  it("usa poofs redondos de 50cm ao redor da mesa", () => {
+  it("usa cadeiras quadradas de 42cm, em fileira logo depois da mesa", () => {
     const furniture = computeLayout(validState, catalog).layout!.furniture!;
-    for (const p of furniture.poufs) {
-      expect(p.width).toBe(500);
-      expect(p.height).toBe(500);
+    const [chair1, chair2] = furniture.poufs;
+    for (const c of furniture.poufs) {
+      expect(c.width).toBe(420);
+      expect(c.height).toBe(420);
     }
+    // encostadas na mesma parede da mesa (furnitureSide="left" → x=0), uma
+    // logo depois da outra em y, continuando a fileira a partir da mesa
+    expect(chair1.x).toBe(0);
+    expect(chair1.y).toBe(furniture.table.y + furniture.table.height + 100);
+    expect(chair2.x).toBe(0);
+    expect(chair2.y).toBe(chair1.y + 420 + 100);
   });
 
   it("embute o totem no seu próprio trecho de 50cm, no lado OPOSTO à porta técnica", () => {
@@ -117,28 +124,28 @@ describe("computeLayout", () => {
     expect(leftTotem.x).toBeGreaterThanOrEqual(leftStripX);
   });
 
-  it("agrupa mesa+poofs+ar-condicionado num bloco só, encostado no canto do lado escolhido (furnitureSide)", () => {
+  it("encosta a mesa na parede perto das máquinas (início do salão), lado escolhido (furnitureSide)", () => {
     const layout = computeLayout(validState, catalog).layout!; // furnitureSide: "left"
-    const { ac, acWall, table, poufs } = layout.furniture!;
-    const salonFront = layout.drywall.y + 100;
-    const salonCenter = (salonFront + validState.roomDepthMm) / 2;
+    const { ac, acWall, table } = layout.furniture!;
+    const salonFrontY = layout.drywall.y + 100;
+    const salonCenter = (salonFrontY + validState.roomDepthMm) / 2;
 
     expect(acWall).toBe("left");
     expect(ac.x).toBe(0);
     expect(ac.y + ac.height / 2).toBeCloseTo(salonCenter, 0);
 
-    // bloco mesa+poofs encostado no canto esquerdo, não mais centralizado na sala
-    const leftChair = poufs[0];
-    expect(leftChair.x).toBe(100); // margem (FURNITURE_MARGIN_MM), poof encostado nela
-    expect(table.x).toBe(leftChair.x + 500 + 50); // depois do poof + vão
-    expect(table.x).toBeLessThan(validState.roomWidthMm / 2);
+    // mesa comprida (2m) encostada na parede esquerda, logo no início do
+    // salão (perto das máquinas) — não mais centralizada
+    expect(table.x).toBe(0);
+    expect(table.y).toBe(salonFrontY);
+    expect(table.width).toBe(800);
+    expect(table.height).toBe(2000);
 
     const right = computeLayout({ ...validState, furnitureSide: "right" }, catalog).layout!;
     expect(right.furniture!.acWall).toBe("right");
     expect(right.furniture!.ac.x + right.furniture!.ac.width).toBe(validState.roomWidthMm);
-    const rightChair = right.furniture!.poufs[1];
-    expect(rightChair.x + rightChair.width).toBe(validState.roomWidthMm - 100); // encostado na margem direita
-    expect(right.furniture!.table.x).toBeGreaterThan(validState.roomWidthMm / 2);
+    expect(right.furniture!.table.x + right.furniture!.table.width).toBe(validState.roomWidthMm);
+    expect(right.furniture!.table.y).toBe(salonFrontY);
   });
 
   it("omite mobiliário quando furnitureEnabled=false", () => {

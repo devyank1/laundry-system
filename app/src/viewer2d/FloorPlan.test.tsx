@@ -79,6 +79,6 @@ describe("FloorPlan", () => {
   it("desenha um círculo por poof ao redor da mesa", () => {
     const { layout } = computeLayout(state, catalog);
     const { container } = render(<FloorPlan layout={layout!} />);
-    expect(container.querySelectorAll("circle[data-pouf]")).toHaveLength(3);
+    expect(container.querySelectorAll("circle[data-pouf]")).toHaveLength(2);
   });
 });
