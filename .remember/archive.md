@@ -1,1 +1,4 @@
 # Archive
+
+## Week of 2026-10-05
+Configurador lavanderia (React 19, Vite, TS, Three.js/R3F 3D, SVG 2D, catálogo de máquinas, BTU auto) built via 15-task TDD plan in worktree; Tasks 1–15 impl and closed except manual QA (Task 15), which is unfinished because the browser tool can't reach localhost:5180. Confirmed rules: área técnica 1.00–1.10m, drywall coplanar, lateral 50cm, totem salão. Key fixes: Scene lerp bug (`50592e3`), useSyncExternalStore loop in catalog store (`9012453`), stale `@ts-expect-error` breaking build (`1804bec`); use `tsc -b`, not `tsc --noEmit`. Final review caught machine y=0 vs drywall y=1844mm conflict; 71/71 tests, `feature/configurador-lavanderia` merged locally to master (result unconfirmed). On 10-09 dev site looked raw; CSS rewritten and committed, visual-style AskUserQuestion still unanswered.

@@ -1,4 +1,1 @@
 # Recent
-
-## 2026-10-08
-Configurador lavanderia (React+Vite+TS, Three.js/R3F 3D, SVG 2D, catálogo máquinas, mob fixo, BTU auto); regras confirmadas: área técnica 1,00–1,10m, drywall coplanar, lateral 50cm, totem salão. Brainstorm, specs e plano impl (15 tasks TDD) commitados; worktree criado; fix preflight `roomDepthMm` 3500→4000; React 19 em vez de 18. Tasks 1–8 aprovadas (scaffold, types/constants, constraints, btu, layout, catálogo CRUD, store Zustand, hook useLayout); Task 9 (planta 2D SVG) implementada, pendente review. Dois pontos de design flagged: `DrywallOpening.y` mistura coord planta/altura; `frontDoor.height: 0` = marcador de porta.

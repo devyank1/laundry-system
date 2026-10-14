@@ -1,15 +1,24 @@
 === MEMORY ===
+--- today-2026-10-13.md ---
+## 21:25 | main
+Lavanderia (app/src/engine): localizados commits outra sessão 3da93a7, c4bfe6b (já impl porta técnica 70cm c/ totem+poufs); totem movido p/ lado oposto porta técnica; mobiliário → bloco canto via `furnitureSide` (editados constants/types/constraints/layout/projectStore/ControlPanel + testes); suíte não rodada pós-edição (não validado).
+## 21:33-21:58 | main
+Commit e3ae1d4 (92/92, build ok) feito; novo pedido padrão 30m2: mesa perto máquinas, cadeiras encostadas parede. Lidos `cadeira_pl_stica_3d.html`, `mesa_inox_com_cestos.html` (não rastreados) + StainlessTable/Pouf/Scene/FitBox; port pendente. 21:37: constantes, novo `Chair.tsx` (port cadeira_pl_stica_3d), `StainlessTable.tsx` c/ cestos, geometria fileira parede `layout.ts`, Pouf→Chair `Scene.tsx` (Pouf.tsx removido), área padrão 30m² `projectStore.ts`, ajuste `constraints.ts`; build ok, testes rodando, sem commit. 21:44: mesa girada 90° (lado 2m entra sala, mais longe totem) `layout.ts`/`constants.ts`/`Scene.tsx`; commit c66cf90 (92/92, build ok); depois dist mesa–frente máquina ≥1m (`FURNITURE_FRONT_GAP_MM`), testes rodando, sem commit. 21:58: distribuição lateral refeita em slots independentes (cadeira, totem, AC, mesa, porta; 3ª cadeira incl.) `types.ts`/`layout.ts`/`constraints.ts`/`projectStore.ts`/`ControlPanel.tsx`/`Scene.tsx`; testes em ajuste (`layout.test.ts`, `projectStore.test.ts`, `ControlPanel.test.tsx` ainda editando), sem commit.
+## 22:10 | main
+Drywall acompanha pé-direito (antes limitado altura máquina+200mm); pé-direito padrão → 2,80m `layout.ts`/`projectStore.ts`; commitado (`fix: d…`). Spike orientação lateral (`spike-orientation.mjs`, 30m², 3 máquinas) em andamento, aguarda confirmação usuário sobre pergunta orientação.
+## 22:23 | main
+Dev server localhost:5173 no ar; teste usuário: trocar L/C não gira fileira (sempre parede cima) → iniciada feature orientação lateral, 2D primeiro (`layout.ts`, `constraints.ts`, planta 2D; 3D depois); só leu `types.ts`, sem código; aguarda usuário ver 2D.
 --- now.md ---
 
-## 09:08 | master
-Review final apontou 1 bug crítico estrutural no plano (máquinas em y=0 contra drywall em y=1844mm, violando as regras de área técnica e drywall coplanar), fix wave de 8 findings aplicado com 71/71 testes e re-review confirmou ADDRESSED, branch `feature/configurador-lavanderia` mesclada localmente em `master` (merge disparado, resultado não confirmado).
-## 09:52 | master
-Usuário relatou que o site dev (`localhost:5173`) estava visualmente cru; CSS foi reescrito (`index.css`, `App.css`), header adicionado em `index.html`/`App.tsx`, 71/71 testes e build verdes, commit feito, e pedido de um visual "bonito" de fato seguia com AskUserQuestion pendente, sem resposta do usuário.
+## 22:31 | main
+Feat `orientation="side"` em layout (espaço virtual transposto) nos arquivos types/layout/constraints/projectStore/ControlPanel/FloorPlan; build limpo e 96/96 testes passando com `orientation="back"`, mas os testes de `side` em `layout.test.ts` ainda não foram rodados.
+## 22:36 | main
+Commitado `d415cb0`: select "Orientação" no ControlPanel (fileira na parede lateral) com planta 2D girando, testes 109/109 e build limpo; 3D ainda não acompanha (parede/porta fixas), e a checagem visual manual na planta 2D está pendente com o user.
 --- recent.md ---
 # Recent
-
-## 2026-10-08
-Configurador lavanderia (React+Vite+TS, Three.js/R3F 3D, SVG 2D, catálogo máquinas, mob fixo, BTU auto); regras confirmadas: área técnica 1,00–1,10m, drywall coplanar, lateral 50cm, totem salão. Brainstorm, specs e plano impl (15 tasks TDD) commitados; worktree criado; fix preflight `roomDepthMm` 3500→4000; React 19 em vez de 18. Tasks 1–8 aprovadas (scaffold, types/constants, constraints, btu, layout, catálogo CRUD, store Zustand, hook useLayout); Task 9 (planta 2D SVG) implementada, pendente review. Dois pontos de design flagged: `DrywallOpening.y` mistura coord planta/altura; `frontDoor.height: 0` = marcador de porta.
 --- archive.md ---
 # Archive
+
+## Week of 2026-10-05
+Configurador lavanderia (React 19, Vite, TS, Three.js/R3F 3D, SVG 2D, catálogo de máquinas, BTU auto) built via 15-task TDD plan in worktree; Tasks 1–15 impl and closed except manual QA (Task 15), which is unfinished because the browser tool can't reach localhost:5180. Confirmed rules: área técnica 1.00–1.10m, drywall coplanar, lateral 50cm, totem salão. Key fixes: Scene lerp bug (`50592e3`), useSyncExternalStore loop in catalog store (`9012453`), stale `@ts-expect-error` breaking build (`1804bec`); use `tsc -b`, not `tsc --noEmit`. Final review caught machine y=0 vs drywall y=1844mm conflict; 71/71 tests, `feature/configurador-lavanderia` merged locally to master (result unconfirmed). On 10-09 dev site looked raw; CSS rewritten and committed, visual-style AskUserQuestion still unanswered.
 
