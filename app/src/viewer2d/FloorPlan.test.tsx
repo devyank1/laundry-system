@@ -29,6 +29,10 @@ const state: ProjectState = {
   tableSide: "left",
   chairsSide: "left",
   acSide: "left",
+  machineWall: "left",
+  tableSlot: "farTop",
+  chairsSlot: "farTop",
+  acSlot: "farBottom",
   acOverrideBTU: null,
 };
 
@@ -124,12 +128,25 @@ describe("FloorPlan — orientation=side (fileira na parede lateral)", () => {
     expect(container.querySelector('path[data-door="front"]')).not.toBeNull();
   });
 
-  it("a porta frontal fica na parede oposta à fileira (x constante = largura da sala)", () => {
+  it("a porta frontal continua na fachada (parede de baixo, linha horizontal)", () => {
     const { layout } = computeLayout(sideState, catalog);
     const { container } = render(<FloorPlan layout={layout!} />);
     const frontLine = container.querySelector('path[data-door="front"]')!
       .previousElementSibling as SVGLineElement;
     expect(frontLine.tagName).toBe("line");
-    expect(frontLine.getAttribute("x1")).toBe(frontLine.getAttribute("x2"));
+    expect(frontLine.getAttribute("y1")).toBe(frontLine.getAttribute("y2"));
+  });
+
+  it("rotula a área técnica com 1,05m nos dois lados de acesso técnico e paredes", () => {
+    for (const techAccessSide of ["left", "right"] as const)
+      for (const machineWall of ["left", "right"] as const) {
+        const { layout } = computeLayout(
+          { ...sideState, roomDepthMm: 6000, techAccessSide, machineWall },
+          catalog
+        );
+        const { unmount } = render(<FloorPlan layout={layout!} />);
+        expect(screen.getByText(/ÁREA TÉCNICA MANUTENÇÃO \(1,05m\)/)).toBeInTheDocument();
+        unmount();
+      }
   });
 });

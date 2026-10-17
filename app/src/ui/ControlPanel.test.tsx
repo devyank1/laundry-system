@@ -87,6 +87,42 @@ describe("ControlPanel", () => {
     expect(useProjectStore.getState().acSide).toBe("left");
   });
 
+  it("em 'parede lateral' oferece direita cima/baixo e esquerda (perto das máquinas)", async () => {
+    useProjectStore.setState({ orientation: "side", machineWall: "left" });
+    render(<ControlPanel />);
+    const table = screen.getByLabelText(/lado da mesa/i);
+    expect(Array.from((table as HTMLSelectElement).options).map((o) => o.text)).toEqual([
+      "Direita cima",
+      "Direita baixo",
+      "Esquerda (perto das máquinas)",
+    ]);
+    await userEvent.selectOptions(table, "farBottom");
+    await userEvent.selectOptions(screen.getByLabelText(/lado das cadeiras/i), "near");
+    await userEvent.selectOptions(screen.getByLabelText(/lado do ar-condicionado/i), "farTop");
+    expect(useProjectStore.getState().tableSlot).toBe("farBottom");
+    expect(useProjectStore.getState().chairsSlot).toBe("near");
+    expect(useProjectStore.getState().acSlot).toBe("farTop");
+
+    await userEvent.selectOptions(screen.getByLabelText(/parede das máquinas/i), "right");
+    expect(
+      Array.from((screen.getByLabelText(/lado da mesa/i) as HTMLSelectElement).options).map(
+        (o) => o.text
+      )
+    ).toEqual(["Esquerda cima", "Esquerda baixo", "Direita (perto das máquinas)"]);
+  });
+
+  it("em 'parede lateral' o totem vai ao lado da primeira ou da última máquina", async () => {
+    useProjectStore.setState({ orientation: "side", techAccessSide: "right", totemSide: "left" });
+    render(<ControlPanel />);
+    const select = screen.getByLabelText(/lado do totem/i) as HTMLSelectElement;
+    expect(Array.from(select.options).map((o) => o.text)).toEqual([
+      "Ao lado da primeira máquina (T1)",
+      "Ao lado da última máquina (T3)",
+    ]);
+    await userEvent.selectOptions(select, "right");
+    expect(useProjectStore.getState().totemSide).toBe("right");
+  });
+
   it("mostra a sugestão de BTU quando o mobiliário está habilitado", () => {
     useProjectStore.setState({ roomDepthMm: 4200 });
     render(<ControlPanel />);

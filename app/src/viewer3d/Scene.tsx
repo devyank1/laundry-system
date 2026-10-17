@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Environment, Lightformer, OrbitControls } from "@react-three/drei";
+import { Environment, Lightformer } from "@react-three/drei";
 import type { Group } from "three";
 import { useLerpedVector3 } from "./useLerpedVector3";
 import {
@@ -11,6 +11,7 @@ import {
   TOTEM_SIZE_MM,
 } from "../engine/constants";
 import type { Layout, PlacedMachine } from "../engine/types";
+import { drywallFrame, fitSize, rectCenter, wallYaw, type DrywallFrame } from "./placement";
 import { PLAN_COLORS } from "../viewer2d/planTheme";
 import { Chair } from "./models/Chair";
 import { FitBox } from "./models/FitBox";
@@ -20,18 +21,26 @@ import { SpeedQueenStack } from "./models/SpeedQueenStack";
 import { SplitAC } from "./models/SplitAC";
 import { StainlessTable } from "./models/StainlessTable";
 import { TowerMachine } from "./models/TowerMachine";
+import { WallLogo, type SceneLogo } from "./models/WallLogo";
+import { Facade } from "./models/Facade";
+import { ROOM_WALL_THICKNESS } from "./facade";
+import { Ceiling } from "./models/Ceiling";
+import { CameraRig } from "./CameraRig";
+import { LIGHTING_PRESETS, type SceneLighting } from "./lighting";
+import { drywallColorFor } from "./colors";
 
 const M = (mmValue: number) => mmValue / 1000;
 
 const TABLE_HEIGHT_MM = 900;
 const AC_UNIT_HEIGHT_MM = 300;
 const AC_CEILING_GAP_MM = 150;
-const WALL_THICKNESS = 0.1;
 const DOOR_JAMB = 0.025;
 const DOOR_LEAF_THICKNESS = 0.04;
 
+// Drywall no 3D: tom mais escuro da cor da fachada (padrão #8fa892 → #5b765f).
+const DEFAULT_DRYWALL_COLOR = drywallColorFor("#8fa892");
+
 const LEGEND = [
-  { label: "Drywall: Azul Claro Embutido", color: PLAN_COLORS.drywall },
   { label: "Speed Queen / Mamute 10: Brancas", color: PLAN_COLORS.machineWhite },
   { label: "Mamute 17kg: Prata", color: "#cccccc" },
   { label: "Porta Técnica 0,70m", color: PLAN_COLORS.door },
@@ -59,7 +68,16 @@ function Box({
   );
 }
 
-function MachineMesh({ catalogId, x, y, widthMm, depthMm, heightMm }: PlacedMachine) {
+// `yaw` vira a frente da máquina pro salão (0 em "back"; ±90° em "side").
+function MachineMesh({
+  catalogId,
+  x,
+  y,
+  widthMm,
+  depthMm,
+  heightMm,
+  yaw,
+}: PlacedMachine & { yaw: number }) {
   const w = M(widthMm);
   const d = M(depthMm);
   const h = M(heightMm);
@@ -72,8 +90,8 @@ function MachineMesh({ catalogId, x, y, widthMm, depthMm, heightMm }: PlacedMach
   });
 
   return (
-    <group ref={groupRef} position={targetPosition}>
-      <FitBox size={[w, h, d]}>
+    <group ref={groupRef} position={targetPosition} rotation={[0, yaw, 0]}>
+      <FitBox size={fitSize(w, h, d, yaw)}>
         {model.kind === "speedQueen" ? <SpeedQueenStack /> : <TowerMachine finish={model.finish} />}
       </FitBox>
     </group>
@@ -93,41 +111,52 @@ function solidSpans(from: number, to: number, gaps: { start: number; end: number
   return spans;
 }
 
-function Drywall({ layout }: { layout: Layout }) {
+// Drywall com vãos das máquinas e do corredor técnico. Tudo é montado no
+// referencial (along, across) da fileira — `frame` converte pro mundo, então
+// o mesmo código serve pra fileira no fundo ou em qualquer parede lateral.
+function Drywall({ layout, color }: { layout: Layout; color: string }) {
+  const frame = drywallFrame(layout);
   const wallH = M(layout.drywall.heightMm);
   const thickness = M(DRYWALL_THICKNESS_MM);
-  const z = M(layout.drywall.y) + thickness / 2;
-  const corridor = layout.techCorridor;
+  const across = M(layout.drywall.y) + thickness / 2;
 
   const gaps = [
-    ...layout.drywall.openings.map((o) => ({ start: o.x, end: o.x + o.width })),
-    { start: corridor.x, end: corridor.x + corridor.width },
+    ...layout.drywall.openings.map(frame.markerSpan),
+    frame.spatialSpan(layout.techCorridor),
   ];
 
   return (
     <>
-      {solidSpans(0, layout.roomWidthMm, gaps).map((s) => (
+      {solidSpans(0, frame.alongLength, gaps).map((s) => (
         <Box
           key={`span-${s.start}`}
-          position={[M((s.start + s.end) / 2), wallH / 2, z]}
-          size={[M(s.end - s.start), wallH, thickness]}
-          color={PLAN_COLORS.drywall}
+          position={frame.pos((s.start + s.end) / 2, wallH / 2, across)}
+          size={frame.size(s.end - s.start, wallH, thickness)}
+          color={color}
         />
       ))}
 
       {layout.drywall.openings.map((o) => {
+        const span = frame.markerSpan(o);
         const lintelH = wallH - M(o.height);
         return lintelH > 0 ? (
           <Box
-            key={`lintel-${o.x}`}
-            position={[M(o.x + o.width / 2), M(o.height) + lintelH / 2, z]}
-            size={[M(o.width), lintelH, thickness]}
-            color={PLAN_COLORS.drywall}
+            key={`lintel-${span.start}`}
+            position={frame.pos((span.start + span.end) / 2, M(o.height) + lintelH / 2, across)}
+            size={frame.size(span.end - span.start, lintelH, thickness)}
+            color={color}
           />
         ) : null;
       })}
 
-      <TechDoor layout={layout} wallH={wallH} z={z} thickness={thickness} />
+      <TechDoor
+        layout={layout}
+        frame={frame}
+        wallH={wallH}
+        across={across}
+        thickness={thickness}
+        wallColor={color}
+      />
     </>
   );
 }
@@ -135,55 +164,67 @@ function Drywall({ layout }: { layout: Layout }) {
 // Porta técnica de 70cm no drywall: batente, folha grossa e maçaneta do lado oposto à dobradiça.
 function TechDoor({
   layout,
+  frame,
   wallH,
-  z,
+  across,
   thickness,
+  wallColor,
 }: {
   layout: Layout;
+  frame: DrywallFrame;
   wallH: number;
-  z: number;
+  across: number;
   thickness: number;
+  wallColor: string;
 }) {
-  const door = layout.techDoor;
-  const x0 = M(door.x);
-  const w = M(door.width);
+  const span = frame.markerSpan(layout.techDoor);
+  const a0 = span.start;
+  const w = span.end - span.start;
   const doorH = Math.min(M(TECH_DOOR_HEIGHT_MM), wallH);
   const leafW = w - DOOR_JAMB * 2;
   const leafH = doorH - DOOR_JAMB;
   const frameDepth = thickness + 0.02;
-  const hingeOnLeft = door.x === 0;
-  const handleX = hingeOnLeft ? x0 + w - DOOR_JAMB - 0.07 : x0 + DOOR_JAMB + 0.07;
-  const leafFront = z + DOOR_LEAF_THICKNESS / 2;
+  const hingeAtStart = a0 === 0;
+  const handleA = hingeAtStart ? a0 + w - DOOR_JAMB - 0.07 : a0 + DOOR_JAMB + 0.07;
+  const leafFront = across + DOOR_LEAF_THICKNESS / 2;
 
   return (
     <>
       {/* Batente */}
-      {[x0 + DOOR_JAMB / 2, x0 + w - DOOR_JAMB / 2].map((x) => (
-        <Box key={x} position={[x, doorH / 2, z]} size={[DOOR_JAMB, doorH, frameDepth]} color="#e5e7eb" />
+      {[a0 + DOOR_JAMB / 2, a0 + w - DOOR_JAMB / 2].map((a) => (
+        <Box
+          key={a}
+          position={frame.pos(a, doorH / 2, across)}
+          size={frame.size(DOOR_JAMB, doorH, frameDepth)}
+          color="#e5e7eb"
+        />
       ))}
       <Box
-        position={[x0 + w / 2, doorH - DOOR_JAMB / 2, z]}
-        size={[w, DOOR_JAMB, frameDepth]}
+        position={frame.pos(a0 + w / 2, doorH - DOOR_JAMB / 2, across)}
+        size={frame.size(w, DOOR_JAMB, frameDepth)}
         color="#e5e7eb"
       />
 
       {/* Folha */}
       <Box
-        position={[x0 + w / 2, leafH / 2, z]}
-        size={[leafW, leafH, DOOR_LEAF_THICKNESS]}
+        position={frame.pos(a0 + w / 2, leafH / 2, across)}
+        size={frame.size(leafW, leafH, DOOR_LEAF_THICKNESS)}
         color={PLAN_COLORS.door}
       />
 
       {/* Maçaneta dos dois lados */}
       {[1, -1].map((dir) => (
-        <group key={dir} position={[handleX, 1.0, z + dir * (DOOR_LEAF_THICKNESS / 2 + 0.03)]}>
-          <mesh rotation={[0, 0, Math.PI / 2]}>
+        <group
+          key={dir}
+          position={frame.pos(handleA, 1.0, across + dir * (DOOR_LEAF_THICKNESS / 2 + 0.03))}
+        >
+          <mesh rotation={frame.alongBarRotation}>
             <cylinderGeometry args={[0.009, 0.009, 0.12, 12]} />
             <meshStandardMaterial color="#d1d5db" metalness={0.9} roughness={0.25} />
           </mesh>
         </group>
       ))}
-      <mesh position={[handleX, 1.0, leafFront + 0.002]}>
+      <mesh position={frame.pos(handleA, 1.0, leafFront + 0.002)}>
         <cylinderGeometry args={[0.03, 0.03, 0.06, 16]} />
         <meshStandardMaterial color="#d1d5db" metalness={0.9} roughness={0.25} />
       </mesh>
@@ -191,9 +232,9 @@ function TechDoor({
       {/* Drywall acima da porta */}
       {wallH > doorH && (
         <Box
-          position={[x0 + w / 2, doorH + (wallH - doorH) / 2, z]}
-          size={[w, wallH - doorH, thickness]}
-          color={PLAN_COLORS.drywall}
+          position={frame.pos(a0 + w / 2, doorH + (wallH - doorH) / 2, across)}
+          size={frame.size(w, wallH - doorH, thickness)}
+          color={wallColor}
         />
       )}
     </>
@@ -202,9 +243,27 @@ function TechDoor({
 
 export function Scene({
   layout,
+  logo,
+  facade,
+  lighting = "day",
+  showRoof = true,
+  tourRun = null,
+  drywallColor = DEFAULT_DRYWALL_COLOR,
   onCanvasReady,
 }: {
   layout: Layout;
+  // Logo do local (PNG transparente), no drywall em cima das máquinas.
+  logo?: SceneLogo | null;
+  // Fachada na parede da frente (null = escondida).
+  facade?: { wallColor: string; signColor: string } | null;
+  // Cor do drywall (acompanha a cor da fachada, mesmo com ela escondida).
+  drywallColor?: string;
+  // Dia (sol + reflexos) ou noite (só as luzes da loja acesas).
+  lighting?: SceneLighting;
+  // Laje do teto vista de fora (desligar pra ver o interior de cima).
+  showRoof?: boolean;
+  // "Visão do cliente": cada número novo (re)começa o passeio; null = órbita livre.
+  tourRun?: number | null;
   onCanvasReady?: (canvas: HTMLCanvasElement) => void;
 }) {
   const roomW = M(layout.roomWidthMm);
@@ -212,18 +271,27 @@ export function Scene({
   const roomH = M(layout.ceilingHeightMm);
   const span = Math.max(roomW, roomD);
   const gridSize = Math.ceil(span) + 4;
+  const frame = drywallFrame(layout);
+  const furniture = layout.furniture;
+  const light = LIGHTING_PRESETS[lighting];
+  const orbitPosition: [number, number, number] = [roomW / 2, span * 1.3, roomD + span * 0.9];
 
   return (
     <div className="scene3d">
       <Canvas
         shadows
         gl={{ preserveDrawingBuffer: true }}
-        camera={{ position: [roomW / 2, span * 1.3, roomD + span * 0.9], fov: 45 }}
+        camera={{ position: orbitPosition, fov: 45 }}
         onCreated={({ gl }) => onCanvasReady?.(gl.domElement)}
       >
-        <color attach="background" args={[PLAN_COLORS.background]} />
-        <ambientLight intensity={0.75} />
-        <directionalLight position={[roomW, roomH * 3, roomD * 1.5]} intensity={1} castShadow />
+        <color attach="background" args={[light.background]} />
+        <ambientLight intensity={light.ambient} />
+        <directionalLight
+          position={[roomW, roomH * 3, roomD * 1.5]}
+          intensity={light.sun}
+          castShadow
+        />
+        <Ceiling layout={layout} panelIntensity={light.panelLight} showRoof={showRoof} />
 
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[roomW / 2, 0, roomD / 2]} receiveShadow>
           <planeGeometry args={[roomW, roomD]} />
@@ -236,25 +304,55 @@ export function Scene({
 
         {/* Paredes: fundo e laterais; a frente fica aberta para ver o interior */}
         <Box
-          position={[roomW / 2, roomH / 2, -WALL_THICKNESS / 2]}
-          size={[roomW + WALL_THICKNESS * 2, roomH, WALL_THICKNESS]}
+          position={[roomW / 2, roomH / 2, -ROOM_WALL_THICKNESS / 2]}
+          size={[roomW + ROOM_WALL_THICKNESS * 2, roomH, ROOM_WALL_THICKNESS]}
           color={PLAN_COLORS.wall}
         />
         <Box
-          position={[-WALL_THICKNESS / 2, roomH / 2, roomD / 2]}
-          size={[WALL_THICKNESS, roomH, roomD]}
+          position={[-ROOM_WALL_THICKNESS / 2, roomH / 2, roomD / 2]}
+          size={[ROOM_WALL_THICKNESS, roomH, roomD]}
           color={PLAN_COLORS.wall}
         />
         <Box
-          position={[roomW + WALL_THICKNESS / 2, roomH / 2, roomD / 2]}
-          size={[WALL_THICKNESS, roomH, roomD]}
+          position={[roomW + ROOM_WALL_THICKNESS / 2, roomH / 2, roomD / 2]}
+          size={[ROOM_WALL_THICKNESS, roomH, roomD]}
           color={PLAN_COLORS.wall}
         />
 
-        <Drywall layout={layout} />
+        {/* Fileira na parede lateral: a área técnica encosta na fachada (que
+            fica aberta pra ver o interior). Fecha esse trecho pra não parecer
+            uma segunda entrada — o único acesso à área técnica é a porta técnica. */}
+        {layout.orientation === "side" &&
+          !facade &&
+          (() => {
+            const techAcross = M(layout.drywall.y + DRYWALL_THICKNESS_MM);
+            return (
+              <Box
+                position={frame.pos(roomD + ROOM_WALL_THICKNESS / 2, roomH / 2, techAcross / 2)}
+                size={frame.size(ROOM_WALL_THICKNESS, roomH, techAcross)}
+                color={PLAN_COLORS.wall}
+              />
+            );
+          })()}
+
+        <Drywall layout={layout} color={drywallColor} />
+        {logo && <WallLogo layout={layout} logo={logo} />}
+        {facade && (
+          <Facade
+            layout={layout}
+            wallColor={facade.wallColor}
+            signColor={facade.signColor}
+            logo={logo}
+            spotIntensity={light.facadeSpot}
+          />
+        )}
 
         {layout.machines.map((machine) => (
-          <MachineMesh key={`${machine.catalogId}-${machine.instanceIndex}`} {...machine} />
+          <MachineMesh
+            key={`${machine.catalogId}-${machine.instanceIndex}`}
+            {...machine}
+            yaw={frame.yaw}
+          />
         ))}
 
         {layout.frontDoor && (
@@ -265,15 +363,16 @@ export function Scene({
           />
         )}
 
-        {layout.furniture && (
+        {furniture && (
           <>
-            {/* Totem embutido no drywall, centro da tela a 1,20m do chão */}
+            {/* Totem embutido no drywall, centro da tela a 1,20m do chão, virado pro salão */}
             <group
-              position={[
-                M(layout.furniture.totem.x + layout.furniture.totem.width / 2),
+              position={frame.pos(
+                (frame.spatialSpan(furniture.totem).start + frame.spatialSpan(furniture.totem).end) / 2,
                 M(TOTEM_MOUNT_CENTER_MM - TOTEM_SIZE_MM.height / 2),
-                M(layout.drywall.y + DRYWALL_THICKNESS_MM) + M(TOTEM_SIZE_MM.depth) / 2 - 0.03,
-              ]}
+                M(layout.drywall.y + DRYWALL_THICKNESS_MM) + M(TOTEM_SIZE_MM.depth) / 2 - 0.03
+              )}
+              rotation={[0, frame.yaw, 0]}
             >
               <FitBox
                 size={[
@@ -285,71 +384,68 @@ export function Scene({
                 <PaymentTotem />
               </FitBox>
             </group>
-            <group
-              position={[
-                M(layout.furniture.table.x + layout.furniture.table.width / 2),
-                0,
-                M(layout.furniture.table.y + layout.furniture.table.height / 2),
-              ]}
-            >
-              {/* Mesa virada: comprimento (2m) entra sala adentro, perpendicular
-                  à parede — já bate com a orientação nativa do modelo, sem rotação. */}
-              <FitBox
-                size={[
-                  M(layout.furniture.table.width),
-                  M(TABLE_HEIGHT_MM),
-                  M(layout.furniture.table.height),
-                ]}
-              >
-                <StainlessTable />
-              </FitBox>
-            </group>
-            {layout.furniture.poufs.map((p, i) => (
-              <group
-                key={i}
-                position={[M(p.x + p.width / 2), 0, M(p.y + p.height / 2)]}
-                rotation={[0, p.x === 0 ? Math.PI / 2 : -Math.PI / 2, 0]}
-              >
-                <FitBox size={[M(p.width), M(CHAIR_HEIGHT_MM), M(p.height)]}>
-                  <Chair />
-                </FitBox>
-              </group>
-            ))}
-            {/* Ar-condicionado na parede lateral do salão, virado para dentro da loja */}
-            <group
-              position={[
-                M(layout.furniture.ac.x + layout.furniture.ac.width / 2),
-                roomH - M(AC_CEILING_GAP_MM + AC_UNIT_HEIGHT_MM),
-                M(layout.furniture.ac.y + layout.furniture.ac.height / 2),
-              ]}
-              rotation={[0, layout.furniture.acWall === "left" ? Math.PI / 2 : -Math.PI / 2, 0]}
-            >
-              <FitBox
-                size={[M(layout.furniture.ac.height), M(AC_UNIT_HEIGHT_MM), M(layout.furniture.ac.width)]}
-              >
-                <SplitAC />
-              </FitBox>
-            </group>
+            {(() => {
+              // Mesa: 2m nativos em x. Em "side" o comprimento corre em z
+              // (ao longo da parede lateral), então gira 90°.
+              const t = furniture.table;
+              const yaw = layout.orientation === "side" ? Math.PI / 2 : 0;
+              const [cx, cz] = rectCenter(t);
+              return (
+                <group position={[cx, 0, cz]} rotation={[0, yaw, 0]}>
+                  <FitBox size={fitSize(M(t.width), M(TABLE_HEIGHT_MM), M(t.height), yaw)}>
+                    <StainlessTable />
+                  </FitBox>
+                </group>
+              );
+            })()}
+            {furniture.poufs.map((p, i) => {
+              // Costas na parede em que as cadeiras encostam, frente pro salão.
+              const yaw = wallYaw(furniture.chairsWall);
+              const [cx, cz] = rectCenter(p);
+              return (
+                <group key={i} position={[cx, 0, cz]} rotation={[0, yaw, 0]}>
+                  <FitBox size={fitSize(M(p.width), M(CHAIR_HEIGHT_MM), M(p.height), yaw)}>
+                    <Chair />
+                  </FitBox>
+                </group>
+              );
+            })}
+            {(() => {
+              // Ar-condicionado na parede indicada pelo motor, virado pra dentro da loja.
+              const ac = furniture.ac;
+              const yaw = wallYaw(furniture.acWall);
+              const [cx, cz] = rectCenter(ac);
+              return (
+                <group
+                  position={[cx, roomH - M(AC_CEILING_GAP_MM + AC_UNIT_HEIGHT_MM), cz]}
+                  rotation={[0, yaw, 0]}
+                >
+                  <FitBox size={fitSize(M(ac.width), M(AC_UNIT_HEIGHT_MM), M(ac.height), yaw)}>
+                    <SplitAC />
+                  </FitBox>
+                </group>
+              );
+            })()}
           </>
         )}
 
         {/* Reflexos para os metais (inox, prata) sem baixar HDR da internet */}
-        <Environment resolution={64}>
+        <Environment resolution={64} environmentIntensity={light.environment}>
           <Lightformer intensity={1.5} position={[0, 5, 0]} rotation-x={Math.PI / 2} scale={[10, 10, 1]} />
           <Lightformer intensity={0.8} position={[0, 2, 6]} scale={[10, 3, 1]} />
           <Lightformer intensity={0.5} position={[-6, 2, 0]} rotation-y={Math.PI / 2} scale={[10, 3, 1]} />
         </Environment>
 
-        <OrbitControls
-          target={[roomW / 2, 0, roomD / 2]}
-          enableDamping
-          dampingFactor={0.1}
-          maxPolarAngle={Math.PI / 2.05}
+        <CameraRig
+          layout={layout}
+          tourRun={tourRun}
+          orbitPosition={orbitPosition}
+          orbitTarget={[roomW / 2, 0, roomD / 2]}
         />
       </Canvas>
 
       <ul className="plan-legend">
-        {LEGEND.map((item) => (
+        {[{ label: "Drywall: Verde Escuro Embutido", color: drywallColor }, ...LEGEND].map((item) => (
           <li key={item.label}>
             <span className="plan-legend-swatch" style={{ background: item.color }} />
             {item.label}

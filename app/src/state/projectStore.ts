@@ -3,8 +3,13 @@ import type {
   LayoutOrientation,
   MachineSelection,
   ProjectState,
+  SideSlot,
   TechAccessSide,
 } from "../engine/types";
+import type { SceneLighting } from "../viewer3d/lighting";
+
+export type LogoStyle = "3d" | "flat";
+export type LogoSideColor = "white" | "black" | "steel";
 
 interface ProjectStore extends ProjectState {
   setRoomWidthMm: (mm: number) => void;
@@ -21,7 +26,33 @@ interface ProjectStore extends ProjectState {
   setTableSide: (side: TechAccessSide) => void;
   setChairsSide: (side: TechAccessSide) => void;
   setAcSide: (side: TechAccessSide) => void;
+  setMachineWall: (side: TechAccessSide) => void;
+  setTableSlot: (slot: SideSlot) => void;
+  setChairsSlot: (slot: SideSlot) => void;
+  setAcSlot: (slot: SideSlot) => void;
   setAcOverrideBTU: (btu: number | null) => void;
+  // Logo do protótipo (PNG com fundo transparente, como data URL), mostrada
+  // no 3D em cima das máquinas. Só visual — o motor de layout não usa.
+  logoDataUrl: string | null;
+  setLogoDataUrl: (url: string | null) => void;
+  // "3d" = letreiro extrudado a partir da transparência do PNG; "flat" = adesivo.
+  logoStyle: LogoStyle;
+  setLogoStyle: (style: LogoStyle) => void;
+  logoDepthMm: number;
+  setLogoDepthMm: (mm: number) => void;
+  logoSideColor: LogoSideColor;
+  setLogoSideColor: (color: LogoSideColor) => void;
+  // Fachada no 3D (modelo da referência em img/): mostrar/esconder e cores HEX.
+  facadeVisible: boolean;
+  toggleFacade: () => void;
+  facadeColor: string;
+  setFacadeColor: (hex: string) => void;
+  facadeSignColor: string;
+  setFacadeSignColor: (hex: string) => void;
+  sceneLighting: SceneLighting;
+  setSceneLighting: (mode: SceneLighting) => void;
+  roofVisible: boolean;
+  toggleRoof: () => void;
 }
 
 const initialState: ProjectState = {
@@ -39,6 +70,12 @@ const initialState: ProjectState = {
   tableSide: "left",
   chairsSide: "left",
   acSide: "left",
+  // orientation="side": fileira na parede esquerda da planta, mobiliário na
+  // parede oposta (mesa+cadeiras em cima, AC embaixo).
+  machineWall: "left",
+  tableSlot: "farTop",
+  chairsSlot: "farTop",
+  acSlot: "farBottom",
   acOverrideBTU: null,
 };
 
@@ -71,5 +108,27 @@ export const useProjectStore = create<ProjectStore>()((set) => ({
   setTableSide: (side) => set({ tableSide: side }),
   setChairsSide: (side) => set({ chairsSide: side }),
   setAcSide: (side) => set({ acSide: side }),
+  setMachineWall: (side) => set({ machineWall: side }),
+  setTableSlot: (slot) => set({ tableSlot: slot }),
+  setChairsSlot: (slot) => set({ chairsSlot: slot }),
+  setAcSlot: (slot) => set({ acSlot: slot }),
   setAcOverrideBTU: (btu) => set({ acOverrideBTU: btu }),
+  logoDataUrl: null,
+  setLogoDataUrl: (url) => set({ logoDataUrl: url }),
+  logoStyle: "3d",
+  setLogoStyle: (style) => set({ logoStyle: style }),
+  logoDepthMm: 30,
+  setLogoDepthMm: (mm) => set({ logoDepthMm: mm }),
+  logoSideColor: "white",
+  setLogoSideColor: (color) => set({ logoSideColor: color }),
+  facadeVisible: true,
+  toggleFacade: () => set((state) => ({ facadeVisible: !state.facadeVisible })),
+  facadeColor: "#8fa892", // verde-sálvia da referência
+  setFacadeColor: (hex) => set({ facadeColor: hex }),
+  facadeSignColor: "#a8977c", // bege granilite do painel
+  setFacadeSignColor: (hex) => set({ facadeSignColor: hex }),
+  sceneLighting: "day",
+  setSceneLighting: (mode) => set({ sceneLighting: mode }),
+  roofVisible: true,
+  toggleRoof: () => set((state) => ({ roofVisible: !state.roofVisible })),
 }));

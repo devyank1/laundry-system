@@ -27,6 +27,10 @@ const validState: ProjectState = {
   tableSide: "left",
   chairsSide: "left",
   acSide: "left",
+  machineWall: "left",
+  tableSlot: "farTop",
+  chairsSlot: "farTop",
+  acSlot: "farBottom",
   acOverrideBTU: null,
 };
 
@@ -206,6 +210,17 @@ describe("computeLayout", () => {
     expect(firstChair.y).toBe(layout.drywall.y + 1000); // não depende da mesa, que está na esquerda
   });
 
+  it("cadeiras viram fileira ao lado da mesa quando a coluna não cabe até a frente", () => {
+    // 4,5m de fundo: coluna depois da mesa passaria da parede da frente
+    const s = { ...validState, roomDepthMm: 4500 };
+    const f = computeLayout(s, catalog).layout!.furniture!;
+    for (const c of f.poufs) {
+      expect(c.y + c.height).toBeLessThanOrEqual(s.roomDepthMm);
+      expect(c.x + c.width).toBeLessThanOrEqual(s.roomWidthMm);
+    }
+    expect(f.poufs[0].x).toBe(f.table.x + f.table.width + 100);
+  });
+
   it("omite mobiliário quando furnitureEnabled=false", () => {
     const result = computeLayout({ ...validState, furnitureEnabled: false }, catalog);
     expect(result.layout!.furniture).toBeNull();
@@ -213,9 +228,24 @@ describe("computeLayout", () => {
 
   it("sugere BTU pela fórmula quando não há override", () => {
     const result = computeLayout(validState, catalog);
-    const areaM2 = (validState.roomWidthMm / 1000) * (validState.roomDepthMm / 1000);
+    const areaM2 = result.layout!.salonAreaM2;
     expect(result.layout!.acSuggestedBTU).toBeGreaterThan(0);
     expect(result.layout!.acSuggestedBTU).toBeGreaterThanOrEqual(areaM2 * 600);
+  });
+
+  it("calcula o BTU só pela área social (sem a área técnica atrás do drywall)", () => {
+    const layout = computeLayout(validState, catalog).layout!;
+    // salão = fundo da sala − (área técnica 1,05m + máquina 0,794m + drywall 0,10m)
+    const salonDepthM = (validState.roomDepthMm - (1050 + 794 + 100)) / 1000;
+    expect(layout.salonAreaM2).toBeCloseTo((validState.roomWidthMm / 1000) * salonDepthM, 5);
+
+    const side = computeLayout({ ...validState, orientation: "side" }, catalog).layout!;
+    const sideSalonM = (validState.roomWidthMm - (1050 + 794 + 100)) / 1000;
+    expect(side.salonAreaM2).toBeCloseTo((validState.roomDepthMm / 1000) * sideSalonM, 5);
+
+    // 5,0 x 3,556 = 17,8m² social, 3 secadoras: 17,8*600 + 6000 = 16.668 → 18.000
+    // (pela área total, 27,5m², daria 22.500 → 30.000)
+    expect(layout.acSuggestedBTU).toBe(18000);
   });
 
   it("usa o override de BTU quando informado", () => {
@@ -291,20 +321,171 @@ describe("computeLayout — orientation=side (fileira na parede lateral)", () =>
     expect(layout.techDoor.y).toBe(sideState.roomDepthMm - 700);
   });
 
-  it("mesa+cadeiras+totem+AC continuam dentro da sala, girados 90°", () => {
+  it("mesa em 'farTop' encosta na parede oposta às máquinas, em cima, girada 90°", () => {
     const layout = computeLayout(sideState, catalog).layout!;
     const f = layout.furniture!;
-    // tableSide="left" → mesa encostada em y=0 (início do eixo along), não mais x=0
     expect(f.table.y).toBe(0);
-    expect(f.table.x).toBe(layout.drywall.y + 1000); // 1,00m de trânsito, agora em x
+    expect(f.table.x + f.table.width).toBe(sideState.roomWidthMm);
     expect(f.table.width).toBe(800); // TABLE_DEPTH_MM e TABLE_WIDTH_MM trocaram de eixo
     expect(f.table.height).toBe(2000);
-    for (const c of f.poufs) {
-      expect(c.x).toBeGreaterThanOrEqual(0);
-      expect(c.x).toBeLessThanOrEqual(sideState.roomWidthMm);
-      expect(c.y).toBeGreaterThanOrEqual(0);
-      expect(c.y).toBeLessThanOrEqual(sideState.roomDepthMm);
+  });
+
+  it("mesa em 'farBottom' fica embaixo e em 'near' fica a 1,00m da frente das máquinas", () => {
+    const bottom = computeLayout({ ...sideState, tableSlot: "farBottom" }, catalog).layout!;
+    expect(bottom.furniture!.table.y + bottom.furniture!.table.height).toBe(sideState.roomDepthMm);
+    expect(bottom.furniture!.table.x + bottom.furniture!.table.width).toBe(sideState.roomWidthMm);
+
+    const near = computeLayout({ ...sideState, tableSlot: "near" }, catalog).layout!;
+    expect(near.furniture!.table.x).toBe(near.drywall.y + 1000);
+  });
+
+  it("machineWall='right' espelha a planta: máquinas na parede direita, mobiliário 'far' na esquerda", () => {
+    const layout = computeLayout({ ...sideState, machineWall: "right" }, catalog).layout!;
+    expect(layout.machineWall).toBe("right");
+    for (const m of layout.machines) {
+      // costas da máquina a 1,05m (área técnica) da parede direita
+      expect(m.x).toBe(sideState.roomWidthMm - layout.drywall.y);
+      expect(sideState.roomWidthMm - (m.x + m.widthMm)).toBe(1050);
     }
+    expect(layout.techCorridor.x + layout.techCorridor.width).toBe(sideState.roomWidthMm);
+    expect(layout.furniture!.table.x).toBe(0);
+    expect(layout.furniture!.acWall).toBe("left"); // acSlot="farBottom" → parede oposta
+  });
+
+  it("totem fica sempre colado na primeira ou na última máquina da fileira", () => {
+    for (const techAccessSide of ["left", "right"] as const) {
+      const first = computeLayout({ ...sideState, techAccessSide, totemSide: "left" }, catalog)
+        .layout!;
+      const m1 = first.machines[0];
+      const t1 = first.furniture!.totem;
+      expect(t1.y + t1.height).toBeLessThanOrEqual(m1.y);
+      expect(m1.y - (t1.y + t1.height)).toBeLessThan(100);
+
+      const last = computeLayout({ ...sideState, techAccessSide, totemSide: "right" }, catalog)
+        .layout!;
+      const mN = last.machines[last.machines.length - 1];
+      const tN = last.furniture!.totem;
+      expect(tN.y).toBeGreaterThanOrEqual(mN.y + mN.depthMm);
+      expect(tN.y - (mN.y + mN.depthMm)).toBeLessThan(100);
+    }
+  });
+
+  it("cadeiras 'near' encostam no drywall livre ao lado das máquinas, com o AC em cima delas", () => {
+    for (const machineWall of ["left", "right"] as const) {
+      const s = {
+        ...sideState,
+        roomDepthMm: 6000,
+        machineWall,
+        tableSlot: "farTop" as const,
+        chairsSlot: "near" as const,
+        acSlot: "near" as const,
+      };
+      const layout = computeLayout(s, catalog).layout!;
+      const f = layout.furniture!;
+      const drywallFaceX =
+        machineWall === "left" ? layout.drywall.y + 100 : s.roomWidthMm - layout.drywall.y - 100;
+      const lastMachine = layout.machines[layout.machines.length - 1];
+      for (const c of f.poufs) {
+        // encostada na face do drywall
+        expect(machineWall === "left" ? c.x : c.x + c.width).toBe(drywallFaceX);
+        // sem invadir máquinas, totem ou corredor técnico
+        expect(c.y).toBeGreaterThanOrEqual(lastMachine.y + lastMachine.depthMm);
+        expect(c.y + c.height).toBeLessThanOrEqual(layout.techCorridor.y);
+      }
+      // AC na mesma parede, em cima das cadeiras, mas a ≥60cm da última máquina
+      expect(machineWall === "left" ? f.ac.x : f.ac.x + f.ac.width).toBe(drywallFaceX);
+      expect(f.ac.y).toBeGreaterThanOrEqual(f.poufs[0].y);
+      expect(f.ac.y + f.ac.height).toBeLessThanOrEqual(f.poufs[2].y + f.poufs[2].height);
+      expect(f.ac.y - (lastMachine.y + lastMachine.depthMm)).toBeGreaterThanOrEqual(600);
+    }
+  });
+
+  it("sem drywall livre, cadeiras 'near' vão pra parede de topo, com o AC junto", () => {
+    // fileira enche o drywall: 6 máquinas em 6,0m (500 + 6*683+5*20 + 700 = 5,40m)
+    const s = {
+      ...sideState,
+      roomDepthMm: 6000,
+      machines: [{ catalogId: "sq-stack", qty: 6 }],
+      chairsSlot: "near" as const,
+      acSlot: "near" as const,
+      tableSlot: "farBottom" as const,
+    };
+    const f = computeLayout(s, catalog).layout!.furniture!;
+    for (const c of f.poufs) expect(c.y).toBe(0); // parede de cima (corredor técnico embaixo)
+    expect(f.ac.y).toBe(0);
+  });
+
+  it("porta de entrada fica na fachada (parede de baixo, lado menor), dentro do salão", () => {
+    for (const machineWall of ["left", "right"] as const) {
+      const layout = computeLayout({ ...sideState, machineWall }, catalog).layout!;
+      const door = layout.frontDoor!;
+      expect(door.y).toBe(sideState.roomDepthMm);
+      expect(door.width).toBe(900);
+      const salonFront = layout.drywall.y + 100;
+      if (machineWall === "left") {
+        expect(door.x).toBeGreaterThanOrEqual(salonFront);
+        expect(door.x + door.width).toBeLessThanOrEqual(sideState.roomWidthMm);
+      } else {
+        expect(door.x).toBeGreaterThanOrEqual(0);
+        expect(door.x + door.width).toBeLessThanOrEqual(sideState.roomWidthMm - salonFront);
+      }
+    }
+  });
+
+  it("cadeiras, mesa e AC nunca saem da planta, em qualquer combinação de encaixes", () => {
+    const slots = ["near", "farTop", "farBottom"] as const;
+    for (const machineWall of ["left", "right"] as const)
+      for (const techAccessSide of ["left", "right"] as const)
+        for (const tableSlot of slots)
+          for (const chairsSlot of slots)
+            for (const acSlot of slots) {
+              const s = { ...sideState, machineWall, techAccessSide, tableSlot, chairsSlot, acSlot };
+              const f = computeLayout(s, catalog).layout!.furniture!;
+              for (const r of [f.table, f.ac, ...f.poufs]) {
+                expect(r.x).toBeGreaterThanOrEqual(0);
+                expect(r.x + r.width).toBeLessThanOrEqual(s.roomWidthMm);
+                expect(r.y).toBeGreaterThanOrEqual(0);
+                expect(r.y + r.height).toBeLessThanOrEqual(s.roomDepthMm);
+              }
+            }
+  });
+
+  it("o ar-condicionado fica a ≥60cm das máquinas, do totem e da porta técnica (nunca em cima)", () => {
+    const slots = ["near", "farTop", "farBottom"] as const;
+    for (const qty of [3, 6])
+      for (const machineWall of ["left", "right"] as const)
+        for (const techAccessSide of ["left", "right"] as const)
+          for (const totemSide of ["left", "right"] as const)
+            for (const chairsSlot of slots)
+              for (const acSlot of slots) {
+                const s = {
+                  ...sideState,
+                  roomDepthMm: 6000,
+                  machines: [{ catalogId: "sq-stack", qty }],
+                  machineWall,
+                  techAccessSide,
+                  totemSide,
+                  chairsSlot,
+                  acSlot,
+                };
+                const layout = computeLayout(s, catalog).layout;
+                if (!layout) continue; // totem do lado da porta pode não caber com 6
+                const { ac, totem } = layout.furniture!;
+                const blocked = [...layout.machines, totem, layout.techCorridor].map((r) => ({
+                  y: r.y,
+                  h: "depthMm" in r ? r.depthMm : r.height,
+                }));
+                const onDrywall =
+                  machineWall === "left"
+                    ? ac.x === layout.drywall.y + 100
+                    : ac.x + ac.width === s.roomWidthMm - layout.drywall.y - 100;
+                if (!onDrywall) continue;
+                for (const b of blocked) {
+                  // nem em cima, nem a menos de 60cm
+                  const clear = Math.max(b.y - (ac.y + ac.height), ac.y - (b.y + b.h));
+                  expect(clear).toBeGreaterThanOrEqual(600);
+                }
+              }
   });
 
   it("violação de largura mínima aponta pra roomDepthMm quando orientation=side", () => {

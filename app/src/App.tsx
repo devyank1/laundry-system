@@ -5,16 +5,29 @@ import { CatalogManager } from "./ui/CatalogManager";
 import { FloorPlan } from "./viewer2d/FloorPlan";
 import { Scene } from "./viewer3d/Scene";
 import { useLayout } from "./state/useLayout";
+import { useProjectStore } from "./state/projectStore";
 import { exportFloorPlanPDF, exportFloorPlanPNG } from "./export/export2d";
 import { exportSceneScreenshot } from "./export/export3d";
+import { drywallColorFor } from "./viewer3d/colors";
 import "./App.css";
 
 export function App() {
   const { layout, violations } = useLayout();
+  const logoDataUrl = useProjectStore((s) => s.logoDataUrl);
+  const logoStyle = useProjectStore((s) => s.logoStyle);
+  const logoDepthMm = useProjectStore((s) => s.logoDepthMm);
+  const logoSideColor = useProjectStore((s) => s.logoSideColor);
+  const facadeVisible = useProjectStore((s) => s.facadeVisible);
+  const facadeColor = useProjectStore((s) => s.facadeColor);
+  const facadeSignColor = useProjectStore((s) => s.facadeSignColor);
+  const sceneLighting = useProjectStore((s) => s.sceneLighting);
+  const roofVisible = useProjectStore((s) => s.roofVisible);
   const [tab, setTab] = useState<"2d" | "3d">("2d");
   const [showCatalog, setShowCatalog] = useState(false);
   const [svgEl, setSvgEl] = useState<SVGSVGElement | null>(null);
   const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
+  // "Visão do cliente": número = passeio rodando (novo número reinicia); null = órbita livre.
+  const [tourRun, setTourRun] = useState<number | null>(null);
 
   const canExport = layout !== null && violations.length === 0;
 
@@ -74,7 +87,22 @@ export function App() {
 
       {layout && tab === "3d" && (
         <>
-          <Scene layout={layout} onCanvasReady={setCanvasEl} />
+          <Scene
+            layout={layout}
+            logo={
+              logoDataUrl
+                ? { url: logoDataUrl, style: logoStyle, depthMm: logoDepthMm, sideColor: logoSideColor }
+                : null
+            }
+            facade={
+              facadeVisible ? { wallColor: facadeColor, signColor: facadeSignColor } : null
+            }
+            drywallColor={drywallColorFor(facadeColor)}
+            lighting={sceneLighting}
+            showRoof={facadeVisible && roofVisible}
+            tourRun={tourRun}
+            onCanvasReady={setCanvasEl}
+          />
           <div className="export-actions">
             <button
               type="button"
@@ -83,6 +111,14 @@ export function App() {
             >
               Baixar imagem 3D
             </button>
+            <button type="button" onClick={() => setTourRun((n) => (n ?? 0) + 1)}>
+              {tourRun === null ? "Visão do cliente" : "Repetir visão do cliente"}
+            </button>
+            {tourRun !== null && (
+              <button type="button" onClick={() => setTourRun(null)}>
+                Visão livre
+              </button>
+            )}
           </div>
         </>
       )}

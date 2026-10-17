@@ -70,6 +70,10 @@ const baseState: ProjectState = {
   tableSide: "left",
   chairsSide: "left",
   acSide: "left",
+  machineWall: "left",
+  tableSlot: "farTop",
+  chairsSlot: "farTop",
+  acSlot: "farBottom",
   acOverrideBTU: null,
 };
 

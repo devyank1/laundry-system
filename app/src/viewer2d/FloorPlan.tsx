@@ -39,6 +39,8 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout }>(function 
   const viewHeight = legendTop + legendRows * LEGEND_ROW_HEIGHT + 12;
 
   const isSide = layout.orientation === "side";
+  // Fileira na parede direita da planta: o across conta a partir dela.
+  const mirrored = isSide && layout.machineWall === "right";
   const alongLengthMm = isSide ? layout.roomDepthMm : layout.roomWidthMm;
 
   // Converte uma posição/retângulo em termos (along, across) — along é o
@@ -50,17 +52,32 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout }>(function 
   // cadeiras, AC, corredor) não precisam disso, só os elementos que esse
   // componente desenha "na mão" (linha do drywall, arco das portas, área
   // técnica), que até aqui sempre assumiram a parede de fundo horizontal.
+  function acrossToX(acrossMm: number): number {
+    return mirrored ? layout.roomWidthMm - acrossMm : acrossMm;
+  }
   function alongAcrossPoint(alongMm: number, acrossMm: number): { x: number; y: number } {
-    return isSide ? { x: mm(acrossMm), y: mm(alongMm) } : { x: mm(alongMm), y: mm(acrossMm) };
+    return isSide
+      ? { x: mm(acrossToX(acrossMm)), y: mm(alongMm) }
+      : { x: mm(alongMm), y: mm(acrossMm) };
   }
   function alongAcrossRect(alongMm: number, acrossMm: number, alongExtMm: number, acrossExtMm: number) {
     return isSide
-      ? { x: mm(acrossMm), y: mm(alongMm), w: mm(acrossExtMm), h: mm(alongExtMm) }
+      ? {
+          x: mm(mirrored ? layout.roomWidthMm - acrossMm - acrossExtMm : acrossMm),
+          y: mm(alongMm),
+          w: mm(acrossExtMm),
+          h: mm(alongExtMm),
+        }
       : { x: mm(alongMm), y: mm(acrossMm), w: mm(alongExtMm), h: mm(acrossExtMm) };
   }
 
+  // Profundidade da área técnica = da parede da fileira até as costas da
+  // máquina mais funda (drywall − profundidade real). Em "side" a
+  // profundidade real da máquina é a extensão em X (widthMm).
   const techDepthMm =
-    layout.machines.length > 0 ? Math.min(...layout.machines.map((m) => m.y)) : 0;
+    layout.machines.length > 0
+      ? layout.drywall.y - Math.max(...layout.machines.map((m) => (isSide ? m.widthMm : m.depthMm)))
+      : 0;
   const areaM2 = (layout.roomWidthMm / 1000) * (layout.roomDepthMm / 1000);
   const techAreaRect = alongAcrossRect(0, 0, alongLengthMm, techDepthMm);
   const techAreaLabelCenter = alongAcrossPoint(alongLengthMm / 2, techDepthMm / 2);
@@ -71,13 +88,15 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout }>(function 
   // e o arco apontando pro lado certo em qualquer orientação.
   const techDoor = layout.techDoor;
   const doorAlongMm = isSide ? techDoor.y : techDoor.x;
-  const doorAcrossMm = isSide ? techDoor.x : techDoor.y;
+  const doorAcrossMm = isSide ? acrossToX(techDoor.x) : techDoor.y;
   const hingeAtStart = doorAlongMm === 0;
   const hingeAlongMm = hingeAtStart ? doorAlongMm : doorAlongMm + techDoor.width;
   const hinge = alongAcrossPoint(hingeAlongMm, doorAcrossMm);
   const swingEnd = alongAcrossPoint(hingeAlongMm, doorAcrossMm - techDoor.width);
   const closedTip = alongAcrossPoint(doorAlongMm + (hingeAtStart ? techDoor.width : 0), doorAcrossMm);
-  const doorSweepFlag = isSide ? (hingeAtStart ? 1 : 0) : hingeAtStart ? 0 : 1;
+  const sideSweep = hingeAtStart !== mirrored ? 1 : 0;
+  const doorSweepFlag = isSide ? sideSweep : hingeAtStart ? 0 : 1;
+  const drywallX = mm(acrossToX(layout.drywall.y));
 
   return (
     <svg
@@ -144,17 +163,17 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout }>(function 
         {isSide ? (
           <>
             <line
-              x1={mm(layout.drywall.y)}
+              x1={drywallX}
               y1={0}
-              x2={mm(layout.drywall.y)}
+              x2={drywallX}
               y2={mm(layout.techCorridor.y)}
               stroke={PLAN_COLORS.drywall}
               strokeWidth={4}
             />
             <line
-              x1={mm(layout.drywall.y)}
+              x1={drywallX}
               y1={mm(layout.techCorridor.y + layout.techCorridor.height)}
-              x2={mm(layout.drywall.y)}
+              x2={drywallX}
               y2={height}
               stroke={PLAN_COLORS.drywall}
               strokeWidth={4}
@@ -254,13 +273,12 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout }>(function 
 
         {layout.frontDoor &&
           (() => {
+            // Sempre na fachada (parede de baixo), nas duas orientações.
             const fd = layout.frontDoor;
-            const alongMm = isSide ? fd.y : fd.x;
-            const acrossMm = isSide ? fd.x : fd.y; // parede da frente (canto oposto à fileira)
-            const wallStart = alongAcrossPoint(alongMm, acrossMm);
-            const wallEnd = alongAcrossPoint(alongMm + fd.width, acrossMm);
-            const openEnd = alongAcrossPoint(alongMm, acrossMm - fd.width);
-            const labelCenter = alongAcrossPoint(alongMm + fd.width / 2, acrossMm);
+            const wallStart = { x: mm(fd.x), y: mm(fd.y) };
+            const wallEnd = { x: mm(fd.x + fd.width), y: mm(fd.y) };
+            const openEnd = { x: mm(fd.x), y: mm(fd.y - fd.width) };
+            const labelCenter = { x: mm(fd.x + fd.width / 2), y: mm(fd.y) };
             return (
               <>
                 <line
@@ -280,8 +298,7 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout }>(function 
                 />
                 <text
                   x={labelCenter.x}
-                  y={labelCenter.y + (isSide ? 0 : 14)}
-                  dx={isSide ? 14 : 0}
+                  y={labelCenter.y + 14}
                   textAnchor="middle"
                   fontSize={8}
                   fontWeight={700}
