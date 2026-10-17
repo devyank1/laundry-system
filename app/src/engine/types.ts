@@ -1,3 +1,7 @@
+import type { ExhaustLayout } from "./exhaust";
+import type { HydraulicsLayout } from "./hydraulics";
+import type { ElectricalLayout } from "./electrical";
+
 export type MachineType = "lavadora" | "secadora" | "stack";
 
 export interface CatalogMachine {
@@ -12,6 +16,8 @@ export interface CatalogMachine {
   breakerSecadoraA?: number;
   cableMm2?: string;
   exhaustDiameterMm?: number;
+  // Altura da saída de exaustão traseira da secadora, do piso (mm).
+  exhaustHeightMm?: number;
   drainInch?: string;
   drainLpm?: number;
   weightKg?: number;
@@ -54,6 +60,9 @@ export interface ProjectState {
   tableSlot: SideSlot;
   chairsSlot: SideSlot;
   acSlot: SideSlot;
+  // Balcão premium (loja >= 30 m²): lado em "back", encaixe em "side".
+  counterSide: TechAccessSide;
+  counterSlot: SideSlot;
   acOverrideBTU: number | null;
 }
 
@@ -89,6 +98,17 @@ export interface FurnitureLayout {
   totem: Rect;
   ac: Rect;
   acWall: WallSide;
+  // Itens da lavanderia premium (área >= 30 m²); null nas demais.
+  premium: PremiumLayout | null;
+}
+
+export interface PremiumLayout {
+  // Balcão alto com banquetas; `counterWall` = parede em que ele encosta as
+  // costas. null se não houver espaço livre.
+  counter: Rect | null;
+  counterWall: WallSide;
+  // Caixa que envolve os 3 pufs hexagonais, no meio do salão (null se não couber).
+  pufs: Rect | null;
 }
 
 export interface Layout {
@@ -112,6 +132,14 @@ export interface Layout {
   acSuggestedBTU: number;
   // Área social (salão, sem a área técnica) — base do cálculo de BTU.
   salonAreaM2: number;
+  // Exaustão das secadoras até a saída pela parede de trás; null sem secadoras.
+  exhaust: ExhaustLayout | null;
+  // Água (pressurizador + barramento) e esgoto (canal de resíduos) das
+  // lavadoras; null sem lavadoras.
+  hydraulics: HydraulicsLayout | null;
+  // Elétrica suspensa: eletrocalha, perfilado por máquina, Steck da secadora,
+  // 2 tomadas 220 V por máquina e 3 tomadas 127 V dos clientes.
+  electrical: ElectricalLayout | null;
   roomWidthMm: number;
   roomDepthMm: number;
   ceilingHeightMm: number;

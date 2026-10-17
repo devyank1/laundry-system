@@ -22,6 +22,8 @@ export function App() {
   const facadeSignColor = useProjectStore((s) => s.facadeSignColor);
   const sceneLighting = useProjectStore((s) => s.sceneLighting);
   const roofVisible = useProjectStore((s) => s.roofVisible);
+  const inauguracao = useProjectStore((s) => s.inauguracao);
+  const toggleInauguracao = useProjectStore((s) => s.toggleInauguracao);
   const [tab, setTab] = useState<"2d" | "3d">("2d");
   const [showCatalog, setShowCatalog] = useState(false);
   const [svgEl, setSvgEl] = useState<SVGSVGElement | null>(null);
@@ -29,6 +31,8 @@ export function App() {
   // "Visão do cliente": número = passeio rodando (novo número reinicia); null = órbita livre.
   const [tourRun, setTourRun] = useState<number | null>(null);
 
+  // Inauguração mostra a loja de verdade: a fachada (e o teto) entram junto.
+  const facadeOn = facadeVisible || inauguracao;
   const canExport = layout !== null && violations.length === 0;
 
   return (
@@ -95,11 +99,12 @@ export function App() {
                 : null
             }
             facade={
-              facadeVisible ? { wallColor: facadeColor, signColor: facadeSignColor } : null
+              facadeOn ? { wallColor: facadeColor, signColor: facadeSignColor } : null
             }
             drywallColor={drywallColorFor(facadeColor)}
             lighting={sceneLighting}
-            showRoof={facadeVisible && roofVisible}
+            showRoof={facadeOn && roofVisible}
+            inauguracao={inauguracao}
             tourRun={tourRun}
             onCanvasReady={setCanvasEl}
           />
@@ -113,6 +118,9 @@ export function App() {
             </button>
             <button type="button" onClick={() => setTourRun((n) => (n ?? 0) + 1)}>
               {tourRun === null ? "Visão do cliente" : "Repetir visão do cliente"}
+            </button>
+            <button type="button" aria-pressed={inauguracao} onClick={toggleInauguracao}>
+              Modo inauguração
             </button>
             {tourRun !== null && (
               <button type="button" onClick={() => setTourRun(null)}>

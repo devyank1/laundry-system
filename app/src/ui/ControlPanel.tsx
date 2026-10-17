@@ -5,6 +5,7 @@ import { useLayout } from "../state/useLayout";
 import { AC_SIZES_BTU } from "../engine/constants";
 import { LogoUpload } from "./LogoUpload";
 import { FacadeControls } from "./FacadeControls";
+import { isPremium } from "../engine/layout";
 import type { LayoutOrientation, SideSlot, TechAccessSide } from "../engine/types";
 
 // Rótulos dos encaixes de mobiliário em orientation="side": dependem de qual
@@ -27,6 +28,8 @@ export function ControlPanel() {
   const { layout } = useLayout();
   const isSide = state.orientation === "side";
   const labels = slotLabels(state.machineWall);
+  // Lavanderia premium (>= 30 m²): ganha o balcão alto com banquetas.
+  const premium = isPremium(state);
 
   function slotSelect(label: string, value: SideSlot, onChange: (slot: SideSlot) => void) {
     return (
@@ -155,7 +158,7 @@ export function ControlPanel() {
 
       <label>
         <input type="checkbox" checked={state.furnitureEnabled} onChange={state.toggleFurniture} />
-        Mobiliário (mesa, cadeiras, totem, ar-condicionado)
+        Mobiliário (mesa, cadeiras, totem, ar-condicionado{premium ? ", balcão premium" : ""})
       </label>
 
       {state.furnitureEnabled && (
@@ -190,6 +193,7 @@ export function ControlPanel() {
               {slotSelect("Lado da mesa", state.tableSlot, state.setTableSlot)}
               {slotSelect("Lado das cadeiras", state.chairsSlot, state.setChairsSlot)}
               {slotSelect("Lado do ar-condicionado", state.acSlot, state.setAcSlot)}
+              {premium && slotSelect("Lado do balcão", state.counterSlot, state.setCounterSlot)}
             </>
           )}
         </>
@@ -229,6 +233,19 @@ export function ControlPanel() {
               <option value="right">Direita</option>
             </select>
           </label>
+
+          {premium && (
+            <label>
+              Lado do balcão
+              <select
+                value={state.counterSide}
+                onChange={(e) => state.setCounterSide(e.target.value as TechAccessSide)}
+              >
+                <option value="left">Esquerda</option>
+                <option value="right">Direita</option>
+              </select>
+            </label>
+          )}
         </>
       )}
 
@@ -255,6 +272,38 @@ export function ControlPanel() {
             ))}
           </select>
         </label>
+      )}
+
+      {layout?.exhaust && (
+        <p data-exhaust-info role={layout.exhaust.withinLimit ? undefined : "alert"}>
+          Exaustão das secadoras: duto Ø{layout.exhaust.outletDiameterMm} mm,{" "}
+          {(layout.exhaust.lengthMm / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} m
+          até a saída pela parede de trás (máx.{" "}
+          {(layout.exhaust.maxLengthMm / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} m).
+          {!layout.exhaust.withinLimit && " Acima do limite do manual: reduza a fileira ou o trajeto."}
+        </p>
+      )}
+
+      {layout?.electrical && (
+        <p data-electrical-info>
+          Elétrica suspensa: {layout.electrical.summary.machines} perfilado(s) de alumínio, com{" "}
+          {layout.electrical.summary.dryerSockets} tomada(s) Steck de secadora (
+          {layout.electrical.machines[0].dryerSocket.amperage ?? "?"} A no 1º maquinário),{" "}
+          {layout.electrical.summary.sockets220} tomadas 220 V (lavadora + dosadoras) e{" "}
+          {layout.electrical.summary.customerOutlets} tomadas 127 V para clientes.
+        </p>
+      )}
+
+      {layout?.hydraulics && (
+        <p data-hydraulics-info>
+          Hidráulica: barramento Ø{layout.hydraulics.summary.mainDiameterMm} mm (
+          {layout.hydraulics.summary.supplyFlowLpm} L/min, pressão de{" "}
+          {layout.hydraulics.summary.pressureKpa.min} a {layout.hydraulics.summary.pressureKpa.max} kPa
+          com pressurizador); esgoto suspenso Ø
+          {Math.round(layout.hydraulics.summary.drainDiameterMm)} mm,{" "}
+          {layout.hydraulics.summary.drainFlowLpm} L/min de dreno; dosagem:{" "}
+          {layout.hydraulics.summary.dosingPumps} bombas dosadoras (par por lavadora).
+        </p>
       )}
     </section>
   );

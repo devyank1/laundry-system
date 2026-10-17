@@ -37,3 +37,14 @@ export const AC_DEPTH_MM = 200;
 export const DOOR_WIDTH_MM = 900;
 
 export const AC_SIZES_BTU = [9000, 12000, 18000, 22000, 30000, 36000, 48000, 60000];
+
+// Lavanderia premium: a partir de 30 m² (largura x profundidade) a loja ganha
+// o balcão alto com banquetas (e os próximos itens premium).
+export const PREMIUM_MIN_AREA_MM2 = 30_000_000;
+// Balcão alto de madeira com 3 banquetas (Cadeira com mesa Trab.html): 2,00m de
+// comprimento, 0,75m de profundidade já contando as banquetas.
+export const COUNTER_WIDTH_MM = 2000;
+export const COUNTER_DEPTH_MM = 750;
+// Conjunto de 3 pufs hexagonais encaixados (pufs.html), no meio do salão:
+// caixa quadrada que envolve os três.
+export const PUFS_SIZE_MM = 1200;

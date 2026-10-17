@@ -74,6 +74,8 @@ const baseState: ProjectState = {
   tableSlot: "farTop",
   chairsSlot: "farTop",
   acSlot: "farBottom",
+  counterSide: "right",
+  counterSlot: "farBottom",
   acOverrideBTU: null,
 };
 

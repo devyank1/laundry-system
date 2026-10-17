@@ -30,6 +30,8 @@ interface ProjectStore extends ProjectState {
   setTableSlot: (slot: SideSlot) => void;
   setChairsSlot: (slot: SideSlot) => void;
   setAcSlot: (slot: SideSlot) => void;
+  setCounterSide: (side: TechAccessSide) => void;
+  setCounterSlot: (slot: SideSlot) => void;
   setAcOverrideBTU: (btu: number | null) => void;
   // Logo do protótipo (PNG com fundo transparente, como data URL), mostrada
   // no 3D em cima das máquinas. Só visual — o motor de layout não usa.
@@ -53,6 +55,9 @@ interface ProjectStore extends ProjectState {
   setSceneLighting: (mode: SceneLighting) => void;
   roofVisible: boolean;
   toggleRoof: () => void;
+  // Modo inauguração: itens de festa no 3D (balões, pipoca, lembranças...).
+  inauguracao: boolean;
+  toggleInauguracao: () => void;
 }
 
 const initialState: ProjectState = {
@@ -76,6 +81,8 @@ const initialState: ProjectState = {
   tableSlot: "farTop",
   chairsSlot: "farTop",
   acSlot: "farBottom",
+  counterSide: "right",
+  counterSlot: "farBottom",
   acOverrideBTU: null,
 };
 
@@ -112,6 +119,8 @@ export const useProjectStore = create<ProjectStore>()((set) => ({
   setTableSlot: (slot) => set({ tableSlot: slot }),
   setChairsSlot: (slot) => set({ chairsSlot: slot }),
   setAcSlot: (slot) => set({ acSlot: slot }),
+  setCounterSide: (side) => set({ counterSide: side }),
+  setCounterSlot: (slot) => set({ counterSlot: slot }),
   setAcOverrideBTU: (btu) => set({ acOverrideBTU: btu }),
   logoDataUrl: null,
   setLogoDataUrl: (url) => set({ logoDataUrl: url }),
@@ -131,4 +140,6 @@ export const useProjectStore = create<ProjectStore>()((set) => ({
   setSceneLighting: (mode) => set({ sceneLighting: mode }),
   roofVisible: true,
   toggleRoof: () => set((state) => ({ roofVisible: !state.roofVisible })),
+  inauguracao: false,
+  toggleInauguracao: () => set((state) => ({ inauguracao: !state.inauguracao })),
 }));

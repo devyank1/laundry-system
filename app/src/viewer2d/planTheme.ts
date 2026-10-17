@@ -15,6 +15,11 @@ export const PLAN_COLORS = {
   table: "#e2e8f0",
   tableStroke: "#94a3b8",
   ac: "#7fb3d5",
+  exhaust: "#fb923c", // duto de exaustão das secadoras
+  electrical: "#facc15", // eletrocalha e perfilados de alumínio
+  water: "#38bdf8", // água: pressurizador, barramento e derivações
+  sewer: "#a8a29e", // esgoto: canal de resíduos com grelha
+  counter: "#dec29b", // madeira clara do balcão premium
   text: "#e2e8f0",
 } as const;
 

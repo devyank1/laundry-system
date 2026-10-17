@@ -1,0 +1,187 @@
+import { describe, expect, it } from "vitest";
+import { computeLayout } from "./layout";
+import {
+  DRAIN_BASE_DIAMETER_MM,
+  STANDPIPE_DIAMETER_MM,
+  STANDPIPE_HEIGHT_MM,
+  WATER_POINT_HEIGHT_RANGE_MM,
+  DOSING_PUMP_Y_MM,
+  DRAIN_LINE_Y_MM,
+  STANDPIPE_TEE_ARM_MM,
+  drainDiameterMmAt,
+  waterMainDiameterMm,
+} from "./hydraulics";
+import { CATALOG_SEED } from "../catalog/seed";
+import type { ProjectState } from "./types";
+
+const base: ProjectState = {
+  roomWidthMm: 7000,
+  roomDepthMm: 6000,
+  orientation: "back",
+  ceilingHeightMm: 2800,
+  machines: [{ catalogId: "sq-stack", qty: 3 }],
+  doorEnabled: true,
+  techAccessSide: "right",
+  furnitureEnabled: true,
+  totemSide: "left",
+  tableSide: "left",
+  chairsSide: "left",
+  acSide: "left",
+  machineWall: "left",
+  tableSlot: "farTop",
+  chairsSlot: "farTop",
+  acSlot: "farBottom",
+  counterSide: "right",
+  counterSlot: "farBottom",
+  acOverrideBTU: null,
+};
+
+const hydFor = (patch: Partial<ProjectState> = {}) =>
+  computeLayout({ ...base, ...patch }, CATALOG_SEED).layout!.hydraulics!;
+
+describe("hidráulica e esgoto das lavadoras", () => {
+  it("tubo de esgoto cresce 25% do diâmetro A (3 pol) a cada máquina (SSU/SSG)", () => {
+    expect(drainDiameterMmAt(1)).toBeCloseTo(DRAIN_BASE_DIAMETER_MM);
+    expect(drainDiameterMmAt(2)).toBeCloseTo(DRAIN_BASE_DIAMETER_MM * 1.25);
+    expect(drainDiameterMmAt(3)).toBeCloseTo(DRAIN_BASE_DIAMETER_MM * 1.5);
+    const h = hydFor();
+    const dias = h.drainLine.map((s) => s.diameterMm);
+    expect(dias).toEqual([...dias].sort((a, b) => a - b));
+    expect(h.summary.drainDiameterMm).toBeCloseTo(DRAIN_BASE_DIAMETER_MM * 1.5, 0);
+  });
+
+  it("uma lavadora: canal de 3 pol e vazão de 14 L/min; cada máquina soma 14", () => {
+    const one = hydFor({ machines: [{ catalogId: "sq-stack", qty: 1 }] });
+    expect(one.summary.drainDiameterMm).toBeCloseTo(76.2, 0);
+    expect(one.summary.drainFlowLpm).toBe(14);
+    expect(hydFor().summary.drainFlowLpm).toBe(42);
+  });
+
+  it("2 pontos de 3/4 por lavadora, a 60-100 cm do piso", () => {
+    const h = hydFor();
+    expect(h.washers).toHaveLength(3);
+    for (const w of h.washers) {
+      expect(w.waterPointHeightMm).toBeGreaterThanOrEqual(WATER_POINT_HEIGHT_RANGE_MM[0]);
+      expect(w.waterPointHeightMm).toBeLessThanOrEqual(WATER_POINT_HEIGHT_RANGE_MM[1]);
+      expect(w.branch[1].y).toBe(h.manifold.points[0].y);
+    }
+  });
+
+  it("tubo vertical do dreno: 4-5 cm, 70 cm de altura, ligado ao tubo suspenso (abaixo das saídas)", () => {
+    const h = hydFor();
+    for (const w of h.washers) {
+      expect(w.standpipe.diameterMm).toBeGreaterThanOrEqual(40);
+      expect(w.standpipe.diameterMm).toBeLessThanOrEqual(STANDPIPE_DIAMETER_MM + 0.01);
+      expect(w.standpipe.topY).toBe(STANDPIPE_HEIGHT_MM);
+      // a mangueira faz o laço entre 61 e 91 cm antes de descer pro tubo
+      const loopY = Math.max(...w.hose.map((p) => p.y));
+      expect(loopY).toBeGreaterThanOrEqual(610);
+      expect(loopY).toBeLessThanOrEqual(915);
+      expect(w.hose[0].y).toBeLessThan(w.standpipe.topY);
+      expect(w.standpipe.baseY).toBe(DRAIN_LINE_Y_MM);
+    }
+    // tubo suspenso: acima do piso (sem ralo/canal) e abaixo da saída de dreno da máquina
+    for (const seg of h.drainLine) {
+      for (const p of seg.points) {
+        expect(p.y).toBeGreaterThan(0);
+        expect(p.y + seg.diameterMm / 2).toBeLessThanOrEqual(h.washers[0].hose[0].y);
+      }
+    }
+  });
+
+  it("esgoto suspenso: suportes a cada 800 mm ao longo do tubo, nenhum no piso", () => {
+    const h = hydFor();
+    expect(h.drainSupports.length).toBeGreaterThanOrEqual(h.drainLine.length);
+    for (const sp of h.drainSupports) expect(sp.y).toBe(DRAIN_LINE_Y_MM);
+  });
+
+  it("tubo individual da máquina vai do tubo central baixo até o T a 70 cm do piso", () => {
+    const h = hydFor();
+    for (const w of h.washers) {
+      expect(w.standpipe.baseY).toBe(DRAIN_LINE_Y_MM); // sai do tubo central, baixo
+      expect(w.standpipe.topY).toBe(700); // ligação em T a 70 cm
+      // a mangueira termina na boca do braço do T
+      const end = w.hose[w.hose.length - 1];
+      expect(end.y).toBeGreaterThanOrEqual(700);
+      expect(end.a).toBeCloseTo(w.standpipe.a + STANDPIPE_TEE_ARM_MM);
+    }
+    // um único tubo central, mais baixo que todos os tês
+    expect(new Set(h.drainLine.slice(0, -1).map((s) => s.points[0].c)).size).toBe(1);
+  });
+
+  it("bombas dosadoras ficam ACIMA da entrada de água da lavadora", () => {
+    for (const w of hydFor().washers) {
+      const waterY = w.branch[1].y;
+      for (const p of w.dosing.pumps) expect(p.y - 100).toBeGreaterThan(waterY + 36); // base da bomba acima dos registros
+    }
+  });
+
+  it("um par de bombas dosadoras e um par de galões POR lavadora, colados atrás dela", () => {
+    const one = hydFor({ machines: [{ catalogId: "sq-stack", qty: 1 }] });
+    expect(one.summary.dosingPumps).toBe(2);
+    const h = hydFor();
+    expect(h.summary.dosingPumps).toBe(6);
+    const layout = computeLayout(base, CATALOG_SEED).layout!;
+    for (const w of h.washers) {
+      expect(w.dosing.pumps).toHaveLength(2);
+      expect(w.dosing.jugs).toHaveLength(2);
+      expect(w.dosing.jugs.map((j) => j.kind)).toEqual(["detergente", "amaciante"]);
+      const m = layout.machines.find((mm) => Math.abs(mm.x + mm.widthMm / 2 - w.a) < 1)!;
+      for (const pump of w.dosing.pumps) {
+        expect(pump.y).toBe(DOSING_PUMP_Y_MM);
+        expect(pump.c).toBe(m.y); // costas da bomba na traseira da máquina
+        expect(Math.abs(pump.a - w.a)).toBeLessThan(m.widthMm / 2);
+      }
+      // galões no chão, atrás da máquina e abaixo das bombas
+      for (const jug of w.dosing.jugs) expect(jug.c).toBeLessThan(m.y);
+    }
+  });
+
+  it("sai pela parede de trás (c < 0), no lado oposto à porta técnica, junto da exaustão", () => {
+    const layout = computeLayout(base, CATALOG_SEED).layout!;
+    const h = layout.hydraulics!;
+    expect(h.sewerExit.outside.c).toBeLessThan(0);
+    expect(h.waterEntry.outside.c).toBeLessThan(0);
+    // na mesma faixa lateral da saída da exaustão (esgoto no chão, exaustão no alto)
+    expect(Math.abs(h.sewerExit.inside.a - layout.exhaust!.exit.points[0].a)).toBeLessThanOrEqual(150);
+    const left = hydFor({ techAccessSide: "left" });
+    expect(left.sewerExit.inside.a).toBeGreaterThan(7000 / 2);
+  });
+
+  it("barramento dimensionado pela vazão (40 L/min por lavadora, vel. 2,5 m/s)", () => {
+    expect(waterMainDiameterMm(1)).toBe(25);
+    expect(waterMainDiameterMm(3)).toBeGreaterThanOrEqual(40);
+    expect(waterMainDiameterMm(6)).toBeGreaterThan(waterMainDiameterMm(3));
+    expect(hydFor().summary.supplyFlowLpm).toBe(120);
+  });
+
+  it("pressurizador entre a entrada de água e o barramento; pressão 200-570 kPa", () => {
+    const h = hydFor();
+    expect(h.pump.model).toMatch(/Komeco TP825/);
+    expect(h.pump.inlet.a).toBe(h.waterEntry.through.a);
+    expect(h.summary.pressureKpa).toEqual({ min: 200, max: 570 });
+  });
+
+  it("tem pelo menos um respiro, subindo até perto do teto", () => {
+    const h = hydFor();
+    expect(h.vents.length).toBeGreaterThanOrEqual(1);
+    expect(h.vents[0].topY).toBeLessThan(2800);
+  });
+
+  it.each([
+    ["fileira lateral esquerda", { orientation: "side" as const, machineWall: "left" as const, roomWidthMm: 6000, roomDepthMm: 7000 }],
+    ["fileira lateral direita", { orientation: "side" as const, machineWall: "right" as const, roomWidthMm: 6000, roomDepthMm: 7000 }],
+  ])("%s: mesma rota no referencial da fileira", (_n, patch) => {
+    const h = hydFor(patch);
+    expect(h.washers).toHaveLength(3);
+    expect(h.sewerExit.outside.c).toBeLessThan(0);
+  });
+
+  it("sem lavadoras não há hidráulica", () => {
+    const layout = computeLayout(
+      { ...base, machines: [{ catalogId: "sec", qty: 2 }] },
+      [{ id: "sec", brand: "x", model: "y", type: "secadora", widthMm: 700, depthMm: 800, heightMm: 1000 }]
+    ).layout!;
+    expect(layout.hydraulics).toBeNull();
+  });
+});

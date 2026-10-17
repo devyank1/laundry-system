@@ -33,6 +33,8 @@ const state: ProjectState = {
   tableSlot: "farTop",
   chairsSlot: "farTop",
   acSlot: "farBottom",
+  counterSide: "right",
+  counterSlot: "farBottom",
   acOverrideBTU: null,
 };
 
@@ -148,5 +150,50 @@ describe("FloorPlan — orientation=side (fileira na parede lateral)", () => {
         expect(screen.getByText(/ÁREA TÉCNICA MANUTENÇÃO \(1,05m\)/)).toBeInTheDocument();
         unmount();
       }
+  });
+});
+
+describe("FloorPlan — balcão premium", () => {
+  const draw = (patch: Partial<ProjectState>) => {
+    const layout = computeLayout({ ...state, ...patch }, catalog).layout!;
+    return render(<FloorPlan layout={layout} />);
+  };
+
+  it("desenha o balcão em lojas de 30 m² ou mais", () => {
+    const { container } = draw({ roomDepthMm: 6000 });
+    expect(container.querySelector("[data-counter]")).not.toBeNull();
+    expect(screen.getByText("BALCÃO")).toBeInTheDocument();
+  });
+
+  it("não desenha abaixo de 30 m²", () => {
+    const { container } = draw({});
+    expect(container.querySelector("[data-counter]")).toBeNull();
+  });
+});
+
+describe("FloorPlan — exaustão", () => {
+  it("desenha o duto de exaustão com diâmetro e comprimento", () => {
+    const layout = computeLayout(state, catalog).layout!;
+    const { container } = render(<FloorPlan layout={layout} />);
+    expect(container.querySelector("[data-exhaust]")).not.toBeNull();
+    expect(screen.getByText(/EXAUSTÃO Ø\d+ · [\d,]+m \(máx 9,10m\)/)).toBeInTheDocument();
+  });
+});
+
+describe("FloorPlan — hidráulica e esgoto", () => {
+  it("desenha água, bomba e canal de resíduos na área técnica", () => {
+    const layout = computeLayout(state, catalog).layout!;
+    const { container } = render(<FloorPlan layout={layout} />);
+    expect(container.querySelector("[data-hydraulics]")).not.toBeNull();
+    expect(screen.getByText("BOMBA")).toBeInTheDocument();
+  });
+});
+
+describe("FloorPlan — elétrica", () => {
+  it("desenha a eletrocalha, os perfilados e as 3 tomadas 127 V dos clientes", () => {
+    const layout = computeLayout(state, catalog).layout!;
+    const { container } = render(<FloorPlan layout={layout} />);
+    expect(container.querySelector("[data-electrical]")).not.toBeNull();
+    expect(container.querySelectorAll("[data-outlet-127]")).toHaveLength(3);
   });
 });

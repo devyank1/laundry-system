@@ -6,16 +6,23 @@ import {
   validate,
 } from "./constraints";
 import { suggestBTU } from "./btu";
+import { computeExhaust } from "./exhaust";
+import { computeHydraulics } from "./hydraulics";
+import { computeElectrical } from "./electrical";
 import {
   AC_DEPTH_MM,
   AC_WIDTH_MM,
   CHAIR_SIZE_MM,
+  COUNTER_DEPTH_MM,
+  COUNTER_WIDTH_MM,
   DOOR_WIDTH_MM,
   DRYWALL_THICKNESS_MM,
   FURNITURE_CIRCULATION_GAP_MM,
   FURNITURE_MARGIN_MM,
   LATERAL_CLEARANCE_MM,
   MACHINE_GAP_MM,
+  PREMIUM_MIN_AREA_MM2,
+  PUFS_SIZE_MM,
   TABLE_DEPTH_MM,
   TABLE_WIDTH_MM,
   TECH_AREA_DEFAULT_MM,
@@ -29,6 +36,7 @@ import type {
   FurnitureLayout,
   Layout,
   LayoutResult,
+  PremiumLayout,
   PlacedMachine,
   ProjectState,
   Rect,
@@ -111,10 +119,12 @@ export function computeLayout(state: ProjectState, catalog: CatalogMachine[]): L
   const drywallAcross = TECH_AREA_DEFAULT_MM + maxDepthMm;
 
   let cursorAlong = startAlong;
+  const alongStarts: number[] = [];
   const placed: PlacedMachine[] = [];
   const openings: DrywallOpening[] = [];
   list.forEach((m, i) => {
     const alongPos = cursorAlong;
+    alongStarts.push(alongPos);
     // widthMm/depthMm aqui são SEMPRE "extensão em X" / "extensão em Y"
     // pros viewers — então trocam de eixo igual width/height de um rect.
     const r = orientedRect(state, alongPos, drywallAcross - m.depthMm, m.widthMm, m.depthMm);
@@ -150,11 +160,15 @@ export function computeLayout(state: ProjectState, catalog: CatalogMachine[]): L
   const salonAreaM2 = (alongLengthMm / 1000) * (salonAcrossMm / 1000);
   const acSuggestedBTU = state.acOverrideBTU ?? suggestBTU(salonAreaM2, dryerCount);
 
+  const frontDoor = state.doorEnabled ? frontDoorRect(state, drywallAcross) : null;
   const furniture = state.furnitureEnabled
-    ? placeFurniture(state, drywallAcross, alongLengthMm, {
-        start: startAlong,
-        end: startAlong + rowWidth,
-      })
+    ? placeFurniture(
+        state,
+        drywallAcross,
+        alongLengthMm,
+        { start: startAlong, end: startAlong + rowWidth },
+        { techCorridor, frontDoor }
+      )
     : null;
 
   const layout: Layout = {
@@ -164,10 +178,35 @@ export function computeLayout(state: ProjectState, catalog: CatalogMachine[]): L
     drywall: { y: drywallAcross, openings, heightMm: state.ceilingHeightMm },
     techCorridor,
     techDoor,
-    frontDoor: state.doorEnabled ? frontDoorRect(state, drywallAcross) : null,
+    frontDoor,
     furniture,
     acSuggestedBTU,
     salonAreaM2,
+    exhaust: computeExhaust({
+      machines: list,
+      alongStarts,
+      drywallAcrossMm: drywallAcross,
+      alongLengthMm,
+      ceilingMm: state.ceilingHeightMm,
+      techAccessSide: state.techAccessSide,
+    }),
+    hydraulics: computeHydraulics({
+      machines: list,
+      alongStarts,
+      drywallAcrossMm: drywallAcross,
+      alongLengthMm,
+      ceilingMm: state.ceilingHeightMm,
+      techAccessSide: state.techAccessSide,
+    }),
+    electrical: computeElectrical({
+      machines: list,
+      alongStarts,
+      drywallAcrossMm: drywallAcross,
+      ceilingMm: state.ceilingHeightMm,
+      techAccessSide: state.techAccessSide,
+      furniture,
+      roomWidthMm: state.roomWidthMm,
+    }),
     roomWidthMm: state.roomWidthMm,
     roomDepthMm: state.roomDepthMm,
     ceilingHeightMm: state.ceilingHeightMm,
@@ -343,7 +382,8 @@ function placeFurniture(
   state: ProjectState,
   drywallAcross: number,
   alongLengthMm: number,
-  row: { start: number; end: number }
+  row: { start: number; end: number },
+  room: { techCorridor: Rect; frontDoor: Rect | null }
 ): FurnitureLayout {
   const acrossLengthMm = state.orientation === "side" ? state.roomWidthMm : state.roomDepthMm;
   const zone = {
@@ -379,14 +419,141 @@ function placeFurniture(
       : placeBackFurniture(state, zone);
 
   const toRect = (r: LocalRect) => orientedRect(state, r.a, r.c, r.la, r.lc);
+  const table = toRect(placed.table);
+  const poufs = placed.chairs.map(toRect);
   return {
-    table: toRect(placed.table),
-    poufs: placed.chairs.map(toRect),
+    table,
+    poufs,
     chairsWall: placed.chairsWall,
     totem,
     ac: toRect(placed.ac),
     acWall: placed.acWall,
+    premium: isPremium(state)
+      ? placePremium(state, zone, row, {
+          // O que o balcão não pode pisar (a folga de trânsito entra em fits()).
+          obstacles: [table, ...poufs, totem, room.techCorridor],
+          frontDoor: room.frontDoor,
+        })
+      : null,
   };
+}
+
+export function isPremium(state: ProjectState): boolean {
+  return state.roomWidthMm * state.roomDepthMm >= PREMIUM_MIN_AREA_MM2;
+}
+
+const COUNTER_CLEARANCE_MM = 300; // trânsito em volta do balcão
+const PUFS_CLEARANCE_MM = 150; // pufs são baixos e macios: folga menor que a do balcão
+const COUNTER_DOOR_CLEARANCE = { half: 700, depth: 1400 }; // vão livre na entrada
+const COUNTER_SCAN_STEP_MM = 100;
+
+function rectsOverlap(a: Rect, b: Rect, pad: number): boolean {
+  return (
+    a.x < b.x + b.width + pad &&
+    a.x + a.width + pad > b.x &&
+    a.y < b.y + b.height + pad &&
+    a.y + a.height + pad > b.y
+  );
+}
+
+// Balcão premium com banquetas, lado independente (counterSide em "back",
+// counterSlot em "side"). Encosta numa parede e anda ao longo dela até achar
+// um trecho livre — primeiro pelo lado escolhido, depois pelos outros, pra
+// ele nunca sumir da loja premium. null só se não houver lugar nenhum.
+function placePremium(
+  state: ProjectState,
+  zone: FurnitureZone,
+  row: { start: number; end: number },
+  ctx: { obstacles: Rect[]; frontDoor: Rect | null }
+): PremiumLayout {
+  const { alongLengthMm, acrossLengthMm, circulationAcross } = zone;
+  const rowCenter = (row.start + row.end) / 2;
+  const L = COUNTER_WIDTH_MM;
+  const D = COUNTER_DEPTH_MM;
+  const range = (from: number, to: number) => {
+    const step = Math.sign(to - from) * COUNTER_SCAN_STEP_MM;
+    const out: number[] = [];
+    for (let v = from; step > 0 ? v <= to : v >= to; v += step) out.push(v);
+    return out;
+  };
+
+  interface Candidate {
+    rect: Rect;
+    wall: WallSide;
+  }
+  const candidates: Candidate[] = [];
+  const addAlongWall = (wall: WallSide, acrossPos: number, alongStarts: number[]) => {
+    for (const a of alongStarts) {
+      candidates.push({ rect: orientedRect(state, a, acrossPos, L, D), wall });
+    }
+  };
+
+  if (state.orientation === "side") {
+    const farWall: WallSide = state.machineWall === "left" ? "right" : "left";
+    const nearWall: WallSide = state.machineWall;
+    const farAcross = acrossLengthMm - D;
+    const maxA = alongLengthMm - L;
+    const farTop = () => addAlongWall(farWall, farAcross, range(0, maxA));
+    const farBottom = () => addAlongWall(farWall, farAcross, range(maxA, 0));
+    const near = () => {
+      const center = Math.min(Math.max(rowCenter - L / 2, 0), maxA);
+      const starts = range(0, maxA).sort((p, q) => Math.abs(p - center) - Math.abs(q - center));
+      addAlongWall(nearWall, circulationAcross, starts);
+    };
+    const order = {
+      farTop: [farTop, farBottom, near],
+      farBottom: [farBottom, farTop, near],
+      near: [near, farBottom, farTop],
+    }[state.counterSlot];
+    order.forEach((add) => add());
+  } else {
+    const startAcross = circulationAcross + FURNITURE_MARGIN_MM;
+    const lastAcross = acrossLengthMm - L;
+    const sides: ("left" | "right")[] =
+      state.counterSide === "left" ? ["left", "right"] : ["right", "left"];
+    for (const side of sides) {
+      const a = side === "left" ? 0 : alongLengthMm - D;
+      for (const c of range(startAcross, lastAcross)) {
+        candidates.push({ rect: orientedRect(state, a, c, D, L), wall: side });
+      }
+    }
+  }
+
+  const door = ctx.frontDoor;
+  const doorZone: Rect | null = door
+    ? {
+        x: door.x + door.width / 2 - COUNTER_DOOR_CLEARANCE.half,
+        y: state.roomDepthMm - COUNTER_DOOR_CLEARANCE.depth,
+        width: COUNTER_DOOR_CLEARANCE.half * 2,
+        height: COUNTER_DOOR_CLEARANCE.depth,
+      }
+    : null;
+  const fits = (r: Rect, pad = COUNTER_CLEARANCE_MM) =>
+    r.x >= 0 &&
+    r.y >= 0 &&
+    r.x + r.width <= state.roomWidthMm &&
+    r.y + r.height <= state.roomDepthMm &&
+    !ctx.obstacles.some((o) => rectsOverlap(r, o, pad)) &&
+    !(doorZone && rectsOverlap(r, doorZone, 0));
+
+  const hit = candidates.find((c) => fits(c.rect));
+  if (hit) ctx.obstacles.push(hit.rect);
+
+  // Pufs: o mais perto possível do centro do salão (em coordenadas locais, a
+  // partir da folga de trânsito das máquinas até a faixa da entrada).
+  const S = PUFS_SIZE_MM;
+  const center = { a: alongLengthMm / 2, c: (circulationAcross + acrossLengthMm) / 2 };
+  const spots: Rect[] = [];
+  for (let a = 0; a + S <= alongLengthMm; a += COUNTER_SCAN_STEP_MM) {
+    for (let c = circulationAcross; c + S <= acrossLengthMm; c += COUNTER_SCAN_STEP_MM) {
+      spots.push(orientedRect(state, a, c, S, S));
+    }
+  }
+  const centerRect = orientedRect(state, center.a - S / 2, center.c - S / 2, S, S);
+  const dist = (r: Rect) => Math.hypot(r.x - centerRect.x, r.y - centerRect.y);
+  const pufs = spots.sort((p, q) => dist(p) - dist(q)).find((r) => fits(r, PUFS_CLEARANCE_MM)) ?? null;
+
+  return { counter: hit?.rect ?? null, counterWall: hit?.wall ?? "left", pufs };
 }
 
 interface FurnitureZone {

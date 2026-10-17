@@ -9,6 +9,15 @@ const MIN_CONTENT_WIDTH = 440;
 const LEGEND_COL_WIDTH = 150;
 const LEGEND_ROW_HEIGHT = 18;
 
+const JUG_W_MM = 190; // galão de 5 L: base ~19 x 13 cm
+const JUG_D_MM = 130;
+const DOSING_W_MM = 128; // bomba dosadora: ~13 cm de largura, 4 cm de profundidade
+const DOSING_D_MM = 44;
+const PUMP_HALF_MM = 150; // bomba pressurizadora: ~30 cm de base
+const PUMP_C0_MM = 340; // da parede de trás até a frente da base
+const PUMP_DEPTH_MM = 290;
+const OUTSIDE_ARROW_MM = 250; // bocal de exaustão, do lado de fora da parede
+
 function mm(value: number): number {
   return value * SCALE;
 }
@@ -22,6 +31,14 @@ const LEGEND = [
   { label: "Área Técnica", fill: PLAN_COLORS.techArea },
   { label: "Ar-condicionado", fill: PLAN_COLORS.ac },
   { label: "Cadeiras", fill: "#475569" },
+  { label: "Exaustão (secadoras)", fill: PLAN_COLORS.exhaust },
+  { label: "Água (bomba + barramento)", fill: PLAN_COLORS.water },
+  { label: "Elétrica: perfilado + Steck", fill: PLAN_COLORS.electrical },
+  { label: "Tomadas 127 V (clientes)", fill: "#eab308" },
+  { label: "Esgoto suspenso (sem ralo)", fill: PLAN_COLORS.sewer },
+  { label: "Galões + bombas dosadoras", fill: "#284f78" },
+  { label: "Balcão premium", fill: PLAN_COLORS.counter },
+  { label: "Pufs (premium)", fill: "#1e3a8a" },
 ];
 
 export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout }>(function FloorPlan(
@@ -143,12 +160,141 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout }>(function 
               textAnchor="middle"
               fontSize={8}
               fontWeight={700}
-              fill="#fca5a5"
+              fill="#bae6fd"
             >
               {`ÁREA TÉCNICA MANUTENÇÃO (${formatMeters(techDepthMm)}m)`}
             </text>
           </>
         )}
+
+        {layout.exhaust && (() => {
+          // Exaustão das secadoras (manual Évora): ramais a 45° → coletor
+          // escalonado → saída pela parede de trás, bocal pra baixo.
+          const ex = layout.exhaust;
+          const pt = (p: { a: number; c: number }) => alongAcrossPoint(p.a, p.c);
+          const line = (pts: { a: number; c: number }[]) =>
+            pts.map((p, i) => `${i === 0 ? "M" : "L"}${pt(p).x},${pt(p).y}`).join(" ");
+          const labelPoint = alongAcrossPoint(
+            (ex.collector[0].points[0].a + ex.exit.points[0].a) / 2,
+            Math.max(ex.exit.points[0].c - ex.outletDiameterMm / 2 - 180, 150)
+          );
+          const wall = ex.exit.points[1];
+          const arrow = alongAcrossPoint(wall.a, -OUTSIDE_ARROW_MM);
+          const wallPt = alongAcrossPoint(wall.a, 0);
+          return (
+            <g data-exhaust stroke={PLAN_COLORS.exhaust} fill="none" strokeLinejoin="round" strokeLinecap="round">
+              {ex.branches.map((b, i) => (
+                <path key={i} d={line(b.points)} strokeWidth={Math.max(2, mm(b.diameterMm))} opacity={0.9} />
+              ))}
+              {ex.collector.map((seg, i) => (
+                <path key={`c${i}`} d={line(seg.points)} strokeWidth={Math.max(3, mm(seg.diameterMm))} />
+              ))}
+              <path d={line([ex.collector[ex.collector.length - 1].points[1], { a: wall.a, c: 0 }])} strokeWidth={Math.max(3, mm(ex.outletDiameterMm))} />
+              {/* Tampa de limpeza na ponta fechada */}
+              <path
+                d={line([
+                  { a: ex.cleaningCap.a, c: ex.cleaningCap.c - ex.collector[0].diameterMm / 2 - 30 },
+                  { a: ex.cleaningCap.a, c: ex.cleaningCap.c + ex.collector[0].diameterMm / 2 + 30 },
+                ])}
+                strokeWidth={2}
+                stroke="#374151"
+              />
+              {/* Bocal pra baixo, do lado de fora da parede */}
+              <path d={`M${wallPt.x},${wallPt.y} L${arrow.x},${arrow.y}`} strokeWidth={1.5} strokeDasharray="2 2" />
+              <circle cx={arrow.x} cy={arrow.y} r={2.5} fill={PLAN_COLORS.exhaust} stroke="none" />
+              <text
+                x={labelPoint.x}
+                y={labelPoint.y}
+                textAnchor="middle"
+                fontSize={6}
+                fontWeight={700}
+                fill={PLAN_COLORS.exhaust}
+                stroke="none"
+              >
+                {`EXAUSTÃO Ø${ex.outletDiameterMm} · ${formatMeters(ex.lengthMm)}m (máx ${formatMeters(ex.maxLengthMm)}m)`}
+              </text>
+            </g>
+          );
+        })()}
+
+        {layout.electrical && (() => {
+          // Elétrica suspensa: eletrocalha sob o forro (tracejada), perfilado de
+          // alumínio por maquinário (quadrado), Steck (azul) e tomadas 127 V
+          // dos clientes (amarelas) atrás das cadeiras.
+          const e = layout.electrical;
+          const P = (p: { a: number; c: number }) => alongAcrossPoint(p.a, p.c);
+          const t0 = P(e.trunk.from);
+          const t1 = P(e.trunk.to);
+          return (
+            <g data-electrical>
+              <line x1={t0.x} y1={t0.y} x2={t1.x} y2={t1.y} stroke={PLAN_COLORS.electrical} strokeWidth={2} strokeDasharray="5 2" />
+              {e.machines.map((m, i) => {
+                const p = P(m.profile);
+                return (
+                  <g key={i}>
+                    <rect x={p.x - 2} y={p.y - 2} width={4} height={4} fill="#e5e7eb" stroke={PLAN_COLORS.electrical} strokeWidth={0.8} />
+                    <circle cx={p.x} cy={p.y} r={1.2} fill="#1d4ed8" />
+                  </g>
+                );
+              })}
+              {e.customerOutlets.map((o, i) => (
+                <rect key={`o${i}`} data-outlet-127 x={mm(o.x) - 2} y={mm(o.y) - 2} width={4} height={4} fill="#eab308" stroke="#713f12" strokeWidth={0.6} rx={0.8} />
+              ))}
+            </g>
+          );
+        })()}
+
+        {layout.hydraulics && (() => {
+          // Água (pressurizador → barramento → T com 2 registros por lavadora)
+          // e esgoto (canal de resíduos com grelha → parede de trás), com
+          // tubo vertical de dreno por lavadora e respiro.
+          const h = layout.hydraulics;
+          const P = (p: { a: number; c: number }) => alongAcrossPoint(p.a, p.c);
+          const seg = (pts: { a: number; c: number }[]) => `M${P(pts[0]).x},${P(pts[0]).y} ` + pts.slice(1).map((p) => `L${P(p).x},${P(p).y}`).join(" ");
+          const pumpR = alongAcrossRect(h.pump.a - PUMP_HALF_MM, PUMP_C0_MM, PUMP_HALF_MM * 2, PUMP_DEPTH_MM);
+          const out = h.sewerExit.outside;
+          const entry = h.waterEntry.outside;
+          return (
+            <g data-hydraulics fill="none" strokeLinecap="round" strokeLinejoin="round">
+              {/* Tubo de esgoto suspenso, sem ralo (abaixo das saídas de drenagem) */}
+              {h.drainLine.map((s, i) => (
+                <path key={`k${i}`} d={seg(s.points)} stroke={PLAN_COLORS.sewer} strokeWidth={Math.max(3, mm(s.diameterMm))} opacity={0.85} />
+              ))}
+              <path d={seg([h.sewerExit.inside, { a: out.a, c: out.c / 2 }])} stroke={PLAN_COLORS.sewer} strokeWidth={Math.max(3, mm(h.sewerExit.diameterMm))} strokeDasharray="3 2" />
+              {/* Água: entrada → bomba → barramento → derivações */}
+              <path d={seg([entry, h.waterEntry.through, h.pump.inlet])} stroke={PLAN_COLORS.water} strokeWidth={Math.max(2, mm(h.waterEntry.diameterMm))} />
+              <path d={seg(h.manifold.points)} stroke={PLAN_COLORS.water} strokeWidth={Math.max(1.5, mm(h.manifold.diameterMm))} />
+              {h.washers.map((w, i) => (
+                <g key={`w${i}`}>
+                  <path d={seg(w.branch)} stroke={PLAN_COLORS.water} strokeWidth={1.5} />
+                  <circle cx={P(w.branch[1]).x} cy={P(w.branch[1]).y} r={1.8} fill={PLAN_COLORS.water} stroke="none" />
+                  <circle cx={P(w.standpipe).x} cy={P(w.standpipe).y} r={Math.max(1.5, mm(w.standpipe.diameterMm) / 2)} fill="#f1f5f9" stroke="none" />
+                </g>
+              ))}
+              {/* Dosagem: galões no chão e bombas dosadoras coladas na traseira, 2 por lavadora */}
+              {h.washers.flatMap((w, i) =>
+                w.dosing.jugs.map((jug, k) => {
+                  const jr = alongAcrossRect(jug.a - JUG_W_MM / 2, jug.c - JUG_D_MM / 2, JUG_W_MM, JUG_D_MM);
+                  const pr = alongAcrossRect(w.dosing.pumps[k].a - DOSING_W_MM / 2, w.dosing.pumps[k].c - DOSING_D_MM, DOSING_W_MM, DOSING_D_MM);
+                  return (
+                    <g key={`ds${i}-${k}`}>
+                      <rect x={jr.x} y={jr.y} width={jr.w} height={jr.h} fill={jug.kind === "detergente" ? "#3b5998" : "#f8fafc"} stroke="#94a3b8" strokeWidth={0.5} rx={1} />
+                      <rect x={pr.x} y={pr.y} width={pr.w} height={pr.h} fill="#284f78" stroke="#93c5fd" strokeWidth={0.5} rx={0.8} />
+                    </g>
+                  );
+                })
+              )}
+              {h.vents.map((v, i) => (
+                <circle key={`v${i}`} cx={P(v).x} cy={P(v).y} r={2.2} stroke="#f1f5f9" strokeWidth={1} />
+              ))}
+              {/* Bomba pressurizadora */}
+              <rect x={pumpR.x} y={pumpR.y} width={pumpR.w} height={pumpR.h} fill="#e6e6e6" stroke="#374151" strokeWidth={0.8} rx={1.5} />
+              <text x={pumpR.x + pumpR.w / 2} y={pumpR.y + pumpR.h / 2 + 1.6} textAnchor="middle" fontSize={4.5} fontWeight={700} fill="#1f2937" stroke="none">
+                BOMBA
+              </text>
+            </g>
+          );
+        })()}
 
         <rect
           x={mm(layout.techCorridor.x)}
@@ -352,6 +498,57 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout }>(function 
             >
               MESA CENTRAL
             </text>
+            {layout.furniture.premium?.counter && (
+              <>
+                <rect
+                  data-counter
+                  x={mm(layout.furniture.premium.counter!.x)}
+                  y={mm(layout.furniture.premium.counter!.y)}
+                  width={mm(layout.furniture.premium.counter!.width)}
+                  height={mm(layout.furniture.premium.counter!.height)}
+                  fill="#1e293b"
+                  stroke={PLAN_COLORS.counter}
+                  strokeWidth={1.5}
+                  rx={3}
+                />
+                <text
+                  x={mm(layout.furniture.premium.counter!.x + layout.furniture.premium.counter!.width / 2)}
+                  y={mm(layout.furniture.premium.counter!.y + layout.furniture.premium.counter!.height / 2) + 2}
+                  textAnchor="middle"
+                  fontSize={6}
+                  fontWeight={700}
+                  fill={PLAN_COLORS.counter}
+                >
+                  BALCÃO
+                </text>
+              </>
+            )}
+            {layout.furniture.premium?.pufs && (
+              <>
+                <rect
+                  data-pufs
+                  x={mm(layout.furniture.premium.pufs.x)}
+                  y={mm(layout.furniture.premium.pufs.y)}
+                  width={mm(layout.furniture.premium.pufs.width)}
+                  height={mm(layout.furniture.premium.pufs.height)}
+                  fill="#1e3a8a"
+                  fillOpacity={0.35}
+                  stroke="#7dc4f0"
+                  strokeWidth={1.5}
+                  rx={mm(layout.furniture.premium.pufs.width) / 2.5}
+                />
+                <text
+                  x={mm(layout.furniture.premium.pufs.x + layout.furniture.premium.pufs.width / 2)}
+                  y={mm(layout.furniture.premium.pufs.y + layout.furniture.premium.pufs.height / 2) + 2}
+                  textAnchor="middle"
+                  fontSize={6}
+                  fontWeight={700}
+                  fill="#bae6fd"
+                >
+                  PUFS
+                </text>
+              </>
+            )}
             <rect
               x={mm(layout.furniture.ac.x)}
               y={mm(layout.furniture.ac.y)}

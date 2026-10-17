@@ -136,3 +136,53 @@ describe("ControlPanel", () => {
     expect(useProjectStore.getState().acOverrideBTU).toBe(36000);
   });
 });
+
+describe("ControlPanel — lavanderia premium", () => {
+  it("só mostra 'Lado do balcão' a partir de 30 m²", async () => {
+    const { rerender } = render(<ControlPanel />);
+    expect(screen.queryByLabelText(/lado do balcão/i)).not.toBeInTheDocument();
+
+    useProjectStore.setState({ roomWidthMm: 5000, roomDepthMm: 6000 });
+    rerender(<ControlPanel />);
+    const select = screen.getByLabelText(/lado do balcão/i);
+    await userEvent.selectOptions(select, "left");
+    expect(useProjectStore.getState().counterSide).toBe("left");
+  });
+});
+
+describe("ControlPanel — exaustão", () => {
+  it("mostra o diâmetro e o comprimento do duto de exaustão", () => {
+    useProjectStore.setState({ roomWidthMm: 5000, roomDepthMm: 6000, machines: [{ catalogId: "sq-stack", qty: 3 }] });
+    const { container } = render(<ControlPanel />);
+    const info = container.querySelector("[data-exhaust-info]");
+    expect(info).not.toBeNull();
+    expect(info!.textContent).toMatch(/Ø229 mm/);
+    expect(info!.textContent).toMatch(/máx\. 9,1 m/);
+  });
+});
+
+describe("ControlPanel — hidráulica", () => {
+  it("resume o barramento de água e o canal de esgoto", () => {
+    useProjectStore.setState({ roomWidthMm: 5000, roomDepthMm: 6000, machines: [{ catalogId: "sq-stack", qty: 3 }] });
+    const { container } = render(<ControlPanel />);
+    const info = container.querySelector("[data-hydraulics-info]");
+    expect(info).not.toBeNull();
+    expect(info!.textContent).toMatch(/120 L\/min/);
+    expect(info!.textContent).toMatch(/200 a 570 kPa/);
+    expect(info!.textContent).toMatch(/esgoto suspenso Ø114 mm/);
+    expect(info!.textContent).toMatch(/6 bombas dosadoras/);
+  });
+});
+
+describe("ControlPanel — elétrica", () => {
+  it("resume perfilados, Steck, tomadas 220 V e 127 V", () => {
+    useProjectStore.setState({ roomWidthMm: 5000, roomDepthMm: 6000, machines: [{ catalogId: "sq-stack", qty: 3 }] });
+    const { container } = render(<ControlPanel />);
+    const info = container.querySelector("[data-electrical-info]");
+    expect(info).not.toBeNull();
+    expect(info!.textContent).toMatch(/3 perfilado\(s\)/);
+    expect(info!.textContent).toMatch(/3 tomada\(s\) Steck/);
+    expect(info!.textContent).toMatch(/6 tomadas 220 V/);
+    expect(info!.textContent).toMatch(/3 tomadas 127 V/);
+  });
+});

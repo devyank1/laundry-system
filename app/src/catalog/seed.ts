@@ -12,6 +12,8 @@ export const CATALOG_SEED: CatalogMachine[] = [
     breakerLavadoraA: 16,
     breakerSecadoraA: 32,
     cableMm2: "6mm² (≤4,5m) / 10mm² (>4,5m)",
+    exhaustDiameterMm: 102, // 4" (Ebook Stack)
+    exhaustHeightMm: 1695, // saída traseira, dimensão B do manual SSU/SSG
     drainLpm: 14,
   },
   {

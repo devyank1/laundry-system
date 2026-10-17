@@ -48,3 +48,17 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: /baixar imagem 3d/i })).toBeInTheDocument();
   });
 });
+
+describe("Modo inauguração", () => {
+  it("alterna o botão e liga a fachada mesmo escondida", async () => {
+    const { default: userEvent } = await import("@testing-library/user-event");
+    useProjectStore.setState({ facadeVisible: false, inauguracao: false });
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: /planta 3d/i }));
+    const btn = screen.getByRole("button", { name: /modo inauguração/i });
+    expect(btn).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(btn);
+    expect(btn).toHaveAttribute("aria-pressed", "true");
+    expect(useProjectStore.getState().inauguracao).toBe(true);
+  });
+});

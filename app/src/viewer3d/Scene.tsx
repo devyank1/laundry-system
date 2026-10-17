@@ -28,8 +28,22 @@ import { Ceiling } from "./models/Ceiling";
 import { CameraRig } from "./CameraRig";
 import { LIGHTING_PRESETS, type SceneLighting } from "./lighting";
 import { drywallColorFor } from "./colors";
+import { Inauguracao } from "./models/Inauguracao";
+import { Electrical } from "./models/Electrical";
+import { Hydraulics } from "./models/Hydraulics";
+import { Exhaust } from "./models/Exhaust";
+import { Rug } from "./models/Rug";
+import { TrashCan } from "./models/TrashCan";
+import { Dispensers } from "./models/Dispensers";
+import { DISPENSER_MOUNT_HEIGHT, placeStoreFixtures } from "./rugs";
+import { PoufSet } from "./models/PoufSet";
+import { CounterWithStools } from "./models/CounterWithStools";
 
 const M = (mmValue: number) => mmValue / 1000;
+
+// Parede do fundo escondida por enquanto: deixa ver a área técnica (exaustão,
+// água, esgoto e dosagem) pelas costas. Voltar a `true` pra fechar a loja.
+const SHOW_BACK_WALL = false;
 
 const TABLE_HEIGHT_MM = 900;
 const AC_UNIT_HEIGHT_MM = 300;
@@ -47,6 +61,10 @@ const LEGEND = [
   { label: "Totem PagLave (embutido)", color: "#84cc16" },
   { label: "Ar-condicionado no salão", color: "#ffffff" },
   { label: "Cadeiras", color: "#64748b" },
+  { label: "Exaustão das secadoras (duto semirrígido)", color: "#aeb4ba" },
+  { label: "Água: pressurizador e barramento", color: "#3182ce" },
+  { label: "Esgoto: tubo suspenso (sem ralo) e respiro", color: "#d9d2c3" },
+  { label: "Elétrica suspensa: perfilado de alumínio, Steck, 220 V e 127 V", color: "#c5cbd1" },
 ];
 
 function Box({
@@ -248,6 +266,7 @@ export function Scene({
   lighting = "day",
   showRoof = true,
   tourRun = null,
+  inauguracao = false,
   drywallColor = DEFAULT_DRYWALL_COLOR,
   onCanvasReady,
 }: {
@@ -264,6 +283,8 @@ export function Scene({
   showRoof?: boolean;
   // "Visão do cliente": cada número novo (re)começa o passeio; null = órbita livre.
   tourRun?: number | null;
+  // Modo inauguração: balões, carrinho de pipoca, balcão, lembranças e dispensers.
+  inauguracao?: boolean;
   onCanvasReady?: (canvas: HTMLCanvasElement) => void;
 }) {
   const roomW = M(layout.roomWidthMm);
@@ -274,6 +295,7 @@ export function Scene({
   const frame = drywallFrame(layout);
   const furniture = layout.furniture;
   const light = LIGHTING_PRESETS[lighting];
+  const fixtures = placeStoreFixtures(layout);
   const orbitPosition: [number, number, number] = [roomW / 2, span * 1.3, roomD + span * 0.9];
 
   return (
@@ -302,12 +324,15 @@ export function Scene({
           position={[roomW / 2, 0.002, roomD / 2]}
         />
 
-        {/* Paredes: fundo e laterais; a frente fica aberta para ver o interior */}
-        <Box
-          position={[roomW / 2, roomH / 2, -ROOM_WALL_THICKNESS / 2]}
-          size={[roomW + ROOM_WALL_THICKNESS * 2, roomH, ROOM_WALL_THICKNESS]}
-          color={PLAN_COLORS.wall}
-        />
+        {/* Paredes: laterais (e o fundo, quando SHOW_BACK_WALL); a frente fica
+            aberta para ver o interior */}
+        {SHOW_BACK_WALL && (
+          <Box
+            position={[roomW / 2, roomH / 2, -ROOM_WALL_THICKNESS / 2]}
+            size={[roomW + ROOM_WALL_THICKNESS * 2, roomH, ROOM_WALL_THICKNESS]}
+            color={PLAN_COLORS.wall}
+          />
+        )}
         <Box
           position={[-ROOM_WALL_THICKNESS / 2, roomH / 2, roomD / 2]}
           size={[ROOM_WALL_THICKNESS, roomH, roomD]}
@@ -336,6 +361,9 @@ export function Scene({
           })()}
 
         <Drywall layout={layout} color={drywallColor} />
+        {layout.exhaust && <Exhaust layout={layout} exhaust={layout.exhaust} />}
+        {layout.hydraulics && <Hydraulics layout={layout} hydraulics={layout.hydraulics} />}
+        {layout.electrical && <Electrical layout={layout} electrical={layout.electrical} />}
         {logo && <WallLogo layout={layout} logo={logo} />}
         {facade && (
           <Facade
@@ -398,6 +426,28 @@ export function Scene({
                 </group>
               );
             })()}
+            {furniture.premium?.counter && (() => {
+              // Balcão premium: costas na parede indicada, banquetas pro salão.
+              const { counter, counterWall } = furniture.premium;
+              const [cx, cz] = rectCenter(counter);
+              const x =
+                counterWall === "left" ? M(counter.x) : counterWall === "right" ? M(counter.x + counter.width) : cx;
+              const z =
+                counterWall === "top" ? M(counter.y) : counterWall === "bottom" ? M(counter.y + counter.height) : cz;
+              return (
+                <group position={[x, 0, z]} rotation={[0, wallYaw(counterWall), 0]}>
+                  <CounterWithStools />
+                </group>
+              );
+            })()}
+            {furniture.premium?.pufs && (() => {
+              const [cx, cz] = rectCenter(furniture.premium.pufs);
+              return (
+                <group position={[cx, 0, cz]}>
+                  <PoufSet />
+                </group>
+              );
+            })()}
             {furniture.poufs.map((p, i) => {
               // Costas na parede em que as cadeiras encostam, frente pro salão.
               const yaw = wallYaw(furniture.chairsWall);
@@ -428,6 +478,32 @@ export function Scene({
             })()}
           </>
         )}
+
+        {/* Fixos da loja: tapete da entrada, tapete das máquinas (da primeira à
+            última, com a logo), dispensers e lixeira embaixo deles */}
+        <group position={[fixtures.entranceRug.x, 0.001, fixtures.entranceRug.z]}>
+          <Rug width={fixtures.entranceRug.width} depth={fixtures.entranceRug.depth} logo={logo ?? null} />
+        </group>
+        {fixtures.machineRug && (
+          <group position={[fixtures.machineRug.x, 0.001, fixtures.machineRug.z]} rotation={[0, fixtures.machineRug.yaw, 0]}>
+            <Rug width={fixtures.machineRug.width} depth={fixtures.machineRug.depth} logo={logo ?? null} />
+          </group>
+        )}
+        {fixtures.dispensers && (
+          <group
+            position={[fixtures.dispensers.x, DISPENSER_MOUNT_HEIGHT, fixtures.dispensers.z]}
+            rotation={[0, fixtures.dispensers.yaw, 0]}
+          >
+            <Dispensers />
+          </group>
+        )}
+        {fixtures.trash && (
+          <group position={[fixtures.trash.x, 0, fixtures.trash.z]}>
+            <TrashCan />
+          </group>
+        )}
+
+        {inauguracao && <Inauguracao layout={layout} />}
 
         {/* Reflexos para os metais (inox, prata) sem baixar HDR da internet */}
         <Environment resolution={64} environmentIntensity={light.environment}>
