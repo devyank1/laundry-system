@@ -63,30 +63,36 @@ export function FacadeControls() {
   const toggleRoof = useProjectStore((s) => s.toggleRoof);
 
   return (
-    <fieldset>
-      <legend>Fachada e iluminação (3D)</legend>
-      <label>
-        <input type="checkbox" checked={visible} onChange={toggle} />
-        Mostrar fachada
-      </label>
-      {visible && (
-        <>
-          <HexColorField label="Cor da fachada" value={color} onChange={setColor} />
-          <HexColorField label="Cor do painel do letreiro" value={signColor} onChange={setSignColor} />
-          {/* Sem fachada o teto sai junto (loja aberta pra ver de cima). */}
-          <label>
-            <input type="checkbox" checked={roofVisible} onChange={toggleRoof} />
-            Mostrar teto por fora
-          </label>
-        </>
-      )}
-      <label>
-        Iluminação
-        <select value={lighting} onChange={(e) => setLighting(e.target.value as SceneLighting)}>
-          <option value="day">Dia</option>
-          <option value="night">Noite (luzes da loja acesas)</option>
-        </select>
-      </label>
-    </fieldset>
+    <>
+      <fieldset>
+        <legend>Fachada (3D)</legend>
+        <label>
+          <input type="checkbox" checked={visible} onChange={toggle} />
+          Mostrar fachada
+        </label>
+        {visible && (
+          <>
+            <HexColorField label="Cor da fachada" value={color} onChange={setColor} />
+            <HexColorField label="Cor do painel do letreiro" value={signColor} onChange={setSignColor} />
+            {/* Sem fachada o teto sai junto (loja aberta pra ver de cima). */}
+            <label>
+              <input type="checkbox" checked={roofVisible} onChange={toggleRoof} />
+              Mostrar teto por fora
+            </label>
+          </>
+        )}
+      </fieldset>
+
+      <fieldset>
+        <legend>Iluminação (3D)</legend>
+        <label>
+          Iluminação
+          <select value={lighting} onChange={(e) => setLighting(e.target.value as SceneLighting)}>
+            <option value="day">Dia</option>
+            <option value="night">Noite (luzes da loja acesas)</option>
+          </select>
+        </label>
+      </fieldset>
+    </>
   );
 }

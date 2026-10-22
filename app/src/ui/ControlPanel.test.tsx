@@ -182,7 +182,7 @@ describe("ControlPanel — elétrica", () => {
     expect(info).not.toBeNull();
     expect(info!.textContent).toMatch(/3 perfilado\(s\)/);
     expect(info!.textContent).toMatch(/3 tomada\(s\) Steck/);
-    expect(info!.textContent).toMatch(/6 tomadas 220 V/);
-    expect(info!.textContent).toMatch(/3 tomadas 127 V/);
+    expect(info!.textContent).toMatch(/9 tomadas 220 V/);
+    expect(info!.textContent).toMatch(/4 tomadas 127 V/);
   });
 });

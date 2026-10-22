@@ -6,26 +6,33 @@ import { WALL_THICKNESS_MM } from "./exhaust";
 // parede das máquinas, c = da parede de trás da área técnica pro salão,
 // y = altura do piso), o mesmo da exaustão.
 //
-// Água: pressurizador na área técnica → barramento atrás das máquinas → por
-// lavadora 1 "T" com 2 pontos de 3/4" (registro de esfera), a 60-100 cm do
-// piso. Esgoto SUSPENSO, sem ralo nem canal no piso: cada lavadora despeja
-// num tubo vertical aberto (ladrão) ligado por tê a um tubo suspenso em
-// suportes, ABAIXO das saídas de drenagem; o diâmetro cresce 25% do
-// diâmetro A (3") a cada máquina e sai pela parede de trás, com respiro.
+// Água: pressurizador na área técnica → barramento NO PISO atrás das máquinas
+// → por lavadora um tubo que sobe do chão (com registro no meio, pra abrir e
+// fechar a água) até a altura dos galões e termina num "T" de 3/4"; cada
+// ponta do T tem um cotovelo de 90° virado pra máquina, onde entra a
+// mangueira trançada, que sobe colada na traseira até as 2 entradas lado a
+// lado, logo abaixo das bombas dosadoras (como em img/fundo-maq). Esgoto SUSPENSO: cada
+// lavadora despeja num tubo vertical RETO e aberto (ladrão), ligado a um tubo
+// suspenso em suportes, ABAIXO das saídas de drenagem; o diâmetro cresce 25%
+// do diâmetro A (3") a cada máquina e sai pela parede de trás, com respiro.
+// Um ralinho no piso da área técnica, junto da parede de trás, escoa a água
+// que cair no chão.
 // Dosagem: por lavadora, um par de galões (detergente e amaciante) no chão
 // atrás dela e, logo acima, um par de bombas dosadoras coladas na traseira.
 
 // --- Normas do material --------------------------------------------------
-export const WATER_POINT_HEIGHT_MM = 800; // faixa do manual: 600-1000 mm do piso
-export const WATER_POINT_HEIGHT_RANGE_MM = [600, 1000] as const;
+export const STANDPIPE_HEIGHT_MM = 700; // altura recomendada do tubo de dreno: boca a 70 cm do piso
+export const DOSING_JUG_HEIGHT_MM = 345; // galão de 20 L no chão (modelo Jug)
+// T da água na altura dos galões, como na instalação real (img/fundo-maq).
+// O manual sugere pontos a 60-100 cm, mas aqui as mangueiras vão retas até a máquina.
+export const WATER_POINT_HEIGHT_MM = DOSING_JUG_HEIGHT_MM;
+export const WATER_POINT_HEIGHT_RANGE_MM = [600, 1000] as const; // faixa do manual (referência)
 export const WATER_POINTS_PER_WASHER = 2; // 1 "T" com 2 saídas de 3/4"
 export const WATER_BRANCH_DIAMETER_MM = 25; // 3/4"
 export const WATER_PRESSURE_KPA = { min: 200, max: 570 } as const; // 30-85 psi
 export const WATER_FLOW_PER_WASHER_LPM = 40; // vazão máxima de entrada por máquina
 export const DRAIN_FLOW_PER_WASHER_LPM = 14; // vazão do dreno por máquina
 export const STANDPIPE_DIAMETER_MM = 50; // tubo de PVC p/ a mangueira: 4 a 5 cm
-export const STANDPIPE_HEIGHT_MM = 700; // altura recomendada do tubo de dreno: o tê fica a 70 cm do piso
-export const STANDPIPE_TEE_ARM_MM = 70; // braço do tê: mangueira de um lado, respiro do outro
 export const DRAIN_BASE_DIAMETER_MM = 76.2; // "A" = 3 pol
 export const DRAIN_STEP_FRACTION = 0.25; // +25% de A a cada máquina no ramal
 export const VENT_SPACING_MM = 20000; // um respiro a cada 20 m de tubulação
@@ -36,11 +43,21 @@ export const WATER_MAX_VELOCITY_MS = 2.5; // NBR 5626, p/ dimensionar o barramen
 export const WATER_PIPE_SIZES_MM = [25, 32, 40, 50, 60, 75, 85];
 export const PUMP_MODEL = "Pressurizador Komeco TP825 G3 (bivolt)"; // planilha de links
 const PUMP_ALONG_OFFSET_MM = 600; // bomba atrás da 1ª máquina a partir da saída
-const PUMP_INLET_C_MM = 330; // frente da bomba (conexão de entrada), a partir da parede
+const PUMP_INLET_C_MM = 250; // frente da bomba (conexão de entrada), a partir da parede
 const PUMP_INLET_Y_MM = 150;
-const MANIFOLD_Y_MM = WATER_POINT_HEIGHT_MM + 50;
-const MANIFOLD_BEHIND_MACHINE_MM = 350;
-const BRANCH_END_BEHIND_MACHINE_MM = 120;
+const MANIFOLD_FLOOR_GAP_MM = 10; // barramento apoiado no piso (abraçadeiras)
+const MANIFOLD_BEHIND_DRAIN_MM = 60; // atrás do tubo de esgoto, rumo à parede
+const RISER_A_MM = -285; // tubo que sobe, do centro da máquina (lado oposto ao dreno, fora dos galões)
+export const WATER_TEE_ARM_MM = 50; // cada braço do T de água
+export const WATER_ELBOW_MM = 50; // cotovelo de 90°: saída virada pra máquina (+c)
+const WATER_INLETS_GAP_MM = 60; // 2 entradas de água lado a lado na traseira
+const WATER_INLET_A_MM = -215; // centro das entradas, do centro da máquina (perto da bomba do detergente)
+const WATER_INLET_BELOW_PUMPS_MM = 200; // entradas logo abaixo das bombas dosadoras
+const HOSE_OFF_BACK_MM = 50; // mangueira sobe a uns 5 cm da traseira
+const JUG_BEHIND_MANIFOLD_MM = 160; // galões atrás do barramento, sem encostar nele
+const JUG_RADIUS_MM = 95;
+export const FLOOR_DRAIN_SIZE_MM = 100; // ralinho de 10 x 10 cm
+const FLOOR_DRAIN_C_MM = 200; // junto da parede de trás
 const OUTSIDE_RUN_MM = 400;
 export const DRAIN_LINE_Y_MM = 150; // eixo do tubo de esgoto suspenso (topo < saída de dreno a 250)
 export const DRAIN_LINE_SUPPORT_SPACING_MM = 800; // suportes do tubo suspenso
@@ -49,7 +66,11 @@ const DRAIN_LINE_BEHIND_MACHINE_MM = 100; // tubo suspenso colado atrás da máq
 export const DOSING_PUMPS_PER_WASHER = 2; // um par de bombas dosadoras por maquinário
 export const DOSING_JUGS_PER_WASHER = 2; // galão de detergente + galão de amaciante
 export const DOSING_PUMP_Y_MM = 1100; // centro das bombas: ACIMA dos pontos de água (a 85 cm)
-const DOSING_SPACING_MM = 120; // centro das bombas/galões a partir do centro da máquina
+export const DOSING_SPACING_MM = 120; // centro das bombas/galões a partir do centro da máquina
+// Entradas de dosagem: depois da bomba do amaciante, antes do tubo de dreno
+// (a + 325), na altura das bombas (estimativa, como na foto img/fundo-maq).
+const DOSING_INLET_A_MM = [215, 255];
+const DOSING_INLET_Y_MM = DOSING_PUMP_Y_MM + 30;
 const DOSING_JUG_BEHIND_MACHINE_MM = 300;
 const SEWER_INWARD_MM = 150; // esgoto sai um pouco pra dentro da saída da exaustão (que sai em cima)
 const VENT_CEILING_GAP_MM = 200;
@@ -65,11 +86,19 @@ export interface HydraulicPoint {
 export interface WasherHydraulics {
   catalogId: string;
   a: number; // centro da máquina
-  // Barramento → "T" com 2 registros de 3/4" na traseira da máquina.
-  branch: HydraulicPoint[];
+  // Água: tubo que sobe do barramento no piso até o T (registro no meio) e
+  // as 2 mangueiras do T até a traseira da máquina.
+  water: {
+    riser: HydraulicPoint[]; // [no piso, no T]
+    valve: HydraulicPoint;
+    tee: HydraulicPoint[]; // pontas dos 2 braços do T
+    elbows: HydraulicPoint[]; // saída de cada cotovelo de 90° (virada pra máquina)
+    inlets: HydraulicPoint[]; // entradas de água na traseira, lado a lado
+    hoses: HydraulicPoint[][]; // cotovelo → entrada
+  };
   waterPointHeightMm: number;
-  // Tubo individual da máquina: sobe do tubo de esgoto central (baixo) até a
-  // ligação em T a 70 cm do piso, onde entra a mangueira do dreno.
+  // Tubo individual da máquina: RETO, sobe do tubo de esgoto central (baixo)
+  // até a boca aberta a 70 cm do piso, onde entra a mangueira do dreno.
   standpipe: { a: number; c: number; diameterMm: number; topY: number; baseY: number };
   // Dosagem: par de bombas na traseira da máquina (c = costas das bombas) e
   // par de galões no chão atrás dela; [0] = lado de menor a (detergente),
@@ -77,6 +106,9 @@ export interface WasherHydraulics {
   dosing: {
     pumps: { a: number; c: number; y: number }[];
     jugs: { a: number; c: number; kind: "detergente" | "amaciante" }[];
+    // Entradas de dosagem (furos com anel) na traseira da máquina, na altura
+    // das bombas e ao lado delas; [k] recebe o tubinho da bomba [k].
+    inlets: HydraulicPoint[];
   };
   // Mangueira: saída de drenagem traseira → laço a 61-91 cm → boca do tubo.
   hose: HydraulicPoint[];
@@ -100,6 +132,8 @@ export interface HydraulicsLayout {
   // Linha de esgoto atravessando a parede de trás.
   sewerExit: { inside: HydraulicPoint; outside: HydraulicPoint; diameterMm: number };
   vents: { a: number; c: number; diameterMm: number; topY: number }[];
+  // Ralinho no piso da área técnica (escoamento), junto da parede de trás.
+  floorDrain: { a: number; c: number; sizeMm: number };
   summary: {
     washers: number;
     supplyFlowLpm: number;
@@ -163,37 +197,66 @@ export function computeHydraulics(input: HydraulicsInput): HydraulicsLayout | nu
   // --- Bomba, entrada de água e barramento -------------------------------
   const pumpA = exitA - flow * PUMP_ALONG_OFFSET_MM;
   const mainDia = waterMainDiameterMm(washers.length);
-  const cManifold = backMin - MANIFOLD_BEHIND_MACHINE_MM;
+  const cDrain = backMin - DRAIN_LINE_BEHIND_MACHINE_MM; // tubo suspenso, colado atrás das máquinas
+  const maxDrain = Math.max(...washers.map((w) => drainDiameterMm(w.m)));
+  const drainDia = drainDiameterMmAt(washers.length, maxDrain);
+  // Barramento no piso, atrás do tubo de esgoto (os tubos que sobem não cruzam o esgoto).
+  const cManifold = cDrain - drainDia / 2 - MANIFOLD_BEHIND_DRAIN_MM - mainDia / 2;
+  const manifoldY = mainDia / 2 + MANIFOLD_FLOOR_GAP_MM;
   const inlet: HydraulicPoint = { a: pumpA, c: PUMP_INLET_C_MM, y: PUMP_INLET_Y_MM };
   const waterEntry = {
     through: { a: pumpA, c: 0, y: PUMP_INLET_Y_MM },
     outside: { a: pumpA, c: -WALL_THICKNESS_MM - OUTSIDE_RUN_MM, y: PUMP_INLET_Y_MM },
     diameterMm: mainDia,
   };
-  const manifoldA = [pumpA, ...washers.map((w) => w.a)];
+  const manifoldA = [pumpA, ...washers.map((w) => w.a + RISER_A_MM)];
   const manifold = {
     diameterMm: mainDia,
     points: [
-      // sobe da bomba (a posição exata da saída vem do modelo 3D) e vai pro barramento
-      { a: pumpA, c: cManifold, y: MANIFOLD_Y_MM },
-      { a: Math.min(...manifoldA), c: cManifold, y: MANIFOLD_Y_MM },
-      { a: Math.max(...manifoldA), c: cManifold, y: MANIFOLD_Y_MM },
+      // sai da bomba (a posição exata da saída vem do modelo 3D), desce e corre no piso
+      { a: pumpA, c: cManifold, y: manifoldY },
+      { a: Math.min(...manifoldA), c: cManifold, y: manifoldY },
+      { a: Math.max(...manifoldA), c: cManifold, y: manifoldY },
     ],
   };
 
   // --- Lavadoras: água, dreno e dosagem -----------------------------------
-  const cDrain = backMin - DRAIN_LINE_BEHIND_MACHINE_MM; // tubo suspenso, colado atrás das máquinas
   const perWasher: WasherHydraulics[] = ordered.map((w) => {
-    const cEnd = w.back - BRANCH_END_BEHIND_MACHINE_MM;
     const aDrain = w.a + STANDPIPE_OFFSET_MM;
+    const aRiser = w.a + RISER_A_MM;
+    const teeY = WATER_POINT_HEIGHT_MM;
+    const tee = [-1, 1].map((k) => ({ a: aRiser + k * WATER_TEE_ARM_MM, c: cManifold, y: teeY }));
+    const elbows = tee.map((t) => ({ ...t, c: t.c + WATER_ELBOW_MM }));
+    const inlets = [-1, 1].map((k) => ({
+      a: w.a + WATER_INLET_A_MM + (k * WATER_INLETS_GAP_MM) / 2,
+      c: w.back,
+      y: DOSING_PUMP_Y_MM - WATER_INLET_BELOW_PUMPS_MM,
+    }));
+    // Galões entre o esgoto e a máquina quando cabem; senão, atrás do barramento.
+    const jugFront = w.back - DOSING_JUG_BEHIND_MACHINE_MM;
+    const jugC =
+      jugFront - JUG_RADIUS_MM > cDrain + drainDia / 2 + 20 ? jugFront : cManifold - JUG_BEHIND_MANIFOLD_MM;
     return {
       catalogId: w.m.id,
       a: w.a,
       waterPointHeightMm: WATER_POINT_HEIGHT_MM,
-      branch: [
-        { a: w.a, c: cManifold, y: MANIFOLD_Y_MM },
-        { a: w.a, c: cEnd, y: MANIFOLD_Y_MM },
-      ],
+      water: {
+        riser: [
+          { a: aRiser, c: cManifold, y: manifoldY },
+          { a: aRiser, c: cManifold, y: teeY },
+        ],
+        valve: { a: aRiser, c: cManifold, y: Math.round((manifoldY + teeY) / 2) },
+        tee,
+        elbows,
+        inlets,
+        // do cotovelo (lá embaixo) a mangueira vai pra máquina e sobe colada
+        // na traseira até a entrada, perto das dosadoras
+        hoses: elbows.map((e, k) => [
+          e,
+          { a: (e.a + inlets[k].a) / 2, c: w.back - HOSE_OFF_BACK_MM, y: (e.y + inlets[k].y) / 2 },
+          inlets[k],
+        ]),
+      },
       standpipe: {
         a: aDrain,
         c: cDrain,
@@ -201,14 +264,14 @@ export function computeHydraulics(input: HydraulicsInput): HydraulicsLayout | nu
         topY: STANDPIPE_HEIGHT_MM,
         baseY: DRAIN_LINE_Y_MM,
       },
-      // Sai da traseira, sobe (afastada das bombas) ao laço de 61-91 cm e desce na boca do tê.
+      // Sai da traseira, sobe (afastada das bombas) ao laço de 61-91 cm e
+      // desce reto pra dentro da boca do tubo de dreno.
       hose: [
         { a: aDrain, c: w.back, y: DRAIN_PORT_Y_MM },
         { a: aDrain, c: w.back - 40, y: DRAIN_PORT_Y_MM + 50 },
         { a: aDrain, c: w.back - 40, y: HOSE_LOOP_Y_MM },
         { a: aDrain, c: cDrain, y: HOSE_LOOP_Y_MM },
-        { a: aDrain + STANDPIPE_TEE_ARM_MM, c: cDrain, y: HOSE_LOOP_Y_MM },
-        { a: aDrain + STANDPIPE_TEE_ARM_MM, c: cDrain, y: STANDPIPE_HEIGHT_MM + 20 }, // boca do braço do tê
+        { a: aDrain, c: cDrain, y: STANDPIPE_HEIGHT_MM - 60 }, // dentro da boca do tubo
       ],
       dosing: {
         pumps: [-1, 1].map((side) => ({
@@ -218,15 +281,15 @@ export function computeHydraulics(input: HydraulicsInput): HydraulicsLayout | nu
         })),
         jugs: [-1, 1].map((side) => ({
           a: w.a + side * DOSING_SPACING_MM,
-          c: w.back - DOSING_JUG_BEHIND_MACHINE_MM,
+          c: jugC,
           kind: side < 0 ? ("detergente" as const) : ("amaciante" as const),
         })),
+        inlets: DOSING_INLET_A_MM.map((da) => ({ a: w.a + da, c: w.back, y: DOSING_INLET_Y_MM })),
       },
     };
   });
 
-  // --- Esgoto suspenso (abaixo das saídas de drenagem, sem ralo) ----------
-  const maxDrain = Math.max(...washers.map((w) => drainDiameterMm(w.m)));
+  // --- Esgoto suspenso (abaixo das saídas de drenagem) -------------------
   const drainStops = perWasher.map((w) => w.standpipe.a);
   const sewerAStop = exitA - flow * SEWER_INWARD_MM;
   const stops = [...drainStops, sewerAStop];
@@ -240,7 +303,6 @@ export function computeHydraulics(input: HydraulicsInput): HydraulicsLayout | nu
       ],
     });
   }
-  const drainDia = drainDiameterMmAt(ordered.length, maxDrain);
   // Último trecho: do fim da fileira até a parede de trás (mesma bitola da saída).
   drainLine.push({
     diameterMm: drainDia,
@@ -286,6 +348,8 @@ export function computeHydraulics(input: HydraulicsInput): HydraulicsLayout | nu
     drainSupports,
     sewerExit,
     vents,
+    // Ralinho na ponta da fileira longe da saída, junto da parede de trás.
+    floorDrain: { a: drainStops[0], c: FLOOR_DRAIN_C_MM, sizeMm: FLOOR_DRAIN_SIZE_MM },
     summary: {
       washers: washers.length,
       supplyFlowLpm: washers.length * WATER_FLOW_PER_WASHER_LPM,

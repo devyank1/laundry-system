@@ -276,6 +276,18 @@ describe("computeLayout", () => {
   });
 });
 
+describe("base de concreto da máquina pesada", () => {
+  it("máquina de 400 kg ou mais fica sobre base de concreto de 2 cm; as leves, direto no piso", () => {
+    const heavy: CatalogMachine = { ...catalog[0], id: "pesada", weightKg: 615, widthMm: 835, depthMm: 1190, heightMm: 2210 };
+    const layout = computeLayout(
+      { ...validState, roomWidthMm: 7000, roomDepthMm: 6000, ceilingHeightMm: 2800, machines: [{ catalogId: "sq-stack", qty: 1 }, { catalogId: "pesada", qty: 1 }] },
+      [...catalog, heavy]
+    ).layout!;
+    expect(layout.machines.find((m) => m.catalogId === "pesada")!.baseMm).toBe(20);
+    expect(layout.machines.find((m) => m.catalogId === "sq-stack")!.baseMm).toBe(0);
+  });
+});
+
 describe("computeLayout — orientation=side (fileira na parede lateral)", () => {
   const sideState: ProjectState = { ...validState, orientation: "side" };
 

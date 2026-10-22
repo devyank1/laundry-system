@@ -48,3 +48,12 @@ export const COUNTER_DEPTH_MM = 750;
 // Conjunto de 3 pufs hexagonais encaixados (pufs.html), no meio do salão:
 // caixa quadrada que envolve os três.
 export const PUFS_SIZE_MM = 1200;
+
+// Máquina pesada (Mamute Smart 17, 615 kg) fica sobre uma base de concreto
+// de 2 cm: o peso não vai direto no piso.
+export const HEAVY_MACHINE_KG = 400;
+export const CONCRETE_BASE_MM = 20;
+
+export function concreteBaseMm(weightKg: number | undefined): number {
+  return (weightKg ?? 0) >= HEAVY_MACHINE_KG ? CONCRETE_BASE_MM : 0;
+}

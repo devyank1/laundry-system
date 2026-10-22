@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ControlPanel } from "./ui/ControlPanel";
 import { ViolationsPanel } from "./ui/ViolationsPanel";
 import { CatalogManager } from "./ui/CatalogManager";
-import { FloorPlan } from "./viewer2d/FloorPlan";
+import { FloorPlan, PLAN_SHEETS, type PlanSheet } from "./viewer2d/FloorPlan";
 import { Scene } from "./viewer3d/Scene";
 import { useLayout } from "./state/useLayout";
 import { useProjectStore } from "./state/projectStore";
@@ -25,6 +25,7 @@ export function App() {
   const inauguracao = useProjectStore((s) => s.inauguracao);
   const toggleInauguracao = useProjectStore((s) => s.toggleInauguracao);
   const [tab, setTab] = useState<"2d" | "3d">("2d");
+  const [sheet, setSheet] = useState<PlanSheet>("layout");
   const [showCatalog, setShowCatalog] = useState(false);
   const [svgEl, setSvgEl] = useState<SVGSVGElement | null>(null);
   const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
@@ -63,12 +64,27 @@ export function App() {
 
       {layout && tab === "2d" && (
         <>
-          <FloorPlan ref={setSvgEl} layout={layout} />
+          <div className="plan2d">
+          <div className="sheet-tabs" role="tablist" aria-label="Pranchas">
+            {PLAN_SHEETS.map((sh) => (
+              <button
+                key={sh.id}
+                type="button"
+                role="tab"
+                aria-selected={sheet === sh.id}
+                onClick={() => setSheet(sh.id)}
+              >
+                {sh.label}
+              </button>
+            ))}
+          </div>
+          <FloorPlan ref={setSvgEl} layout={layout} sheet={sheet} />
+          </div>
           <div className="export-actions">
             <button
               type="button"
               disabled={!canExport || !svgEl}
-              onClick={() => svgEl && exportFloorPlanPNG(svgEl)}
+              onClick={() => svgEl && exportFloorPlanPNG(svgEl, `planta-${sheet}.png`)}
             >
               Baixar PNG
             </button>
@@ -77,10 +93,14 @@ export function App() {
               disabled={!canExport || !svgEl}
               onClick={() =>
                 svgEl &&
-                exportFloorPlanPDF(svgEl, {
-                  projectName: "Minha Lavanderia",
-                  areaM2: (layout.roomWidthMm / 1000) * (layout.roomDepthMm / 1000),
-                })
+                exportFloorPlanPDF(
+                  svgEl,
+                  {
+                    projectName: "Minha Lavanderia",
+                    areaM2: (layout.roomWidthMm / 1000) * (layout.roomDepthMm / 1000),
+                  },
+                  `planta-${sheet}.pdf`
+                )
               }
             >
               Baixar PDF

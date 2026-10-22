@@ -4,10 +4,11 @@ import {
   DRAIN_BASE_DIAMETER_MM,
   STANDPIPE_DIAMETER_MM,
   STANDPIPE_HEIGHT_MM,
-  WATER_POINT_HEIGHT_RANGE_MM,
+  DOSING_JUG_HEIGHT_MM,
+  WATER_ELBOW_MM,
   DOSING_PUMP_Y_MM,
   DRAIN_LINE_Y_MM,
-  STANDPIPE_TEE_ARM_MM,
+  FLOOR_DRAIN_SIZE_MM,
   drainDiameterMmAt,
   waterMainDiameterMm,
 } from "./hydraulics";
@@ -57,13 +58,66 @@ describe("hidráulica e esgoto das lavadoras", () => {
     expect(hydFor().summary.drainFlowLpm).toBe(42);
   });
 
-  it("2 pontos de 3/4 por lavadora, a 60-100 cm do piso", () => {
-    const h = hydFor();
+  it("água sobe do chão até a altura dos galões (registro no meio), T com cotovelo de 90° em cada ponta", () => {
+    const layout = computeLayout(base, CATALOG_SEED).layout!;
+    const h = layout.hydraulics!;
     expect(h.washers).toHaveLength(3);
+    // barramento corre no piso
+    for (const p of h.manifold.points) expect(p.y - h.manifold.diameterMm / 2).toBeGreaterThanOrEqual(0);
+    for (const p of h.manifold.points) expect(p.y).toBeLessThan(60);
     for (const w of h.washers) {
-      expect(w.waterPointHeightMm).toBeGreaterThanOrEqual(WATER_POINT_HEIGHT_RANGE_MM[0]);
-      expect(w.waterPointHeightMm).toBeLessThanOrEqual(WATER_POINT_HEIGHT_RANGE_MM[1]);
-      expect(w.branch[1].y).toBe(h.manifold.points[0].y);
+      expect(w.waterPointHeightMm).toBe(DOSING_JUG_HEIGHT_MM);
+      const [bottom, top] = w.water.riser;
+      expect(bottom.y).toBe(h.manifold.points[0].y); // nasce no barramento do piso
+      expect(top.y).toBe(DOSING_JUG_HEIGHT_MM); // até a altura dos galões
+      expect(bottom.a).toBe(top.a);
+      expect(bottom.c).toBe(top.c);
+      // registro no meio do tubo
+      expect(Math.abs(w.water.valve.y - (bottom.y + top.y) / 2)).toBeLessThanOrEqual(1);
+      expect(w.water.valve.a).toBe(top.a);
+      // T: dois braços na altura do topo, um pra cada lado
+      expect(w.water.tee).toHaveLength(2);
+      for (const t of w.water.tee) expect(t.y).toBe(top.y);
+      expect(w.water.tee[0].a).toBeLessThan(top.a);
+      expect(w.water.tee[1].a).toBeGreaterThan(top.a);
+      // cotovelo de 90° em cada ponta, virado pra máquina (+c), na mesma altura
+      const m = layout.machines.find((mm) => Math.abs(mm.x + mm.widthMm / 2 - w.a) < 1)!;
+      w.water.elbows.forEach((e, k) => {
+        const t = w.water.tee[k];
+        expect(e.a).toBe(t.a);
+        expect(e.y).toBe(t.y);
+        expect(e.c - t.c).toBe(WATER_ELBOW_MM);
+      });
+      // entradas lado a lado na traseira, lá em cima, logo abaixo das bombas dosadoras
+      const [i0, i1] = w.water.inlets;
+      expect(i0.c).toBe(m.y);
+      expect(i1.c).toBe(m.y);
+      expect(i0.y).toBe(i1.y);
+      const pumpBottom = DOSING_PUMP_Y_MM - 95;
+      expect(i0.y).toBeLessThan(pumpBottom);
+      expect(pumpBottom - i0.y).toBeLessThanOrEqual(150);
+      expect(i1.a - i0.a).toBeGreaterThan(0);
+      expect(i1.a - i0.a).toBeLessThanOrEqual(80);
+      // mangueira: começa no cotovelo, lá embaixo, e termina na entrada
+      w.water.hoses.forEach((hose, k) => {
+        expect(hose[0]).toEqual(w.water.elbows[k]);
+        expect(hose[hose.length - 1]).toEqual(w.water.inlets[k]);
+        for (const p of hose) expect(p.c).toBeLessThanOrEqual(m.y); // nunca entra na máquina
+      });
+    }
+  });
+
+  it("tubo de água que sobe não cruza o tubo de esgoto suspenso", () => {
+    for (const machines of [
+      [{ catalogId: "sq-stack", qty: 3 }],
+      [{ catalogId: "sq-stack", qty: 2 }, { catalogId: "mamute-smart17", qty: 1 }],
+    ]) {
+      const h = hydFor({ machines });
+      const drain = h.drainLine[0].points[0].c;
+      const maxR = Math.max(...h.drainLine.map((s) => s.diameterMm / 2));
+      for (const w of h.washers) {
+        expect(w.water.riser[0].c + 25 / 2).toBeLessThan(drain - maxR);
+      }
     }
   });
 
@@ -95,15 +149,19 @@ describe("hidráulica e esgoto das lavadoras", () => {
     for (const sp of h.drainSupports) expect(sp.y).toBe(DRAIN_LINE_Y_MM);
   });
 
-  it("tubo individual da máquina vai do tubo central baixo até o T a 70 cm do piso", () => {
+  it("tubo individual de esgoto é RETO: do tubo central baixo até a boca aberta a 70 cm (sem T)", () => {
     const h = hydFor();
     for (const w of h.washers) {
       expect(w.standpipe.baseY).toBe(DRAIN_LINE_Y_MM); // sai do tubo central, baixo
-      expect(w.standpipe.topY).toBe(700); // ligação em T a 70 cm
-      // a mangueira termina na boca do braço do T
+      expect(w.standpipe.topY).toBe(700); // boca a 70 cm
+      // a mangueira desce reto pra dentro da boca do tubo
       const end = w.hose[w.hose.length - 1];
-      expect(end.y).toBeGreaterThanOrEqual(700);
-      expect(end.a).toBeCloseTo(w.standpipe.a + STANDPIPE_TEE_ARM_MM);
+      const before = w.hose[w.hose.length - 2];
+      expect(end.a).toBe(w.standpipe.a);
+      expect(end.c).toBe(w.standpipe.c);
+      expect(end.y).toBeLessThan(w.standpipe.topY);
+      expect(before.a).toBe(end.a);
+      expect(before.c).toBe(end.c);
     }
     // um único tubo central, mais baixo que todos os tês
     expect(new Set(h.drainLine.slice(0, -1).map((s) => s.points[0].c)).size).toBe(1);
@@ -111,7 +169,7 @@ describe("hidráulica e esgoto das lavadoras", () => {
 
   it("bombas dosadoras ficam ACIMA da entrada de água da lavadora", () => {
     for (const w of hydFor().washers) {
-      const waterY = w.branch[1].y;
+      const waterY = w.water.riser[1].y;
       for (const p of w.dosing.pumps) expect(p.y - 100).toBeGreaterThan(waterY + 36); // base da bomba acima dos registros
     }
   });
@@ -160,6 +218,32 @@ describe("hidráulica e esgoto das lavadoras", () => {
     expect(h.pump.model).toMatch(/Komeco TP825/);
     expect(h.pump.inlet.a).toBe(h.waterEntry.through.a);
     expect(h.summary.pressureKpa).toEqual({ min: 200, max: 570 });
+  });
+
+  it("galões no chão não encostam no barramento nem no tubo de esgoto", () => {
+    for (const machines of [
+      [{ catalogId: "sq-stack", qty: 3 }],
+      [{ catalogId: "sq-stack", qty: 2 }, { catalogId: "mamute-smart17", qty: 1 }],
+    ]) {
+      const h = hydFor({ machines });
+      const cMan = h.manifold.points[0].c;
+      const drain = h.drainLine[0].points[0].c;
+      const maxR = Math.max(...h.drainLine.map((s) => s.diameterMm / 2));
+      for (const w of h.washers) {
+        for (const jug of w.dosing.jugs) {
+          expect(Math.abs(jug.c - cMan)).toBeGreaterThan(95 + h.manifold.diameterMm / 2);
+          expect(Math.abs(jug.c - drain)).toBeGreaterThan(95 + maxR);
+        }
+      }
+    }
+  });
+
+  it("ralinho pequeno no piso da área técnica, junto da parede de trás", () => {
+    const h = hydFor();
+    expect(h.floorDrain.sizeMm).toBe(FLOOR_DRAIN_SIZE_MM);
+    expect(h.floorDrain.sizeMm).toBeLessThanOrEqual(150);
+    expect(h.floorDrain.c).toBeGreaterThan(h.floorDrain.sizeMm / 2); // dentro, não na parede
+    expect(h.floorDrain.c).toBeLessThan(h.manifold.points[0].c); // atrás das tubulações
   });
 
   it("tem pelo menos um respiro, subindo até perto do teto", () => {

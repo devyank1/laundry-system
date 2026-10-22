@@ -29,6 +29,7 @@ import {
   TECH_DOOR_WIDTH_MM,
   TOTEM_SIZE_MM,
   TOTEM_WALL_MM,
+  concreteBaseMm,
 } from "./constants";
 import type {
   CatalogMachine,
@@ -136,6 +137,7 @@ export function computeLayout(state: ProjectState, catalog: CatalogMachine[]): L
       widthMm: r.width,
       depthMm: r.height,
       heightMm: m.heightMm,
+      baseMm: concreteBaseMm(m.weightKg),
     });
     openings.push(orientedMarkerRect(state, alongPos, drywallAcross, m.widthMm, m.heightMm));
     cursorAlong += m.widthMm + MACHINE_GAP_MM;

@@ -5,7 +5,7 @@ import {
   CUSTOMER_OUTLET_HEIGHT_MM,
   CUSTOMER_OUTLET_VOLTAGE,
   PROFILE_BOTTOM_Y_MM,
-  SOCKET_BOX_Y_MM,
+  SOCKET_BOX_HALF_HEIGHT_MM,
 } from "./electrical";
 import type { ProjectState } from "./types";
 
@@ -61,7 +61,7 @@ describe("elétrica suspensa", () => {
     expect(smart.dryerSocket.amperage).toBe(40); // Smart 10
   });
 
-  it("2 tomadas 220 V (lavadora e dosadoras) NO perfilado: nada desce além da ponta dele", () => {
+  it("3 tomadas 220 V VERTICAIS (lavadora e 2 dosadoras) NO perfilado: nada desce além da ponta dele", () => {
     for (const m of layoutFor().electrical!.machines) {
       const { topY, bottomY } = m.profile;
       // conduíte e caixa de tomadas ficam dentro do comprimento do perfilado
@@ -69,12 +69,18 @@ describe("elétrica suspensa", () => {
         expect(p.y).toBeGreaterThanOrEqual(bottomY);
         expect(p.y).toBeLessThanOrEqual(topY);
       }
-      expect(m.sockets220.map((s) => s.use)).toEqual(["lavadora", "dosadoras"]);
-      for (const s of m.sockets220) {
-        expect(s.y).toBe(SOCKET_BOX_Y_MM);
-        expect(s.y - 40).toBeGreaterThanOrEqual(bottomY); // a caixa inteira acima da ponta de baixo
-        expect(s.y).toBeLessThan(m.dryerSocket.y); // abaixo da Steck da secadora
-      }
+      expect(m.sockets220.map((s) => s.use)).toEqual(["lavadora", "dosadora-detergente", "dosadora-amaciante"]);
+      // uma em cima da outra: mesmo a/c, alturas crescentes (lavadora embaixo)
+      expect(new Set(m.sockets220.map((s) => s.a)).size).toBe(1);
+      expect(new Set(m.sockets220.map((s) => s.c)).size).toBe(1);
+      const ys = m.sockets220.map((s) => s.y);
+      expect(ys).toEqual([...ys].sort((a, b) => a - b));
+      expect(new Set(ys).size).toBe(3);
+      const boxCenter = (ys[0] + ys[2]) / 2;
+      expect(boxCenter - SOCKET_BOX_HALF_HEIGHT_MM).toBeGreaterThanOrEqual(bottomY); // caixa inteira acima da ponta
+      expect(boxCenter + SOCKET_BOX_HALF_HEIGHT_MM).toBeLessThan(m.dryerSocket.y); // abaixo da Steck da secadora
+      // o conduíte chega no topo da caixa
+      expect(m.conduit[m.conduit.length - 1].y).toBe(boxCenter + SOCKET_BOX_HALF_HEIGHT_MM)
       expect(m.washerBreakerA).toBe(16); // Speed Queen: disjuntor bipolar de 16 A
     }
   });
@@ -88,19 +94,50 @@ describe("elétrica suspensa", () => {
     });
   });
 
-  it("3 tomadas 127 V atrás das cadeiras, na parede, a 40 cm do piso", () => {
+  it("cabo preto da máquina até a tomada da lavadora e plugue Steck macho na tomada da secadora", () => {
+    for (const m of layoutFor().electrical!.machines) {
+      const back = layoutFor().hydraulics!.washers.find((w) => w.a === m.a)!.dosing.pumps[0].c;
+      expect(m.cords.map((cd) => cd.kind)).toEqual(["220", "steck"]);
+      const washer = m.cords.find((cd) => cd.kind === "220")!.points;
+      const dryer = m.cords.find((cd) => cd.kind === "steck")!.points;
+      // começa no plugue (na altura da tomada certa, rente ao perfilado) e termina na traseira da máquina
+      expect(washer[0].y).toBe(m.sockets220[0].y);
+      expect(washer[0].a).toBe(m.profile.a);
+      expect(dryer[0].y).toBe(m.dryerSocket.y);
+      expect(dryer[0].a).toBe(m.profile.a);
+      for (const cord of [washer, dryer]) {
+        expect(cord[0].c).toBeLessThan(m.profile.c); // plugue na face virada pra parede
+        expect(cord[cord.length - 1].c).toBe(back);
+      }
+      // cabo da secadora sai mais alto (secadora em cima no stack)
+      expect(dryer[dryer.length - 1].y).toBeGreaterThan(washer[washer.length - 1].y);
+    }
+  });
+
+  it("só a tomada da máquina fica ligada: as das dosadoras ficam livres", () => {
+    for (const m of layoutFor().electrical!.machines) {
+      expect(m.cords.filter((cd) => cd.use).map((cd) => cd.use)).toEqual(["lavadora"]);
+    }
+  });
+
+  it("tomadas 127 V ENTRE as cadeiras, na parede, a 40 cm do piso (caixa dupla por vão)", () => {
     const layout = layoutFor();
     const outlets = layout.electrical!.customerOutlets;
-    expect(outlets).toHaveLength(3);
+    const chairs = [...layout.furniture!.poufs].sort((p, q) => p.y - q.y || p.x - q.x);
+    expect(outlets).toHaveLength(chairs.length - 1);
     for (const [i, o] of outlets.entries()) {
       expect(o.voltage).toBe(CUSTOMER_OUTLET_VOLTAGE);
       expect(o.heightMm).toBe(CUSTOMER_OUTLET_HEIGHT_MM);
-      const chair = layout.furniture!.poufs[i];
+      expect(o.mount).toBe("wall");
+      expect(o.sockets).toBe(2);
       expect(o.wall).toBe(layout.furniture!.chairsWall);
-      // na parede (borda da cadeira) e alinhada com ela
-      expect(o.x).toBe(o.wall === "left" ? chair.x : chair.x + chair.width);
-      expect(o.y).toBeCloseTo(chair.y + chair.height / 2);
+      // na parede (costas das cadeiras), no vão entre a cadeira i e a i+1 — não atrás delas
+      const [p, q] = [chairs[i], chairs[i + 1]];
+      expect(o.x).toBe(o.wall === "left" ? p.x : p.x + p.width);
+      expect(o.y).toBeGreaterThanOrEqual(p.y + p.height);
+      expect(o.y).toBeLessThanOrEqual(q.y);
     }
+    expect(layout.electrical!.summary.customerOutlets).toBe(outlets.length * 2);
   });
 
   it("sem mobiliário não há tomadas dos clientes", () => {
@@ -113,6 +150,6 @@ describe("elétrica suspensa", () => {
   ])("%s: mesma rota no referencial da fileira", (_n, patch) => {
     const e = layoutFor(patch).electrical!;
     expect(e.machines).toHaveLength(3);
-    expect(e.summary.customerOutlets).toBe(3);
+    expect(e.summary.customerOutlets).toBe(4); // 2 vãos entre 3 cadeiras, caixa dupla
   });
 });

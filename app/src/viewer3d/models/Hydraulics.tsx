@@ -1,17 +1,19 @@
 import { Vector3 } from "three";
-import { STANDPIPE_TEE_ARM_MM, type HydraulicPoint, type HydraulicsLayout } from "../../engine/hydraulics";
+import type { HydraulicPoint, HydraulicsLayout } from "../../engine/hydraulics";
 import type { Layout } from "../../engine/types";
 import { drywallFrame } from "../placement";
+import { Cable } from "./Cable";
 import { Duct } from "./Duct";
 import { DOSING_PORT_LEFT, DOSING_PORT_RIGHT, DOSING_SCALE, DosingPump } from "./DosingPump";
 import { JUG_CAP_LOCAL, JUG_SCALE, Jug } from "./Jug";
 import { PUMP_INLET_LOCAL, PUMP_OUTLET_LOCAL, PUMP_SCALE, WaterPump } from "./WaterPump";
 
 // Água e esgoto das lavadoras no 3D (ver engine/hydraulics.ts):
-//   entrada de água (parede de trás) → pressurizador → barramento →
-//   por lavadora: "T" com 2 registros de 3/4";
-//   dreno: mangueira → tubo vertical aberto → tubo de esgoto SUSPENSO em
-//   suportes (sem ralo nem canal no piso) → parede de trás; respiro até o teto;
+//   entrada de água (parede de trás) → pressurizador → barramento no piso →
+//   por lavadora: tubo subindo do chão com registro no meio → "T" a 70 cm →
+//   2 mangueiras até a máquina;
+//   dreno: mangueira → tubo vertical RETO e aberto → tubo de esgoto SUSPENSO
+//   em suportes → parede de trás; respiro até o teto; ralinho no piso;
 //   dosagem: por lavadora, 2 galões no chão e 2 bombas dosadoras coladas na
 //   traseira da máquina, logo acima deles.
 
@@ -23,8 +25,9 @@ const PVC_WHITE = { color: "#f1f5f9", metalness: 0.05, roughness: 0.45 };
 const TUBE = { color: "#f4f7fa", metalness: 0, roughness: 0.3 }; // silicone das dosadoras
 const STEEL = { color: "#9aa5b1", metalness: 0.7, roughness: 0.4 };
 const HOSE = { color: "#1f2937", metalness: 0.1, roughness: 0.7 };
+const ELBOW = { color: "#2563eb", metalness: 0.1, roughness: 0.45 }; // cotovelo de 90° (PPR azul)
+const BRAIDED = { color: "#b8bfc7", metalness: 0.8, roughness: 0.35 }; // mangueira de água trançada
 const CORNER = 0.1;
-const DOSING_INLET_Y_MM = 1350; // entrada de dosagem na traseira da lavadora (estimativa)
 
 function BallValve({ position }: { position: Vector3 }) {
   return (
@@ -69,9 +72,12 @@ export function Hydraulics({ layout, hydraulics: h }: { layout: Layout; hydrauli
   const cMan = h.manifold.points[0].c;
   const aMin = h.manifold.points[1].a;
   const aMax = h.manifold.points[2].a;
+  // Sai da bomba pro lado das máquinas, desce até o piso e corre ao longo da fileira.
   const manifoldLegs = [aMin, aMax]
     .filter((a) => Math.abs(a - outlet.a) > 1)
-    .map((a) => [outlet, L(outlet.a, outlet.c, manY), L(outlet.a, cMan, manY), L(a, cMan, manY)].map(v));
+    .map((a) =>
+      [outlet, L(outlet.a, cMan, outlet.y), L(outlet.a, cMan, manY), L(a, cMan, manY)].map(v)
+    );
 
   return (
     <group>
@@ -90,45 +96,64 @@ export function Hydraulics({ layout, hydraulics: h }: { layout: Layout; hydrauli
         <Duct key={i} points={pts} radius={mainRadius} cornerRadius={CORNER} {...WATER_OUT} />
       ))}
 
-      {/* Por lavadora: derivação de 3/4" → "T" com 2 registros de esfera */}
+      {/* Por lavadora: tubo sobe do barramento no piso (registro no meio) até o
+          "T" na altura dos galões; cotovelo de 90° em cada ponta, virado pra
+          máquina, e mangueira trançada quase reta até as entradas lado a lado */}
       {h.washers.map((w, i) => {
-        const end = w.branch[1];
-        const half = 90; // mm do "T" pra cada lado
+        const [t0, t1] = w.water.tee;
+        const top = w.water.riser[1];
         return (
           <group key={`w${i}`}>
-            <Duct points={w.branch.map(v)} radius={M(25) / 2} {...WATER_OUT} />
-            <Duct points={[L(end.a - half, end.c, end.y), L(end.a + half, end.c, end.y)].map(v)} radius={M(25) / 2} {...WATER_OUT} />
-            <BallValve position={v(L(end.a - half, end.c, end.y))} />
-            <BallValve position={v(L(end.a + half, end.c, end.y))} />
+            <Duct points={w.water.riser.map(v)} radius={M(25) / 2} tubular={2} {...WATER_OUT} />
+            <BallValve position={v(w.water.valve)} />
+            <Duct points={[t0, t1].map(v)} radius={M(25) / 2} tubular={2} {...WATER_OUT} />
+            <mesh position={v(top)}>
+              <sphereGeometry args={[M(25) / 2 + 0.006, 14, 10]} />
+              <meshStandardMaterial {...WATER_OUT} />
+            </mesh>
+            {/* Cotovelos de 90° (azuis, como na foto) nas pontas do T */}
+            {w.water.tee.map((t, k) => {
+              const e = w.water.elbows[k];
+              const back = L(t.a + (k === 0 ? 30 : -30), t.c, t.y); // entra pelo braço do T
+              return (
+                <Duct
+                  key={`e${k}`}
+                  points={[back, t, e].map(v)}
+                  radius={M(25) / 2 + 0.004}
+                  cornerRadius={0.025}
+                  tubular={16}
+                  {...ELBOW}
+                />
+              );
+            })}
+            {/* Mangueiras trançadas: do cotovelo lá embaixo, sobem colada na
+                máquina até as entradas lado a lado, perto das dosadoras */}
+            {w.water.hoses.map((hose, k) => (
+              <Cable key={k} points={hose.map(v)} radius={0.008} options={{ slack: 0.04, maxSag: 0.04, wobble: 0.02 }} {...BRAIDED} />
+            ))}
+            {/* Entradas de água (latão) na traseira da máquina */}
+            {w.water.inlets.map((p, k) => (
+              <group key={`in${k}`} position={v(p)} rotation={[0, yaw, 0]}>
+                <mesh position={[0, 0, 0.012]} rotation={[Math.PI / 2, 0, 0]}>
+                  <cylinderGeometry args={[0.012, 0.012, 0.024, 6]} />
+                  <meshStandardMaterial color="#c9a227" metalness={0.8} roughness={0.35} />
+                </mesh>
+              </group>
+            ))}
 
-            {/* Dreno: mangueira com laço → tubo vertical aberto (ladrão) */}
+            {/* Dreno: mangueira com laço → desce dentro do tubo vertical */}
             <Duct points={w.hose.map(v)} radius={0.012} cornerRadius={0.1} {...HOSE} />
-            {/* Tubo individual: do tubo central baixo até a ligação em T a 70 cm */}
+            {/* Tubo individual RETO: do tubo central baixo até a boca aberta a 70 cm */}
             <Duct
               points={[L(w.standpipe.a, w.standpipe.c, w.standpipe.baseY), L(w.standpipe.a, w.standpipe.c, w.standpipe.topY)].map(v)}
               radius={M(w.standpipe.diameterMm) / 2}
               tubular={2}
               {...PVC_WHITE}
             />
-            <Duct
-              points={[
-                L(w.standpipe.a - STANDPIPE_TEE_ARM_MM, w.standpipe.c, w.standpipe.topY),
-                L(w.standpipe.a + STANDPIPE_TEE_ARM_MM, w.standpipe.c, w.standpipe.topY),
-              ].map(v)}
-              radius={M(w.standpipe.diameterMm) / 2}
-              tubular={2}
-              {...PVC_WHITE}
-            />
-            {/* Respiro do T (braço oposto à mangueira) */}
-            <Duct
-              points={[
-                L(w.standpipe.a - STANDPIPE_TEE_ARM_MM, w.standpipe.c, w.standpipe.topY),
-                L(w.standpipe.a - STANDPIPE_TEE_ARM_MM, w.standpipe.c, w.standpipe.topY + 150),
-              ].map(v)}
-              radius={M(25) / 2}
-              tubular={2}
-              {...PVC_WHITE}
-            />
+            <mesh position={v(L(w.standpipe.a, w.standpipe.c, w.standpipe.topY))}>
+              <torusGeometry args={[M(w.standpipe.diameterMm) / 2, 0.004, 8, 24]} />
+              <meshStandardMaterial {...PVC_WHITE} />
+            </mesh>
           </group>
         );
       })}
@@ -199,7 +224,7 @@ export function Hydraulics({ layout, hydraulics: h }: { layout: Layout; hydrauli
               const cap = local(capWorld);
               const sIn = local(suction);
               const dIn = local(discharge);
-              const gap = w.a - inner * 12; // vão entre as duas bombas (cada recalque no seu lado)
+              const inlet = w.dosing.inlets[k];
               return (
                 <group key={k}>
                   <group position={jugBase} rotation={[0, yaw, 0]} scale={[jugMirror, 1, 1]}>
@@ -208,28 +233,28 @@ export function Hydraulics({ layout, hydraulics: h }: { layout: Layout; hydrauli
                   <group position={pumpCenter} rotation={[0, yaw, 0]} scale={[mirror, 1, 1]}>
                     <DosingPump />
                   </group>
-                  {/* Sucção: tampa do galão → conexão de entrada da bomba */}
-                  <Duct
-                    points={[cap, L(cap.a, cap.c, sIn.y - 40), L(sIn.a, sIn.c, sIn.y - 40), sIn].map(v)}
-                    radius={0.005}
-                    cornerRadius={0.02}
-                    tubular={16}
+                  {/* Sucção: mangueirinha solta, direto da tampa do galão à entrada da bomba */}
+                  <Cable
+                    points={[cap, sIn].map(v)}
+                    radius={0.0045}
+                    options={{ slack: 0.3, maxSag: 0.3, wobble: 0.03 }}
                     {...TUBE}
                   />
-                  {/* Recalque: conexão de saída → sobe rente à traseira até a entrada de dosagem da máquina */}
-                  <Duct
-                    points={[
-                      dIn,
-                      L(dIn.a, dIn.c, dIn.y - 40),
-                      L(gap, pump.c - 20, dIn.y - 40),
-                      L(gap, pump.c - 20, DOSING_INLET_Y_MM),
-                      L(gap, pump.c, DOSING_INLET_Y_MM),
-                    ].map(v)}
+                  {/* Recalque: tubinho solto, com barriga grande, da saída da bomba
+                      até a entrada de dosagem ao lado (cruza com o da outra bomba) */}
+                  <Cable
+                    points={[dIn, L(inlet.a, inlet.c - 8, inlet.y)].map(v)}
                     radius={0.005}
-                    cornerRadius={0.02}
-                    tubular={24}
+                    options={{ slack: 0.8, maxSag: 0.32, wobble: 0.03 }}
                     {...TUBE}
                   />
+                  {/* Entrada de dosagem: furo com anel preto na traseira */}
+                  <group position={v(inlet)} rotation={[0, yaw, 0]}>
+                    <mesh rotation={[Math.PI / 2, 0, 0]}>
+                      <cylinderGeometry args={[0.014, 0.014, 0.012, 16]} />
+                      <meshStandardMaterial color="#111827" roughness={0.6} />
+                    </mesh>
+                  </group>
                 </group>
               );
             })}
@@ -247,6 +272,20 @@ export function Hydraulics({ layout, hydraulics: h }: { layout: Layout; hydrauli
         tubular={2}
         {...SEWER}
       />
+
+      {/* Ralinho no piso da área técnica, junto da parede de trás */}
+      <group position={v(L(h.floorDrain.a, h.floorDrain.c, 2))}>
+        <mesh>
+          <boxGeometry args={[M(h.floorDrain.sizeMm), 0.004, M(h.floorDrain.sizeMm)]} />
+          <meshStandardMaterial {...STEEL} />
+        </mesh>
+        {[-2, -1, 0, 1, 2].map((k) => (
+          <mesh key={k} position={[k * M(h.floorDrain.sizeMm) * 0.16, 0.0025, 0]}>
+            <boxGeometry args={[0.006, 0.002, M(h.floorDrain.sizeMm) * 0.75]} />
+            <meshStandardMaterial color="#1f2937" />
+          </mesh>
+        ))}
+      </group>
 
       {/* Respiro (ventilação) subindo até perto do teto */}
       {h.vents.map((vent, i) => (

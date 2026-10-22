@@ -50,6 +50,7 @@ const AC_UNIT_HEIGHT_MM = 300;
 const AC_CEILING_GAP_MM = 150;
 const DOOR_JAMB = 0.025;
 const DOOR_LEAF_THICKNESS = 0.04;
+const CONCRETE_BASE_MARGIN = 0.02; // base de concreto passa 2 cm da máquina
 
 // Drywall no 3D: tom mais escuro da cor da fachada (padrão #8fa892 → #5b765f).
 const DEFAULT_DRYWALL_COLOR = drywallColorFor("#8fa892");
@@ -94,11 +95,13 @@ function MachineMesh({
   widthMm,
   depthMm,
   heightMm,
+  baseMm,
   yaw,
 }: PlacedMachine & { yaw: number }) {
   const w = M(widthMm);
   const d = M(depthMm);
   const h = M(heightMm);
+  const base = M(baseMm);
   const targetPosition = useLerpedVector3([M(x) + w / 2, 0, M(y) + d / 2]);
   const groupRef = useRef<Group>(null);
   const model = machineModelFor(catalogId);
@@ -108,10 +111,19 @@ function MachineMesh({
   });
 
   return (
-    <group ref={groupRef} position={targetPosition} rotation={[0, yaw, 0]}>
-      <FitBox size={fitSize(w, h, d, yaw)}>
-        {model.kind === "speedQueen" ? <SpeedQueenStack /> : <TowerMachine finish={model.finish} />}
-      </FitBox>
+    <group ref={groupRef} position={targetPosition}>
+      {/* Máquina pesada: base de concreto de 2 cm embaixo (um pouco maior que ela) */}
+      {base > 0 && (
+        <mesh position={[0, base / 2, 0]} castShadow receiveShadow>
+          <boxGeometry args={[w + CONCRETE_BASE_MARGIN * 2, base, d + CONCRETE_BASE_MARGIN * 2]} />
+          <meshStandardMaterial color="#a8a29e" roughness={0.95} />
+        </mesh>
+      )}
+      <group position={[0, base, 0]} rotation={[0, yaw, 0]}>
+        <FitBox size={fitSize(w, h, d, yaw)}>
+          {model.kind === "speedQueen" ? <SpeedQueenStack /> : <TowerMachine finish={model.finish} />}
+        </FitBox>
+      </group>
     </group>
   );
 }

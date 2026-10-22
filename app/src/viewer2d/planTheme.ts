@@ -23,6 +23,21 @@ export const PLAN_COLORS = {
   text: "#e2e8f0",
 } as const;
 
+// Planta 2D no padrão das pranchas de projeto (pasta /plantas): papel branco,
+// traço preto e as instalações por cor.
+export const CAD = {
+  paper: "#ffffff",
+  ink: "#111111",
+  gray: "#6b7280",
+  roomLabel: "#9a9a9a", // nome do ambiente + área, cinza grande
+  furniture: "#4b5563",
+  water: "#1d4ed8", // água fria
+  sewer: "#15803d", // esgoto
+  electrical: "#d4a017", // eletrocalha / perfilado
+  outlet: "#1d4ed8", // tomadas (triângulo azul)
+  exhaust: "#ea580c",
+} as const;
+
 // Mamute Smart 17 é a máquina grande em cinza; as demais torres são brancas.
 const GRAY_MACHINES = new Set(["mamute-smart17"]);
 

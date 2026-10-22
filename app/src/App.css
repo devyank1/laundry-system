@@ -1,10 +1,10 @@
 .app {
   display: grid;
-  grid-template-columns: 320px 1fr;
+  grid-template-columns: 380px minmax(0, 1fr);
   grid-template-rows: auto auto auto auto 1fr auto;
   gap: 20px;
   align-items: start;
-  max-width: 1320px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 28px 20px 60px;
   min-height: 100vh;
@@ -64,6 +64,7 @@
   top: 24px;
   max-height: calc(100vh - 48px);
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .app section label {
@@ -87,6 +88,8 @@
 .app section input[type="number"],
 .app section input[type="text"],
 .app section select {
+  min-width: 0;
+  box-sizing: border-box;
   font-size: 14px;
   font-weight: 500;
   color: var(--text);
@@ -118,24 +121,32 @@
   flex-shrink: 0;
 }
 
+/* Cada assunto da barra lateral é um bloco (cartão) com título próprio,
+   bem separado dos outros, pro cliente não se perder. */
 .app fieldset {
   border: 1.5px solid var(--border);
+  border-left: 4px solid var(--accent);
   border-radius: var(--radius-sm);
-  padding: 14px;
+  padding: 16px 14px 14px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin: 0;
-  background: linear-gradient(180deg, rgba(107, 63, 160, 0.03), transparent 40%);
+  gap: 12px;
+  margin: 6px 0 0;
+  /* fieldset tem min-width: min-content por padrão: é o que empurrava a
+     barra pra rolagem lateral */
+  min-inline-size: 0;
+  background: linear-gradient(180deg, rgba(107, 63, 160, 0.05), transparent 60%);
 }
 
 .app fieldset legend {
-  font-size: 11.5px;
-  font-weight: 700;
+  font-size: 12.5px;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--accent);
-  padding: 0 4px;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 999px;
+  padding: 3px 12px;
 }
 
 .app fieldset label {
@@ -148,8 +159,39 @@
 }
 
 .app fieldset label input[type="number"] {
-  width: 64px;
+  width: 72px;
+  flex-shrink: 0;
   text-align: center;
+}
+
+.app fieldset label:has(input[type="checkbox"]) {
+  justify-content: flex-start;
+}
+
+/* Selects e campos de texto: título em cima, campo na largura toda. */
+.app fieldset label:has(select),
+.app fieldset label:has(input[type="text"]),
+.app fieldset label:has(input[type="file"]) {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+.app fieldset select,
+.app fieldset label > span {
+  width: 100%;
+}
+
+.app fieldset label > span input[type="text"] {
+  flex: 1;
+}
+
+.app fieldset > p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
 }
 
 .app section label p {
@@ -310,11 +352,42 @@
   width: 100%;
   max-width: 100%;
   height: auto;
-  background: #0f172a;
+  background: #ffffff; /* papel da prancha */
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   animation: fade-in 220ms ease;
+}
+
+/* Planta 2D: abas das pranchas (Layout / Água / Esgoto / Elétrica) + desenho */
+.app > .plan2d {
+  grid-column: 2;
+  grid-row: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.app .sheet-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.app .sheet-tabs button {
+  background: var(--surface);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 7px 16px;
+  box-shadow: none;
+}
+
+.app .sheet-tabs button[aria-selected="true"] {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
 }
 
 .app canvas {
@@ -588,6 +661,7 @@
   .app > nav,
   .app > p,
   .app svg[role="img"],
+  .app > .plan2d,
   .app canvas,
   .app > .scene3d,
   .app > div.export-actions {

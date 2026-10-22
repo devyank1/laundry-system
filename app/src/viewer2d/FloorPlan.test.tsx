@@ -86,10 +86,10 @@ describe("FloorPlan", () => {
     expect(screen.getByText("PORTA TÉC. 0,70m")).toBeInTheDocument();
   });
 
-  it("desenha um círculo por poof ao redor da mesa", () => {
+  it("desenha uma cadeira (contorno) por poof ao redor da mesa", () => {
     const { layout } = computeLayout(state, catalog);
     const { container } = render(<FloorPlan layout={layout!} />);
-    expect(container.querySelectorAll("circle[data-pouf]")).toHaveLength(3);
+    expect(container.querySelectorAll("[data-pouf]")).toHaveLength(3);
   });
 });
 
@@ -106,9 +106,7 @@ describe("FloorPlan — orientation=side (fileira na parede lateral)", () => {
   it("desenha a linha do drywall como VERTICAL (x1===x2), não mais horizontal", () => {
     const { layout } = computeLayout(sideState, catalog);
     const { container } = render(<FloorPlan layout={layout!} />);
-    const lines = Array.from(container.querySelectorAll("line")).filter(
-      (l) => l.getAttribute("stroke-width") === "4"
-    );
+    const lines = Array.from(container.querySelectorAll("line[data-drywall]"));
     // são sempre 2 segmentos (um de cada lado do vão do corredor técnico);
     // um deles pode ter comprimento zero quando o corredor encosta bem na
     // quina (mesmo comportamento já esperado no modo "back", só que agora
@@ -183,17 +181,88 @@ describe("FloorPlan — exaustão", () => {
 describe("FloorPlan — hidráulica e esgoto", () => {
   it("desenha água, bomba e canal de resíduos na área técnica", () => {
     const layout = computeLayout(state, catalog).layout!;
-    const { container } = render(<FloorPlan layout={layout} />);
+    const { container } = render(<FloorPlan layout={layout} sheet="hidraulica" />);
     expect(container.querySelector("[data-hydraulics]")).not.toBeNull();
-    expect(screen.getByText("BOMBA")).toBeInTheDocument();
+    expect(screen.getAllByText("BOMBA").length).toBeGreaterThan(0);
   });
 });
 
 describe("FloorPlan — elétrica", () => {
-  it("desenha a eletrocalha, os perfilados e as 3 tomadas 127 V dos clientes", () => {
+  it("desenha a eletrocalha, os perfilados e as tomadas 127 V entre as cadeiras", () => {
+    const layout = computeLayout(state, catalog).layout!;
+    const { container } = render(<FloorPlan layout={layout} sheet="eletrica" />);
+    expect(container.querySelector("[data-electrical]")).not.toBeNull();
+    expect(container.querySelectorAll("[data-outlet-127]")).toHaveLength(2); // 2 vãos entre 3 cadeiras
+  });
+});
+
+describe("FloorPlan — padrão das pranchas de projeto", () => {
+  it("nome do ambiente com área, VISTA 01, cotas e título da prancha", () => {
     const layout = computeLayout(state, catalog).layout!;
     const { container } = render(<FloorPlan layout={layout} />);
+    expect(screen.getByText("ATENDIMENTO")).toBeInTheDocument();
+    expect(screen.getByText(`${layout.salonAreaM2.toFixed(2).replace(".", ",")} m²`)).toBeInTheDocument();
+    expect(screen.getByText("VISTA 01")).toBeInTheDocument();
+    expect(screen.getByText("PLANTA BAIXA: LAYOUT")).toBeInTheDocument();
+    // corrente das máquinas (2 máquinas) + comprimento e fachada
+    expect(container.querySelectorAll("[data-dimension]").length).toBeGreaterThanOrEqual(4);
+    expect(screen.getByText("5,00")).toBeInTheDocument();
+    expect(screen.getByText("4,20")).toBeInTheDocument();
+  });
+});
+
+describe("FloorPlan — pranchas separadas", () => {
+  const layout = () => computeLayout(state, catalog).layout!;
+
+  it("layout: arquitetura, mobiliário e exaustão, sem água/esgoto/elétrica", () => {
+    const { container } = render(<FloorPlan layout={layout()} sheet="layout" />);
+    expect(container.querySelector("[data-exhaust]")).not.toBeNull();
+    expect(container.querySelector("[data-hydraulics]")).toBeNull();
+    expect(container.querySelector("[data-electrical]")).toBeNull();
+    expect(screen.getByText("PLANTA BAIXA: LAYOUT")).toBeInTheDocument();
+  });
+
+  it("água e esgoto na mesma prancha, tudo conectado até a máquina", () => {
+    const l = layout();
+    const { container } = render(<FloorPlan layout={l} sheet="hidraulica" />);
+    expect(container.querySelector("[data-water]")).not.toBeNull();
+    expect(container.querySelector("[data-sewer]")).not.toBeNull();
+    expect(container.querySelector("[data-floor-drain]")).not.toBeNull();
+    expect(container.querySelector("[data-exhaust]")).toBeNull();
+    expect(container.querySelector("[data-electrical]")).toBeNull();
+    // um ponto de água (registro + T) e um tubo de dreno por lavadora
+    const washers = l.hydraulics!.washers.length;
+    expect(container.querySelectorAll("[data-water-point]")).toHaveLength(washers);
+    expect(container.querySelectorAll("[data-standpipe]")).toHaveLength(washers);
+    expect(screen.getAllByText(/i=2%/).length).toBeGreaterThan(0);
+    expect(screen.getByText("PLANTA BAIXA: TÉRREO (ÁGUA E ESGOTO)")).toBeInTheDocument();
+  });
+
+  it("traz a VISTA 01 da parede de trás: água subindo com registro e tubos de dreno", () => {
+    const l = layout();
+    const { container } = render(<FloorPlan layout={l} sheet="hidraulica" />);
+    const washers = l.hydraulics!.washers.length;
+    expect(container.querySelector("[data-elevation]")).not.toBeNull();
+    expect(container.querySelectorAll("[data-elevation-riser]")).toHaveLength(washers);
+    expect(container.querySelectorAll("[data-elevation-standpipe]")).toHaveLength(washers);
+    expect(screen.getByText("ÁGUA FRIA E ESGOTO")).toBeInTheDocument();
+    // altura do T (galões) e da boca do tubo de dreno (70 cm)
+    expect(screen.getAllByText(/^0,3[45]$/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("0,70").length).toBeGreaterThan(0);
+  });
+
+  it("layout e elétrica não trazem a vista", () => {
+    for (const sheet of ["layout", "eletrica"] as const) {
+      const { container, unmount } = render(<FloorPlan layout={layout()} sheet={sheet} />);
+      expect(container.querySelector("[data-elevation]")).toBeNull();
+      unmount();
+    }
+  });
+
+  it("elétrica: eletrocalha e tomadas, sem hidráulica", () => {
+    const { container } = render(<FloorPlan layout={layout()} sheet="eletrica" />);
     expect(container.querySelector("[data-electrical]")).not.toBeNull();
-    expect(container.querySelectorAll("[data-outlet-127]")).toHaveLength(3);
+    expect(container.querySelector("[data-hydraulics]")).toBeNull();
+    expect(screen.getByText("PLANTA BAIXA: ELÉTRICA")).toBeInTheDocument();
   });
 });

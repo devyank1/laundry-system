@@ -74,6 +74,8 @@ export interface PlacedMachine {
   widthMm: number;
   depthMm: number;
   heightMm: number;
+  // Base de concreto embaixo da máquina (0 = direto no piso).
+  baseMm: number;
 }
 
 export interface Rect {
