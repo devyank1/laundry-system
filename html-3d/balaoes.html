@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <title>Arco de Balões em Espiral (Azul e Branco)</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #eef2f5; }
+        #info {
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            text-align: center;
+            font-family: sans-serif;
+            font-size: 18px;
+            color: #333;
+            pointer-events: none;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div id="info">Clique e arraste o rato para rodar | Scroll para zoom</div>
+    <script>
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xeef2f5);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 15, 30);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        // Luzes
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+        dirLight.position.set(10, 20, 15);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
+
+        // Geometria e Materiais
+        const balloonGeometry = new THREE.SphereGeometry(1.2, 32, 32);
+        
+        // Cores: Azul e Branco
+        const matBlue = new THREE.MeshPhysicalMaterial({ color: 0x1E90FF, roughness: 0.15, clearcoat: 1.0 });
+        const matWhite = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.15, clearcoat: 1.0 });
+
+        const radius = 13;       // Raio do arco
+        const tubeRadius = 1.6;  // Largura do cacho de balões
+        const numSegments = 70;  // Quantidade de quartetos ao longo do arco
+
+        // Construção da Espiral
+        for (let i = 0; i <= numSegments; i++) {
+            const theta = (i / numSegments) * Math.PI; // Curva do arco de 0 a 180º
+            
+            // Posição no centro do arco
+            const cx = Math.cos(theta) * radius;
+            const cy = Math.sin(theta) * radius;
+            const cz = 0;
+
+            // A cada segmento, rodamos os balões um pouco para criar a espiral
+            const twistAngle = i * 0.45; 
+
+            // Criar um "quarteto" (4 balões por camada)
+            for (let j = 0; j < 4; j++) {
+                // Posicionar os 4 balões num círculo ao redor do tubo central
+                const localAngle = (j * (Math.PI / 2)) + twistAngle;
+                
+                // Mapeamento matemático para envolver a curva principal
+                const offsetX = Math.cos(localAngle) * tubeRadius * Math.cos(theta);
+                const offsetY = Math.cos(localAngle) * tubeRadius * Math.sin(theta);
+                const offsetZ = Math.sin(localAngle) * tubeRadius;
+
+                // Definir a cor (2 azuis de um lado, 2 brancos do outro para faixas grossas)
+                const material = (j === 0 || j === 1) ? matBlue : matWhite;
+
+                const balloon = new THREE.Mesh(balloonGeometry, material);
+                balloon.position.set(cx + offsetX, cy + offsetY, cz + offsetZ);
+                
+                // Fazer os balões apontarem ligeiramente para o centro para dar um formato mais real
+                balloon.lookAt(cx, cy, cz);
+                balloon.scale.set(0.9, 0.9, 1.15); // Formato oval
+
+                balloon.castShadow = true;
+                scene.add(balloon);
+            }
+        }
+
+        // Chão
+        const floorGeo = new THREE.PlaneGeometry(100, 100);
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0xdddddd });
+        const floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.y = -2;
+        floor.receiveShadow = true;
+        scene.add(floor);
+
+        // Loop de Animação
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

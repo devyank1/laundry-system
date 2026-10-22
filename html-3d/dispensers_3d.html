@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modelo 3D - Dispensers Comerciais</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #f3f4f6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 12px 24px;
+            border-radius: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        h1 { margin: 0; font-size: 16px; color: #1f2937; font-weight: 600; }
+        p { margin: 4px 0 0 0; font-size: 12px; color: #6b7280; }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <h1>Dispensers Comerciais 3D</h1>
+        <p>Arraste para girar • Role para zoom</p>
+    </div>
+    
+    <div id="canvas-container"></div>
+
+    <script>
+        let scene, camera, renderer, controls;
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xe5e7eb); // Fundo cinza claro
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 1.5); // Câmera de frente
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(0, 0, 0); 
+            // Limitar a câmera para não entrar dentro da parede
+            controls.maxPolarAngle = Math.PI / 2 + 0.5;
+            controls.minDistance = 0.5;
+            controls.maxDistance = 5;
+
+            setupLighting();
+            buildEnvironment();
+            buildDispensers();
+
+            window.addEventListener('resize', onWindowResize, false);
+            animate();
+        }
+
+        function setupLighting() {
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            // Luz principal direcional
+            const keyLight = new THREE.DirectionalLight(0xffffff, 0.7);
+            keyLight.position.set(2, 3, 4);
+            keyLight.castShadow = true;
+            keyLight.shadow.mapSize.width = 1024;
+            keyLight.shadow.mapSize.height = 1024;
+            keyLight.shadow.bias = -0.001;
+            scene.add(keyLight);
+
+            // Luz de preenchimento (esq)
+            const fillLight = new THREE.DirectionalLight(0xe0e7ff, 0.4);
+            fillLight.position.set(-3, 1, 2);
+            scene.add(fillLight);
+            
+            // Ponto de luz frontal para dar aquele brilho "glossy" no plástico branco
+            const specularLight = new THREE.PointLight(0xffffff, 0.5);
+            specularLight.position.set(0, 0.5, 1);
+            scene.add(specularLight);
+        }
+
+        function buildEnvironment() {
+            // Parede
+            const wallGeo = new THREE.PlaneGeometry(5, 5);
+            const wallMat = new THREE.MeshStandardMaterial({ 
+                color: 0xcccccc, 
+                roughness: 0.9,
+                metalness: 0.0
+            });
+            const wall = new THREE.Mesh(wallGeo, wallMat);
+            // Colocando a parede ligeiramente para trás
+            wall.position.set(0, 0, -0.05);
+            wall.receiveShadow = true;
+            scene.add(wall);
+        }
+
+        function buildDispensers() {
+            const dispensersGroup = new THREE.Group();
+
+            // Materiais
+            const glossyWhite = new THREE.MeshStandardMaterial({ 
+                color: 0xffffff, 
+                roughness: 0.1,  // Baixa rugosidade para brilho
+                metalness: 0.1,
+                clearcoat: 1.0,
+                clearcoatRoughness: 0.1
+            });
+
+            const windowBlack = new THREE.MeshStandardMaterial({
+                color: 0x050505,
+                roughness: 0.2,
+                metalness: 0.8
+            });
+
+            const matteBlack = new THREE.MeshStandardMaterial({
+                color: 0x222222,
+                roughness: 0.8,
+                metalness: 0.1
+            });
+
+            // ==========================================
+            // 1. Dispenser de Papel Toalha (Esquerda)
+            // ==========================================
+            const paperWidth = 0.28;
+            const paperHeight = 0.35;
+            const paperDepth = 0.12;
+
+            // Criando o shape com o topo arqueado
+            const paperShape = new THREE.Shape();
+            paperShape.moveTo(-paperWidth/2, -paperHeight/2); // Canto inf esq
+            paperShape.lineTo(paperWidth/2, -paperHeight/2);  // Canto inf dir
+            paperShape.lineTo(paperWidth/2, paperHeight/2 - 0.05); // Linha reta direita até quase o topo
+            // Curva no topo
+            paperShape.quadraticCurveTo(0, paperHeight/2 + 0.02, -paperWidth/2, paperHeight/2 - 0.05);
+            paperShape.lineTo(-paperWidth/2, -paperHeight/2); // Fecha
+
+            const extrudeSettings = {
+                depth: paperDepth,
+                bevelEnabled: true,
+                bevelSegments: 4,
+                bevelSteps: 2,
+                bevelThickness: 0.015,
+                bevelSize: 0.015
+            };
+
+            const paperGeo = new THREE.ExtrudeGeometry(paperShape, extrudeSettings);
+            const paperDispenser = new THREE.Mesh(paperGeo, glossyWhite);
+            paperDispenser.position.set(-0.20, 0, 0); // Deslocado para a esquerda
+            paperDispenser.castShadow = true;
+            paperDispenser.receiveShadow = true;
+
+            // Janela do dispenser de papel
+            const pWindowGeo = new THREE.BoxGeometry(0.015, 0.06, 0.01);
+            const pWindow = new THREE.Mesh(pWindowGeo, windowBlack);
+            pWindow.position.set(0, -0.08, paperDepth + 0.015);
+            paperDispenser.add(pWindow);
+
+            // Base escura do dispenser de papel
+            const pBaseGeo = new THREE.BoxGeometry(paperWidth, 0.01, paperDepth);
+            const pBase = new THREE.Mesh(pBaseGeo, matteBlack);
+            pBase.position.set(0, -paperHeight/2 - 0.005, paperDepth/2);
+            paperDispenser.add(pBase);
+
+            dispensersGroup.add(paperDispenser);
+
+            // ==========================================
+            // 2. Dispenser de Sabonete (Direita)
+            // ==========================================
+            const soapWidth = 0.14;
+            const soapHeight = 0.22;
+            const soapDepth = 0.10;
+
+            // Helper para criar retângulos arredondados
+            function createRoundedRect(width, height, radius) {
+                const shape = new THREE.Shape();
+                const x = -width/2, y = -height/2;
+                shape.moveTo(x, y + radius);
+                shape.lineTo(x, y + height - radius);
+                shape.quadraticCurveTo(x, y + height, x + radius, y + height);
+                shape.lineTo(x + width - radius, y + height);
+                shape.quadraticCurveTo(x + width, y + height, x + width, y + height - radius);
+                shape.lineTo(x + width, y + radius);
+                shape.quadraticCurveTo(x + width, y, x + width - radius, y);
+                shape.lineTo(x + radius, y);
+                shape.quadraticCurveTo(x, y, x, y + radius);
+                return shape;
+            }
+
+            const soapShape = createRoundedRect(soapWidth, soapHeight, 0.02);
+            
+            const soapExtrudeSettings = {
+                depth: soapDepth,
+                bevelEnabled: true,
+                bevelSegments: 4,
+                bevelSteps: 2,
+                bevelThickness: 0.01,
+                bevelSize: 0.01
+            };
+
+            const soapGeo = new THREE.ExtrudeGeometry(soapShape, soapExtrudeSettings);
+            const soapDispenser = new THREE.Mesh(soapGeo, glossyWhite);
+            soapDispenser.position.set(0.15, -0.05, 0); // Deslocado para a direita e ligeiramente para baixo
+            soapDispenser.castShadow = true;
+            soapDispenser.receiveShadow = true;
+
+            // Janela do dispenser de sabonete
+            const sWindowGeo = new THREE.BoxGeometry(0.015, 0.05, 0.01);
+            const sWindow = new THREE.Mesh(sWindowGeo, windowBlack);
+            sWindow.position.set(0, 0, soapDepth + 0.01);
+            soapDispenser.add(sWindow);
+
+            // Alavanca / Botão Push branco na base
+            const leverWidth = soapWidth * 0.7;
+            const leverHeight = 0.06;
+            const leverDepth = 0.04;
+            
+            const leverShape = createRoundedRect(leverWidth, leverHeight, 0.01);
+            const leverExtrudeSettings = {
+                depth: leverDepth,
+                bevelEnabled: true,
+                bevelThickness: 0.005,
+                bevelSize: 0.005
+            };
+            const leverGeo = new THREE.ExtrudeGeometry(leverShape, leverExtrudeSettings);
+            const lever = new THREE.Mesh(leverGeo, glossyWhite);
+            // Posicionar o botão na parte inferior, projetando-se para a frente e ligeiramente inclinado
+            lever.position.set(0, -soapHeight/2 - 0.01, soapDepth - 0.02);
+            lever.rotation.x = -0.2; // Inclinação para baixo/frente
+            lever.castShadow = true;
+            soapDispenser.add(lever);
+
+            dispensersGroup.add(soapDispenser);
+
+            // Adiciona o grupo à cena
+            scene.add(dispensersGroup);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update(); 
+            renderer.render(scene, camera);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
