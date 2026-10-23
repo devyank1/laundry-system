@@ -369,6 +369,37 @@
   min-width: 0;
 }
 
+/* Zoom da planta: o svg alarga dentro de uma área com rolagem */
+.app .plan-viewport {
+  overflow: auto;
+  max-height: 80vh;
+  border-radius: var(--radius-lg);
+}
+
+.app .plan-viewport svg[role="img"] {
+  width: calc(var(--plan-zoom, 1) * 100%);
+  max-width: none;
+}
+
+.app .plan-zoom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.app .plan-zoom button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 1.1rem;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
 .app .sheet-tabs {
   display: flex;
   flex-wrap: wrap;

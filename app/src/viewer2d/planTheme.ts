@@ -36,6 +36,8 @@ export const CAD = {
   electrical: "#d4a017", // eletrocalha / perfilado
   outlet: "#1d4ed8", // tomadas (triângulo azul)
   exhaust: "#ea580c",
+  acDrain: "#0e7490", // dreno do ar-condicionado
+  panel: "#dc2626", // quadro de distribuição / ar-condicionado (vermelho, como nas pranchas)
 } as const;
 
 // Mamute Smart 17 é a máquina grande em cinza; as demais torres são brancas.

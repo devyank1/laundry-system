@@ -29,6 +29,7 @@ import { CameraRig } from "./CameraRig";
 import { LIGHTING_PRESETS, type SceneLighting } from "./lighting";
 import { drywallColorFor } from "./colors";
 import { Inauguracao } from "./models/Inauguracao";
+import { PanelCorner } from "./models/PanelCorner";
 import { Electrical } from "./models/Electrical";
 import { Hydraulics } from "./models/Hydraulics";
 import { Exhaust } from "./models/Exhaust";
@@ -376,6 +377,7 @@ export function Scene({
         {layout.exhaust && <Exhaust layout={layout} exhaust={layout.exhaust} />}
         {layout.hydraulics && <Hydraulics layout={layout} hydraulics={layout.hydraulics} />}
         {layout.electrical && <Electrical layout={layout} electrical={layout.electrical} />}
+        <PanelCorner layout={layout} />
         {logo && <WallLogo layout={layout} logo={logo} />}
         {facade && (
           <Facade

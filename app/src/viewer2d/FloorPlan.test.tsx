@@ -238,31 +238,50 @@ describe("FloorPlan — pranchas separadas", () => {
     expect(screen.getByText("PLANTA BAIXA: TÉRREO (ÁGUA E ESGOTO)")).toBeInTheDocument();
   });
 
-  it("traz a VISTA 01 da parede de trás: água subindo com registro e tubos de dreno", () => {
-    const l = layout();
-    const { container } = render(<FloorPlan layout={l} sheet="hidraulica" />);
-    const washers = l.hydraulics!.washers.length;
-    expect(container.querySelector("[data-elevation]")).not.toBeNull();
-    expect(container.querySelectorAll("[data-elevation-riser]")).toHaveLength(washers);
-    expect(container.querySelectorAll("[data-elevation-standpipe]")).toHaveLength(washers);
-    expect(screen.getByText("ÁGUA FRIA E ESGOTO")).toBeInTheDocument();
-    // altura do T (galões) e da boca do tubo de dreno (70 cm)
-    expect(screen.getAllByText(/^0,3[45]$/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText("0,70").length).toBeGreaterThan(0);
-  });
-
-  it("layout e elétrica não trazem a vista", () => {
-    for (const sheet of ["layout", "eletrica"] as const) {
-      const { container, unmount } = render(<FloorPlan layout={layout()} sheet={sheet} />);
-      expect(container.querySelector("[data-elevation]")).toBeNull();
-      unmount();
-    }
-  });
-
   it("elétrica: eletrocalha e tomadas, sem hidráulica", () => {
     const { container } = render(<FloorPlan layout={layout()} sheet="eletrica" />);
     expect(container.querySelector("[data-electrical]")).not.toBeNull();
     expect(container.querySelector("[data-hydraulics]")).toBeNull();
-    expect(screen.getByText("PLANTA BAIXA: ELÉTRICA")).toBeInTheDocument();
+    expect(screen.getByText("PLANTA BAIXA: ELÉTRICA (TOMADAS)")).toBeInTheDocument();
+    // tomada 220 V por lavadora, Steck por secadora, ar e QD-01
+    const plan = layout().electricalPlan;
+    expect(container.querySelectorAll('[data-device="tomada220"]')).toHaveLength(
+      plan.power.devices.filter((d) => d.kind === "tomada220").length
+    );
+    expect(container.querySelector('[data-device="ar"]')).not.toBeNull();
+    expect(container.querySelector("[data-panel]")).not.toBeNull();
+    expect(screen.getByText("QUADRO DE CIRCUITOS – QD-01")).toBeInTheDocument();
+    expect(container.querySelector("[data-lighting]")).toBeNull();
+  });
+
+  it("iluminação: pontos 1a/1b/1c em perfilado, circuitos por letra, sem tomadas", () => {
+    const { container } = render(<FloorPlan layout={layout()} sheet="iluminacao" />);
+    expect(container.querySelector("[data-lighting]")).not.toBeNull();
+    expect(container.querySelector("[data-electrical]")).toBeNull();
+    for (const kind of ["1a", "1b", "1c"]) {
+      expect(container.querySelectorAll(`[data-luminaire="${kind}"]`).length).toBeGreaterThanOrEqual(2);
+    }
+    expect(screen.getByText("LETREIRO")).toBeInTheDocument();
+    expect(screen.getByText("PLANTA BAIXA: ELÉTRICA (ILUMINAÇÃO)")).toBeInTheDocument();
+    expect(container.querySelectorAll("[data-circuit-tag]").length).toBeGreaterThan(0);
+  });
+});
+
+describe("FloorPlan — dreno do ar-condicionado", () => {
+  it("aparece na prancha de água e esgoto, com DRE Ø25 e i=2%", () => {
+    const l = computeLayout(state, catalog).layout!;
+    const { container } = render(<FloorPlan layout={l} sheet="hidraulica" />);
+    expect(container.querySelector("[data-ac-drain]")).not.toBeNull();
+    expect(screen.getByText("DRE")).toBeInTheDocument();
+    expect(screen.getByText("Ø25 i=2%")).toBeInTheDocument();
+  });
+
+  it("não aparece no layout nem na elétrica", () => {
+    const l = computeLayout(state, catalog).layout!;
+    for (const sheet of ["layout", "iluminacao", "eletrica"] as const) {
+      const { container, unmount } = render(<FloorPlan layout={l} sheet={sheet} />);
+      expect(container.querySelector("[data-ac-drain]")).toBeNull();
+      unmount();
+    }
   });
 });

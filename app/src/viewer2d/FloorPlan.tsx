@@ -1,13 +1,7 @@
 import { forwardRef, useId, type ReactNode } from "react";
 import type { Layout, Rect, WallSide } from "../engine/types";
 import { CAD, formatMeters } from "./planTheme";
-import {
-  ELEVATION_SCALE,
-  HydraulicsElevation,
-  elevationHeightPx,
-  elevationWidthPx,
-  pvcSewer,
-} from "./HydraulicsElevation";
+import { DeviceSymbol, ElectricalOverlay, LuminaireSymbol, RunStroke } from "./ElectricalSheet";
 
 // Planta baixa no padrão das pranchas de projeto (pasta /plantas): fundo
 // branco, traço preto fino, alvenaria hachurada, drywall em xadrez, mobiliário
@@ -19,6 +13,7 @@ const PAD = 64; // margem em volta do desenho (paredes, cotas)
 const MIN_CONTENT_WIDTH = 440;
 const LEGEND_COL_WIDTH = 160;
 const LEGEND_ROW_HEIGHT = 16;
+const LEGEND_COL_WIDTH_WIDE = 250; // textos longos da legenda elétrica
 
 const WALL_MM = 150; // alvenaria
 const DRYWALL_MM = 100;
@@ -38,6 +33,12 @@ const PUMP_DEPTH_MM = 290;
 const OUTSIDE_ARROW_MM = 250; // bocal de exaustão, do lado de fora da parede
 const MACHINE_FRONT_MM = 90; // faixa do painel/porta na frente da máquina
 
+// Bitolas comerciais de PVC (esgoto): a prancha mostra o tubo que se compra.
+const PVC_SEWER_MM = [40, 50, 75, 100, 150];
+function pvcSewer(dMm: number): number {
+  return PVC_SEWER_MM.find((d) => d >= dMm - 2) ?? PVC_SEWER_MM[PVC_SEWER_MM.length - 1];
+}
+
 function mm(value: number): number {
   return value * SCALE;
 }
@@ -46,12 +47,14 @@ type Pt = { x: number; y: number };
 
 // Pranchas separadas, como no projeto real: layout (arquitetura + mobiliário
 // + exaustão) e uma por instalação, com o mobiliário apagado ao fundo.
-export type PlanSheet = "layout" | "hidraulica" | "eletrica";
+// Elétrica em duas pranchas, como em img/ele1: iluminação e tomadas.
+export type PlanSheet = "layout" | "hidraulica" | "iluminacao" | "eletrica";
 
 export const PLAN_SHEETS: { id: PlanSheet; label: string; title: string }[] = [
   { id: "layout", label: "Layout", title: "PLANTA BAIXA: LAYOUT" },
   { id: "hidraulica", label: "Água e esgoto", title: "PLANTA BAIXA: TÉRREO (ÁGUA E ESGOTO)" },
-  { id: "eletrica", label: "Elétrica", title: "PLANTA BAIXA: ELÉTRICA" },
+  { id: "iluminacao", label: "Iluminação", title: "PLANTA BAIXA: ELÉTRICA (ILUMINAÇÃO)" },
+  { id: "eletrica", label: "Tomadas", title: "PLANTA BAIXA: ELÉTRICA (TOMADAS)" },
 ];
 
 // Legenda no padrão das pranchas: amostra do traço/hachura + texto.
@@ -66,7 +69,24 @@ type LegendSample =
   | "electrical"
   | "exhaust"
   | "outlet"
-  | "drain";
+  | "drain"
+  | "acDrain"
+  | "luminaire"
+  | "switch"
+  | "sign"
+  | "led"
+  | "socketLow"
+  | "socketMid"
+  | "socket220"
+  | "steck"
+  | "pressurizer"
+  | "modem"
+  | "acUnit"
+  | "panel"
+  | "profile"
+  | "ceilingConduit"
+  | "floorConduit"
+  | "circuit";
 const LEGEND: { label: string; sample: LegendSample }[] = [
   { label: "Alvenaria", sample: "wall" },
   { label: "Drywall", sample: "drywall" },
@@ -79,12 +99,31 @@ const LEGEND: { label: string; sample: LegendSample }[] = [
   { label: "Exaustão das secadoras", sample: "exhaust" },
   { label: "Tomada 127 V (clientes)", sample: "outlet" },
   { label: "Ralo 10x10", sample: "drain" },
+  { label: "Dreno do ar-condicionado (DRE)", sample: "acDrain" },
+  // Elétrica: textos da legenda das pranchas (img/ele2)
+  { label: "Ponto de iluminação (1a técnica, 1b salão, 1c marquise)", sample: "luminaire" },
+  { label: "Interruptor simples em caixa 4x2\"", sample: "switch" },
+  { label: "Ponto de força – saída de fio (letreiro)", sample: "sign" },
+  { label: "Fita de LED", sample: "led" },
+  { label: "Conj. 02 tomadas 127V 10A baixa h=0,40m", sample: "socketLow" },
+  { label: "Conj. 02 tomadas 127V 10A média h=1,10m", sample: "socketMid" },
+  { label: "Tomada 220V 20A h=1,10m (LAV lavadora / DOS dosadoras)", sample: "socket220" },
+  { label: "Tomada industrial Steck 2P+T 220V (secadora)", sample: "steck" },
+  { label: "Ponto elétrico não plugável p/ pressurizador", sample: "pressurizer" },
+  { label: "Modem abaixo do QD-01 – tomada 127V + ponto de rede", sample: "modem" },
+  { label: "Ar-condicionado split – potência indicada", sample: "acUnit" },
+  { label: "Quadro de distribuição de embutir (QD-01)", sample: "panel" },
+  { label: "Perfilado perfurado no teto 38x38mm", sample: "profile" },
+  { label: "Eletroduto no teto", sample: "ceilingConduit" },
+  { label: "Eletroduto no piso", sample: "floorConduit" },
+  { label: "Circuito", sample: "circuit" },
 ];
 
 const SHEET_LEGEND: Record<PlanSheet, LegendSample[]> = {
   layout: ["wall", "drywall", "exhaust"],
-  hidraulica: ["water", "valve", "hose", "sewer", "standpipe", "drain"],
-  eletrica: ["wall", "drywall", "electrical", "outlet"],
+  hidraulica: ["water", "valve", "hose", "sewer", "standpipe", "drain", "acDrain"],
+  iluminacao: ["luminaire", "switch", "sign", "led", "panel", "profile", "ceilingConduit", "circuit"],
+  eletrica: ["socketLow", "socketMid", "socket220", "steck", "pressurizer", "modem", "acUnit", "panel", "profile", "ceilingConduit", "floorConduit"],
 };
 
 // Texto com "halo" branco, pra ler por cima das linhas (como o mascaramento do CAD).
@@ -226,22 +265,26 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout; sheet?: Pla
   const marginRight = PAD + mm(isSide && mirrored ? chainOuterMm : OVERALL_OFFSET_MM);
   const marginTop = PAD + (isSide ? wall : mm(chainOuterMm));
   const drawingW = marginLeft + width + marginRight;
-  // Prancha hidráulica: vista da parede de trás (VISTA 01) embaixo da planta,
-  // numa escala maior — a prancha alarga se precisar.
-  const showElevation = sheet === "hidraulica" && layout.hydraulics !== null;
-  const elevScale = ELEVATION_SCALE;
-  const elevW = showElevation ? elevationWidthPx(alongLengthMm, elevScale) : 0;
-  const viewWidth = Math.max(drawingW, MIN_CONTENT_WIDTH + PAD, elevW + PAD);
+  const viewWidth = Math.max(drawingW, MIN_CONTENT_WIDTH + PAD);
   const offsetX = marginLeft + (viewWidth - drawingW) / 2;
   const marquiseBottom = height + wall + mm(MARQUISE_MM);
   const overallDimY = marquiseBottom + mm(OVERALL_OFFSET_MM) / 2;
-  const elevTop = marginTop + overallDimY + 34;
-  const elevH = showElevation ? elevationHeightPx(layout, elevScale) + 16 : 0;
-  const titleTop = elevTop - 34 + 36 + elevH;
-  const legendCols = Math.max(1, Math.floor((viewWidth - PAD) / LEGEND_COL_WIDTH));
+  const barM = mm(1000); // 1 m na escala do desenho (escala gráfica)
+  const titleTop = marginTop + overallDimY + 36;
+  const isElectric = sheet === "iluminacao" || sheet === "eletrica";
+  const legendColW = isElectric ? LEGEND_COL_WIDTH_WIDE : LEGEND_COL_WIDTH;
+  const legendCols = Math.max(1, Math.floor((viewWidth - PAD) / legendColW));
   const legendRows = Math.ceil(legend.length / legendCols);
   const legendTop = titleTop + 44;
-  const viewHeight = legendTop + legendRows * LEGEND_ROW_HEIGHT + 18;
+  // Quadro de circuitos do QD-01: letras na iluminação, números nas tomadas.
+  const circuits = isElectric
+    ? layout.electricalPlan.circuits.filter((c) => /^\d/.test(c.id) === (sheet === "eletrica"))
+    : [];
+  const circuitsTop = legendTop + legendRows * LEGEND_ROW_HEIGHT + 22;
+  const circuitRows = Math.ceil(circuits.length / legendCols);
+  const viewHeight = circuits.length
+    ? circuitsTop + 14 + circuitRows * LEGEND_ROW_HEIGHT + 10
+    : legendTop + legendRows * LEGEND_ROW_HEIGHT + 18;
 
   // Converte (along, across) — along = eixo da fileira de máquinas, across =
   // da parede dela até a frente — pra tela. Em "back" along=X e across=Y; em
@@ -295,8 +338,8 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout; sheet?: Pla
   const rowEnd = machineSpans.length ? machineSpans[machineSpans.length - 1].a1 : 0;
   const uniqSorted = (xs: number[]) => Array.from(new Set(xs.map((v) => Math.round(v)))).sort((p, q) => p - q);
   const hyd = sheet === "hidraulica" ? layout.hydraulics : null;
-  // Correntes de cota por fora da parede de trás: máquinas, ou (na prancha
-  // hidráulica) entre os pontos de água e entre os tubos de dreno.
+  // Correntes de cota por fora da parede de trás: máquinas, ou (na planta de
+  // água e esgoto) entre os pontos de água e entre os tubos de dreno.
   const chains: { stops: number[]; offsetMm: number }[] = hyd
     ? [
         { stops: uniqSorted([hyd.pump.a, ...hyd.washers.map((w) => w.water.riser[0].a)]), offsetMm: CHAIN_OFFSET_MM },
@@ -597,39 +640,63 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout; sheet?: Pla
           );
         })()}
 
-        {sheet === "eletrica" && layout.electrical && (() => {
-          // Elétrica suspensa: eletrocalha (amarela, tracejada), perfilado por
-          // máquina e tomadas 127 V dos clientes (triângulo azul, como nas pranchas).
-          const e = layout.electrical;
-          const P = (p: { a: number; c: number }) => alongAcrossPoint(p.a, p.c);
-          const t0 = P(e.trunk.from);
-          const t1 = P(e.trunk.to);
+        {sheet === "hidraulica" && layout.acDrain && (() => {
+          // Dreno do ar-condicionado (img/dreno): do aparelho, em diagonal pelo
+          // salão até o corredor técnico e pra fora pela parede de trás.
+          const d = layout.acDrain;
+          const pts = d.points.map((p) => ({ x: mm(p.x), y: mm(p.y) }));
+          const path = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
+          // rótulo no trecho mais comprido (a diagonal pelo salão)
+          let k = 0;
+          let best = 0;
+          pts.slice(1).forEach((p, i) => {
+            const len = Math.hypot(p.x - pts[i].x, p.y - pts[i].y);
+            if (len > best) [best, k] = [len, i];
+          });
+          const a = pts[k];
+          const b = pts[k + 1];
+          const ang = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
+          const up = ang > 90 || ang < -90 ? ang + 180 : ang; // texto nunca de cabeça pra baixo
+          const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+          const start = pts[0];
+          const bubble = { x: start.x + (start.x > width / 2 ? -16 : 16), y: start.y - 16 };
           return (
-            <g data-electrical>
-              <line x1={t0.x} y1={t0.y} x2={t1.x} y2={t1.y} stroke={CAD.electrical} strokeWidth={1.6} strokeDasharray="6 2" />
-              {e.machines.map((m, i) => {
-                const p = P(m.profile);
-                return (
-                  <g key={i}>
-                    <rect x={p.x - 2} y={p.y - 2} width={4} height={4} fill={CAD.paper} stroke={CAD.electrical} strokeWidth={0.8} />
-                    <circle cx={p.x} cy={p.y} r={1} fill={CAD.outlet} />
-                  </g>
-                );
-              })}
-              {e.customerOutlets.map((o, i) => {
-                const x = mm(o.x);
-                const y = mm(o.y);
+            <g data-ac-drain fill="none" strokeLinecap="round" strokeLinejoin="round">
+              <path d={path} stroke={CAD.acDrain} strokeWidth={Math.max(1.6, mm(d.diameterMm))} opacity={0.22} />
+              <path d={path} stroke={CAD.acDrain} strokeWidth={0.7} strokeDasharray="4 1.5" />
+              {pts.slice(1).map((p, i) => {
+                const q = pts[i];
+                const len = Math.hypot(p.x - q.x, p.y - q.y);
+                if (len < 12) return null;
+                const ux = (p.x - q.x) / len;
+                const uy = (p.y - q.y) / len;
+                const mx = (p.x + q.x) / 2;
+                const my = (p.y + q.y) / 2;
+                const t = 2.4;
                 return (
                   <path
-                    key={`o${i}`}
-                    data-outlet-127
-                    d={`M${x - 2.6} ${y - 2.6} L${x + 2.6} ${y} L${x - 2.6} ${y + 2.6} Z`}
-                    fill={CAD.outlet}
-                    stroke={CAD.outlet}
-                    strokeWidth={0.4}
+                    key={i}
+                    d={`M${mx + ux * t} ${my + uy * t} L${mx - ux * t - uy * t * 0.7} ${my - uy * t + ux * t * 0.7} L${mx - ux * t + uy * t * 0.7} ${my - uy * t - ux * t * 0.7} Z`}
+                    fill={CAD.acDrain}
+                    stroke="none"
                   />
                 );
               })}
+              <g transform={`rotate(${up} ${mid.x} ${mid.y})`}>
+                <Label x={mid.x} y={mid.y - 3} size={5} fill={CAD.acDrain}>
+                  {`Ø${d.diameterMm} i=${d.slopePct}%`}
+                </Label>
+              </g>
+              {/* chamada "DRE Ø25" no aparelho, como nas pranchas */}
+              <line x1={start.x} y1={start.y} x2={bubble.x} y2={bubble.y} stroke={CAD.acDrain} strokeWidth={0.4} />
+              <circle cx={bubble.x} cy={bubble.y} r={8} fill={CAD.paper} stroke={CAD.acDrain} strokeWidth={0.6} />
+              <line x1={bubble.x - 8} y1={bubble.y} x2={bubble.x + 8} y2={bubble.y} stroke={CAD.acDrain} strokeWidth={0.4} />
+              <text x={bubble.x} y={bubble.y - 2} fontSize={4.6} textAnchor="middle" fill={CAD.acDrain}>
+                DRE
+              </text>
+              <text x={bubble.x} y={bubble.y + 5.4} fontSize={4.6} textAnchor="middle" fill={CAD.acDrain}>
+                {`Ø${d.diameterMm}`}
+              </text>
             </g>
           );
         })()}
@@ -885,20 +952,21 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout; sheet?: Pla
             );
           })()}
 
+        {isElectric && (
+          <ElectricalOverlay plan={layout.electricalPlan} mode={sheet === "iluminacao" ? "lighting" : "power"} px={mm} />
+        )}
+
         {/* Cotas: corrente das máquinas por fora da parede delas + gerais */}
         {chains.flatMap((chain, k) =>
-          chain.stops.slice(1).map((st, i) => {
-            const a0 = chain.stops[i];
-            return (
-              <Dimension
-                key={`ch${k}-${i}`}
-                p0={alongAcrossPoint(a0, -chain.offsetMm)}
-                p1={alongAcrossPoint(st, -chain.offsetMm)}
-                text={formatMeters(st - a0)}
-                boxed
-              />
-            );
-          })
+          chain.stops.slice(1).map((st, i) => (
+            <Dimension
+              key={`ch${k}-${i}`}
+              p0={alongAcrossPoint(chain.stops[i], -chain.offsetMm)}
+              p1={alongAcrossPoint(st, -chain.offsetMm)}
+              text={formatMeters(st - chain.stops[i])}
+              boxed
+            />
+          ))
         )}
         <Dimension p0={{ x: 0, y: overallDimY }} p1={{ x: width, y: overallDimY }} text={formatMeters(layout.roomWidthMm)} />
         {(() => {
@@ -908,15 +976,9 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout; sheet?: Pla
         })()}
       </g>
 
-      {showElevation && (
-        <g transform={`translate(${(viewWidth - alongLengthMm * elevScale) / 2} ${elevTop})`}>
-          <HydraulicsElevation layout={layout} scale={elevScale} flip={isSide && !mirrored} />
-        </g>
-      )}
-
       {/* Título da prancha + escala gráfica */}
       <g>
-        <text x={PAD / 2} y={titleTop + 16} fontSize={Math.min(22, (viewWidth - PAD - mm(2000) - 30) / (sheetTitle.length * 0.62))} fill={CAD.roomLabel}>
+        <text x={PAD / 2} y={titleTop + 16} fontSize={Math.min(22, (viewWidth - PAD - barM * 2 - 30) / (sheetTitle.length * 0.62))} fill={CAD.roomLabel}>
           {sheetTitle}
         </text>
         <text x={PAD / 2} y={titleTop + 28} fontSize={7} fill={CAD.gray} letterSpacing={0.5}>
@@ -926,19 +988,19 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout; sheet?: Pla
         </text>
         {(() => {
           // Escala gráfica 0-1-2 m (o desenho não sai numa escala de papel fixa).
-          const x0 = viewWidth - PAD / 2 - mm(2000);
+          const x0 = viewWidth - PAD / 2 - barM * 2;
           const y0 = titleTop + 12;
           return (
             <g data-scale-bar>
               {[0, 1].map((k) => (
-                <rect key={k} x={x0 + mm(1000) * k} y={y0} width={mm(1000)} height={3} fill={k === 0 ? CAD.ink : CAD.paper} stroke={CAD.ink} strokeWidth={0.5} />
+                <rect key={k} x={x0 + barM * k} y={y0} width={barM} height={3} fill={k === 0 ? CAD.ink : CAD.paper} stroke={CAD.ink} strokeWidth={0.5} />
               ))}
               {[0, 1, 2].map((k) => (
-                <text key={k} x={x0 + mm(1000) * k} y={y0 + 11} fontSize={6} textAnchor="middle" fill={CAD.ink}>
+                <text key={k} x={x0 + barM * k} y={y0 + 11} fontSize={6} textAnchor="middle" fill={CAD.ink}>
                   {`${k}m`}
                 </text>
               ))}
-              <text x={x0 + mm(1000)} y={y0 - 4} fontSize={6} textAnchor="middle" fill={CAD.gray}>
+              <text x={x0 + barM} y={y0 - 4} fontSize={6} textAnchor="middle" fill={CAD.gray}>
                 ESCALA GRÁFICA
               </text>
             </g>
@@ -951,7 +1013,7 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout; sheet?: Pla
       {legend.map((item, i) => {
         const col = i % legendCols;
         const row = Math.floor(i / legendCols);
-        const x = PAD / 2 + col * LEGEND_COL_WIDTH;
+        const x = PAD / 2 + col * legendColW;
         const y = legendTop + row * LEGEND_ROW_HEIGHT;
         const sample = (() => {
           switch (item.sample) {
@@ -983,8 +1045,65 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout; sheet?: Pla
                   <circle cx={x + 9} cy={y - 3.5} r={1.3} fill={CAD.sewer} />
                 </g>
               );
+            case "acDrain":
+              return <line x1={x} y1={y - 3.5} x2={x + 18} y2={y - 3.5} stroke={CAD.acDrain} strokeWidth={1.2} strokeDasharray="4 1.5" />;
             case "outlet":
               return <path d={`M${x + 6} ${y - 7} L${x + 12} ${y - 3.5} L${x + 6} ${y} Z`} fill={CAD.outlet} />;
+            case "luminaire":
+              return (
+                <g transform={`translate(${x + 9} ${y - 3.5}) scale(0.6)`}>
+                  <LuminaireSymbol />
+                </g>
+              );
+            case "switch":
+            case "sign":
+            case "socketLow":
+            case "socketMid":
+            case "socket220":
+            case "steck":
+            case "pressurizer":
+            case "modem": {
+              const kind = ({
+                switch: "interruptor",
+                sign: "forca",
+                socketLow: "tomada127baixa",
+                socketMid: "tomada127media",
+                socket220: "tomada220",
+                steck: "steck",
+                pressurizer: "pressurizador",
+                modem: "modem",
+              } as const)[item.sample];
+              return (
+                <g transform={`translate(${x + 9} ${y - 11}) scale(0.55)`}>
+                  <DeviceSymbol kind={kind} />
+                </g>
+              );
+            }
+            case "acUnit":
+              return (
+                <g transform={`translate(${x + 9} ${y - 6}) scale(0.32)`}>
+                  <DeviceSymbol kind="ar" />
+                </g>
+              );
+            case "led":
+              return <line x1={x} y1={y - 3.5} x2={x + 18} y2={y - 3.5} stroke={CAD.outlet} strokeWidth={1.6} strokeDasharray="1 1.6" />;
+            case "panel":
+              return <rect x={x + 2} y={y - 6} width={14} height={5} fill={CAD.panel} stroke={CAD.ink} strokeWidth={0.4} />;
+            case "profile":
+              return <RunStroke kind="perfilado" d={`M${x} ${y - 3.5} H${x + 18}`} />;
+            case "ceilingConduit":
+              return <RunStroke kind="teto" d={`M${x} ${y - 3.5} H${x + 18}`} />;
+            case "floorConduit":
+              return <RunStroke kind="piso" d={`M${x} ${y - 3.5} H${x + 18}`} />;
+            case "circuit":
+              return (
+                <g>
+                  <circle cx={x + 9} cy={y - 3.5} r={4.2} fill={CAD.paper} stroke={CAD.ink} strokeWidth={0.5} />
+                  <text x={x + 9} y={y - 1.5} fontSize={5.4} textAnchor="middle" fill={CAD.ink}>
+                    A
+                  </text>
+                </g>
+              );
             case "drain":
               return <rect x={x + 6} y={y - 6.5} width={6} height={6} fill={CAD.paper} stroke={CAD.sewer} strokeWidth={0.7} />;
           }
@@ -998,6 +1117,29 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout; sheet?: Pla
           </g>
         );
       })}
+
+      {circuits.length > 0 && (
+        <g data-circuits>
+          <text x={PAD / 2} y={circuitsTop} fontSize={8} fontWeight={700} fill={CAD.ink}>
+            QUADRO DE CIRCUITOS – QD-01
+          </text>
+          {circuits.map((c, i) => {
+            const x = PAD / 2 + (i % legendCols) * legendColW;
+            const y = circuitsTop + 14 + Math.floor(i / legendCols) * LEGEND_ROW_HEIGHT;
+            return (
+              <g key={c.id}>
+                <circle cx={x + 9} cy={y - 3.5} r={5} fill={CAD.paper} stroke={CAD.ink} strokeWidth={0.5} />
+                <text x={x + 9} y={y - 1.3} fontSize={6} textAnchor="middle" fill={CAD.ink}>
+                  {c.id}
+                </text>
+                <text x={x + 24} y={y} fontSize={7.5} fill={CAD.ink}>
+                  {`${c.description} · ${c.voltage} V`}
+                </text>
+              </g>
+            );
+          })}
+        </g>
+      )}
     </svg>
   );
 });

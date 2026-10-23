@@ -1,6 +1,8 @@
 import type { ExhaustLayout } from "./exhaust";
 import type { HydraulicsLayout } from "./hydraulics";
 import type { ElectricalLayout } from "./electrical";
+import type { AcDrainLayout } from "./acDrain";
+import type { ElectricalPlan } from "./electricalPlan";
 
 export type MachineType = "lavadora" | "secadora" | "stack";
 
@@ -142,6 +144,10 @@ export interface Layout {
   // Elétrica suspensa: eletrocalha, perfilado por máquina, Steck da secadora,
   // 2 tomadas 220 V por máquina e 3 tomadas 127 V dos clientes.
   electrical: ElectricalLayout | null;
+  // Dreno do ar-condicionado até a parede de trás; null sem mobiliário (sem AC).
+  acDrain: AcDrainLayout | null;
+  // Prancha elétrica: iluminação e tomadas, circuitos e QD-01 (img/ele1).
+  electricalPlan: ElectricalPlan;
   roomWidthMm: number;
   roomDepthMm: number;
   ceilingHeightMm: number;

@@ -9,6 +9,8 @@ import { suggestBTU } from "./btu";
 import { computeExhaust } from "./exhaust";
 import { computeHydraulics } from "./hydraulics";
 import { computeElectrical } from "./electrical";
+import { computeAcDrain } from "./acDrain";
+import { computeElectricalPlan } from "./electricalPlan";
 import {
   AC_DEPTH_MM,
   AC_WIDTH_MM,
@@ -173,7 +175,7 @@ export function computeLayout(state: ProjectState, catalog: CatalogMachine[]): L
       )
     : null;
 
-  const layout: Layout = {
+  const base: Omit<Layout, "electricalPlan"> = {
     orientation: state.orientation,
     machineWall: state.orientation === "side" ? state.machineWall : "left",
     machines: placed,
@@ -209,10 +211,19 @@ export function computeLayout(state: ProjectState, catalog: CatalogMachine[]): L
       furniture,
       roomWidthMm: state.roomWidthMm,
     }),
+    acDrain: computeAcDrain({
+      furniture,
+      techCorridor,
+      drywallAcrossMm: drywallAcross,
+      orientation: state.orientation,
+      machineWall: state.machineWall,
+      roomWidthMm: state.roomWidthMm,
+    }),
     roomWidthMm: state.roomWidthMm,
     roomDepthMm: state.roomDepthMm,
     ceilingHeightMm: state.ceilingHeightMm,
   };
+  const layout: Layout = { ...base, electricalPlan: computeElectricalPlan(base) };
 
   return { layout, violations: [] };
 }

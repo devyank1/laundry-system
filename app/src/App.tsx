@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { ControlPanel } from "./ui/ControlPanel";
 import { ViolationsPanel } from "./ui/ViolationsPanel";
 import { CatalogManager } from "./ui/CatalogManager";
@@ -10,6 +10,8 @@ import { exportFloorPlanPDF, exportFloorPlanPNG } from "./export/export2d";
 import { exportSceneScreenshot } from "./export/export3d";
 import { drywallColorFor } from "./viewer3d/colors";
 import "./App.css";
+
+const PLAN_ZOOMS = [1, 1.5, 2, 3];
 
 export function App() {
   const { layout, violations } = useLayout();
@@ -26,6 +28,8 @@ export function App() {
   const toggleInauguracao = useProjectStore((s) => s.toggleInauguracao);
   const [tab, setTab] = useState<"2d" | "3d">("2d");
   const [sheet, setSheet] = useState<PlanSheet>("layout");
+  // Zoom da planta 2D (o desenho alarga e a área rola).
+  const [planZoom, setPlanZoom] = useState(1);
   const [showCatalog, setShowCatalog] = useState(false);
   const [svgEl, setSvgEl] = useState<SVGSVGElement | null>(null);
   const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
@@ -78,7 +82,28 @@ export function App() {
               </button>
             ))}
           </div>
-          <FloorPlan ref={setSvgEl} layout={layout} sheet={sheet} />
+          <div className="plan-zoom" role="group" aria-label="Zoom da planta">
+            <button
+              type="button"
+              aria-label="Diminuir zoom"
+              disabled={planZoom <= PLAN_ZOOMS[0]}
+              onClick={() => setPlanZoom((z) => PLAN_ZOOMS[Math.max(0, PLAN_ZOOMS.indexOf(z) - 1)])}
+            >
+              −
+            </button>
+            <span>{`${Math.round(planZoom * 100)}%`}</span>
+            <button
+              type="button"
+              aria-label="Aumentar zoom"
+              disabled={planZoom >= PLAN_ZOOMS[PLAN_ZOOMS.length - 1]}
+              onClick={() => setPlanZoom((z) => PLAN_ZOOMS[Math.min(PLAN_ZOOMS.length - 1, PLAN_ZOOMS.indexOf(z) + 1)])}
+            >
+              +
+            </button>
+          </div>
+          <div className="plan-viewport" style={{ "--plan-zoom": planZoom } as CSSProperties}>
+            <FloorPlan ref={setSvgEl} layout={layout} sheet={sheet} />
+          </div>
           </div>
           <div className="export-actions">
             <button
