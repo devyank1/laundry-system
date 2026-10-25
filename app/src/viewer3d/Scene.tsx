@@ -1,7 +1,7 @@
-import { useRef } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
-import type { Group } from "three";
+import { Box3, Vector3, type Group, type Mesh } from "three";
 import { useLerpedVector3 } from "./useLerpedVector3";
 import {
   CHAIR_HEIGHT_MM,
@@ -11,7 +11,7 @@ import {
   TOTEM_SIZE_MM,
 } from "../engine/constants";
 import type { Layout, PlacedMachine } from "../engine/types";
-import { drywallFrame, fitSize, rectCenter, wallYaw, type DrywallFrame } from "./placement";
+import { MACHINE_FORWARD_M, drywallFrame, fitSize, rectCenter, wallYaw, type DrywallFrame } from "./placement";
 import { PLAN_COLORS } from "../viewer2d/planTheme";
 import { Chair } from "./models/Chair";
 import { FitBox } from "./models/FitBox";
@@ -39,6 +39,7 @@ import { Dispensers } from "./models/Dispensers";
 import { DISPENSER_MOUNT_HEIGHT, placeStoreFixtures } from "./rugs";
 import { PoufSet } from "./models/PoufSet";
 import { CounterWithStools } from "./models/CounterWithStools";
+import { StdMat } from "./models/SharedMaterial";
 
 const M = (mmValue: number) => mmValue / 1000;
 
@@ -83,7 +84,7 @@ function Box({
   return (
     <mesh position={position} castShadow receiveShadow>
       <boxGeometry args={size} />
-      <meshStandardMaterial color={color} transparent={opacity !== undefined} opacity={opacity ?? 1} />
+      <StdMat color={color} transparent={opacity !== undefined} opacity={opacity ?? 1} />
     </mesh>
   );
 }
@@ -117,7 +118,7 @@ function MachineMesh({
       {base > 0 && (
         <mesh position={[0, base / 2, 0]} castShadow receiveShadow>
           <boxGeometry args={[w + CONCRETE_BASE_MARGIN * 2, base, d + CONCRETE_BASE_MARGIN * 2]} />
-          <meshStandardMaterial color="#a8a29e" roughness={0.95} />
+          <StdMat color="#a8a29e" roughness={0.95} />
         </mesh>
       )}
       <group position={[0, base, 0]} rotation={[0, yaw, 0]}>
@@ -251,13 +252,13 @@ function TechDoor({
         >
           <mesh rotation={frame.alongBarRotation}>
             <cylinderGeometry args={[0.009, 0.009, 0.12, 12]} />
-            <meshStandardMaterial color="#d1d5db" metalness={0.9} roughness={0.25} />
+            <StdMat color="#d1d5db" metalness={0.9} roughness={0.25} />
           </mesh>
         </group>
       ))}
       <mesh position={frame.pos(handleA, 1.0, leafFront + 0.002)}>
         <cylinderGeometry args={[0.03, 0.03, 0.06, 16]} />
-        <meshStandardMaterial color="#d1d5db" metalness={0.9} roughness={0.25} />
+        <StdMat color="#d1d5db" metalness={0.9} roughness={0.25} />
       </mesh>
 
       {/* Drywall acima da porta */}
@@ -270,6 +271,68 @@ function TechDoor({
       )}
     </>
   );
+}
+
+// Compila os shaders em paralelo (KHR_parallel_shader_compile) ANTES do 1º
+// quadro, sem congelar o navegador: o Canvas fica em frameloop="never" até
+// aqui, e o primeiro render já encontra os programas prontos.
+function CompileGate({ onReady }: { onReady: () => void }) {
+  const { gl, scene, camera } = useThree();
+  useEffect(() => {
+    let alive = true;
+    const done = () => {
+      if (alive) onReady();
+    };
+    const timer = setTimeout(done, 10_000); // nunca deixa o 3D preso
+    performance.mark("3d:compile-start");
+    const compile = typeof gl.compileAsync === "function" ? gl.compileAsync(scene, camera) : Promise.resolve();
+    compile.then(done, done).finally(() => performance.mark("3d:compile-end"));
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+  }, [gl, scene, camera, onReady]);
+  return null;
+}
+
+// Sombras estáticas: a luz não se move, então o mapa de sombras só precisa ser
+// refeito quando a CENA muda (props novas, máquina deslizando, porta mexendo) —
+// e não a cada quadro de órbita. Redesenhar 400 casters por quadro era o
+// maior custo do 1º quadro e de cada giro de câmera.
+const MIN_SHADOW_CASTER_M = 0.12; // peça menor que isso não projeta sombra visível
+
+function StaticShadows() {
+  const get = useThree((s) => s.get);
+  useEffect(() => {
+    get().gl.shadowMap.autoUpdate = false;
+  }, [get]);
+  // Roda a cada render da Scene (qualquer prop/layout novo): refaz as sombras 1x.
+  useEffect(() => {
+    const { gl, scene, invalidate } = get();
+    // Parafusos, fios, conexões e outras peças miúdas só pesam no mapa de sombras.
+    const box = new Box3();
+    const size = new Vector3();
+    scene.updateMatrixWorld(true);
+    scene.traverse((o) => {
+      const mesh = o as Mesh;
+      if (!mesh.isMesh || !mesh.castShadow) return;
+      box.setFromObject(mesh).getSize(size);
+      if (Math.max(size.x, size.y, size.z) < MIN_SHADOW_CASTER_M) mesh.castShadow = false;
+    });
+    gl.shadowMap.needsUpdate = true;
+    invalidate();
+  });
+  return null;
+}
+
+// Ao sair de "never" pra "demand" nada pede o 1º quadro: este componente pede.
+function FirstFrame() {
+  const frameloop = useThree((s) => s.frameloop);
+  const invalidate = useThree((s) => s.invalidate);
+  useEffect(() => {
+    if (frameloop === "demand") invalidate();
+  }, [frameloop, invalidate]);
+  return null;
 }
 
 export function Scene({
@@ -300,6 +363,8 @@ export function Scene({
   inauguracao?: boolean;
   onCanvasReady?: (canvas: HTMLCanvasElement) => void;
 }) {
+  const [ready, setReady] = useState(false);
+  const markReady = useCallback(() => setReady(true), []);
   const roomW = M(layout.roomWidthMm);
   const roomD = M(layout.roomDepthMm);
   const roomH = M(layout.ceilingHeightMm);
@@ -313,8 +378,18 @@ export function Scene({
 
   return (
     <div className="scene3d">
+      {!ready && (
+        <div className="scene3d-loading" role="status">
+          Preparando o 3D…
+        </div>
+      )}
       <Canvas
-        shadows
+        // PCF simples: o "soft" (padrão) custava ~600 ms no 1º quadro por causa dos shaders.
+        shadows="percentage"
+        // Telas retina: 2x só gasta GPU (4x os pixels) sem ganho visível aqui.
+        dpr={[1, 1.5]}
+        // "demand": só desenha quando algo muda (órbita, animação, props). Parado = GPU em 0%.
+        frameloop={ready ? "demand" : "never"}
         gl={{ preserveDrawingBuffer: true }}
         camera={{ position: orbitPosition, fov: 45 }}
         onCreated={({ gl }) => onCanvasReady?.(gl.domElement)}
@@ -330,7 +405,7 @@ export function Scene({
 
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[roomW / 2, 0, roomD / 2]} receiveShadow>
           <planeGeometry args={[roomW, roomD]} />
-          <meshStandardMaterial color="#f8fafc" />
+          <StdMat color="#f8fafc" />
         </mesh>
         <gridHelper
           args={[gridSize, gridSize * 2, "#cbd5e1", "#94a3b8"]}
@@ -374,9 +449,12 @@ export function Scene({
           })()}
 
         <Drywall layout={layout} color={drywallColor} />
-        {layout.exhaust && <Exhaust layout={layout} exhaust={layout.exhaust} />}
-        {layout.hydraulics && <Hydraulics layout={layout} hydraulics={layout.hydraulics} />}
-        {layout.electrical && <Electrical layout={layout} electrical={layout.electrical} />}
+        {/* Máquinas e tudo que prende nelas avançam juntos pra dentro do vão do drywall */}
+        <group position={frame.pos(0, 0, MACHINE_FORWARD_M)}>
+          {layout.exhaust && <Exhaust layout={layout} exhaust={layout.exhaust} />}
+          {layout.hydraulics && <Hydraulics layout={layout} hydraulics={layout.hydraulics} />}
+          {layout.electrical && <Electrical layout={layout} electrical={layout.electrical} />}
+        </group>
         <PanelCorner layout={layout} />
         {logo && <WallLogo layout={layout} logo={logo} />}
         {facade && (
@@ -389,6 +467,7 @@ export function Scene({
           />
         )}
 
+        <group position={frame.pos(0, 0, MACHINE_FORWARD_M)}>
         {layout.machines.map((machine) => (
           <MachineMesh
             key={`${machine.catalogId}-${machine.instanceIndex}`}
@@ -396,6 +475,7 @@ export function Scene({
             yaw={frame.yaw}
           />
         ))}
+        </group>
 
         {layout.frontDoor && (
           <Box
@@ -532,6 +612,9 @@ export function Scene({
           orbitPosition={orbitPosition}
           orbitTarget={[roomW / 2, 0, roomD / 2]}
         />
+        <CompileGate onReady={markReady} />
+        <FirstFrame />
+        <StaticShadows />
       </Canvas>
 
       <ul className="plan-legend">

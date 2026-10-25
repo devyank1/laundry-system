@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { CatmullRomCurve3, TubeGeometry, Vector3 } from "three";
 import { cablePoints, type CableOptions } from "../cablePath";
+import { StdMat } from "./SharedMaterial";
 
 // Cabo/tubinho flexível (fio de força, mangueirinha das dosadoras): curva
 // suave passando pela rota, com barriga e leve ondulação (ver cablePath.ts),
@@ -34,7 +35,7 @@ export function Cable({
 
   return (
     <mesh geometry={geometry} castShadow>
-      <meshStandardMaterial color={color} metalness={metalness} roughness={roughness} />
+      <StdMat color={color} metalness={metalness} roughness={roughness} />
     </mesh>
   );
 }

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { AdditiveBlending, ExtrudeGeometry, Shape } from "three";
 import { cachedCanvasTexture } from "./canvasTexture";
+import { BasicMat, StdMat } from "./SharedMaterial";
 
 // Portado de ar_condicionado_3d.html. Medidas nativas em metros, centrado na origem,
 // fundo encostado na parede (-z), frente voltada para +z.
@@ -51,11 +52,11 @@ function drawLogo(ctx: CanvasRenderingContext2D) {
 }
 
 function GlossyWhite() {
-  return <meshStandardMaterial color="#ffffff" roughness={0.1} metalness={0.1} />;
+  return <StdMat color="#ffffff" roughness={0.1} metalness={0.1} />;
 }
 
 function DarkMatte() {
-  return <meshStandardMaterial color="#111111" roughness={0.8} metalness={0.2} />;
+  return <StdMat color="#111111" roughness={0.8} metalness={0.2} />;
 }
 
 const DIVIDERS = Array.from({ length: 11 }, (_, i) => (i - 5) * 0.35);
@@ -91,7 +92,7 @@ export function SplitAC() {
       {led && (
         <mesh position={[0, 0, 0.32]} rotation={[-0.15, 0, 0]}>
           <planeGeometry args={[0.5, 0.25]} />
-          <meshStandardMaterial
+          <StdMat
             map={led}
             emissiveMap={led}
             emissive="#ffffff"
@@ -107,7 +108,7 @@ export function SplitAC() {
       {logo && (
         <mesh position={[-1.6, 0.35, 0.24]} rotation={[-0.05, 0, 0]}>
           <planeGeometry args={[0.6, 0.15]} />
-          <meshBasicMaterial map={logo} transparent depthWrite={false} />
+          <BasicMat map={logo} transparent depthWrite={false} />
         </mesh>
       )}
     </group>

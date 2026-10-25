@@ -1,4 +1,5 @@
 import { cachedCanvasTexture } from "./canvasTexture";
+import { BasicMat, StdMat } from "./SharedMaterial";
 
 // Portado de torre_lavadora_e_secadora_3d.html. Medidas nativas em metros,
 // origem no centro da base, frente voltada para +z.
@@ -56,12 +57,12 @@ function drawPanel(ctx: CanvasRenderingContext2D) {
 }
 
 function BlackPlastic() {
-  return <meshStandardMaterial color="#111111" roughness={0.6} metalness={0.2} />;
+  return <StdMat color="#111111" roughness={0.6} metalness={0.2} />;
 }
 
 function DarkGlass() {
   return (
-    <meshStandardMaterial color="#050505" roughness={0.1} metalness={0.9} transparent opacity={0.85} />
+    <StdMat color="#050505" roughness={0.1} metalness={0.9} transparent opacity={0.85} />
   );
 }
 
@@ -76,14 +77,14 @@ export function TowerMachine({ finish }: { finish: "white" | "silver" }) {
       {/* Chassi */}
       <mesh position={[0, H / 2, 0]} castShadow receiveShadow>
         <boxGeometry args={[W, H, D]} />
-        <meshStandardMaterial {...body} />
+        <StdMat {...body} />
       </mesh>
 
       {/* Fendas de ventilação no topo */}
       {SLITS.map((x) => (
         <mesh key={x} position={[x, 1.95, FRONT + 0.001]}>
           <boxGeometry args={[0.015, 0.06, 0.01]} />
-          <meshBasicMaterial color="#000000" />
+          <BasicMat color="#000000" />
         </mesh>
       ))}
 
@@ -126,7 +127,7 @@ export function TowerMachine({ finish }: { finish: "white" | "silver" }) {
       {/* Painel central */}
       <mesh position={[0, 1.05, FRONT + 0.005]}>
         <planeGeometry args={[0.7, 0.175]} />
-        <meshBasicMaterial map={panel} color={panel ? "#ffffff" : "#0a0a0a"} />
+        <BasicMat map={panel} color={panel ? "#ffffff" : "#0a0a0a"} />
       </mesh>
     </group>
   );

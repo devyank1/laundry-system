@@ -7,6 +7,7 @@ import { Duct } from "./Duct";
 import { DOSING_PORT_LEFT, DOSING_PORT_RIGHT, DOSING_SCALE, DosingPump } from "./DosingPump";
 import { JUG_CAP_LOCAL, JUG_SCALE, Jug } from "./Jug";
 import { PUMP_INLET_LOCAL, PUMP_OUTLET_LOCAL, PUMP_SCALE, WaterPump } from "./WaterPump";
+import { StdMat } from "./SharedMaterial";
 
 // Água e esgoto das lavadoras no 3D (ver engine/hydraulics.ts):
 //   entrada de água (parede de trás) → pressurizador → barramento no piso →
@@ -27,18 +28,47 @@ const STEEL = { color: "#9aa5b1", metalness: 0.7, roughness: 0.4 };
 const HOSE = { color: "#1f2937", metalness: 0.1, roughness: 0.7 };
 const ELBOW = { color: "#2563eb", metalness: 0.1, roughness: 0.45 }; // cotovelo de 90° (PPR azul)
 const BRAIDED = { color: "#b8bfc7", metalness: 0.8, roughness: 0.35 }; // mangueira de água trançada
-const CORNER = 0.1;
+const ELBOW_ARM_MM = 45; // braço de cada lado do cotovelo de 90° na base do tubo que sobe
 
-function BallValve({ position }: { position: Vector3 }) {
+// Registro de esfera no tubo vertical: corpo bege com porcas sextavadas nas
+// pontas e alavanca de aço saindo do meio da esfera, com empunhadura laranja,
+// apontando pra trás (rumo à parede, pro lado oposto das máquinas).
+const BRASS = { color: "#b7a58b", metalness: 0.4, roughness: 0.45 };
+const LEVER_STEEL = { color: "#9aa5b1", metalness: 0.8, roughness: 0.35 };
+const LEVER_GRIP = { color: "#ed8936", metalness: 0.1, roughness: 0.55 };
+
+function BallValve({ position, forward }: { position: Vector3; forward: Vector3 }) {
+  const yaw = Math.atan2(forward.x, forward.z);
   return (
-    <group position={position}>
+    <group position={position} rotation={[0, yaw, 0]}>
+      {/* Corpo esférico e porcas sextavadas (uniões) acima e abaixo */}
       <mesh>
-        <sphereGeometry args={[0.024, 14, 10]} />
-        <meshStandardMaterial color="#b7a58b" roughness={0.5} />
+        <sphereGeometry args={[0.022, 16, 12]} />
+        <StdMat {...BRASS} />
       </mesh>
-      <mesh position={[0, 0.036, 0]}>
-        <boxGeometry args={[0.05, 0.008, 0.014]} />
-        <meshStandardMaterial color="#ed8936" roughness={0.5} />
+      {[-1, 1].map((k) => (
+        <mesh key={k} position={[0, k * 0.03, 0]}>
+          <cylinderGeometry args={[0.019, 0.019, 0.016, 6]} />
+          <StdMat {...BRASS} />
+        </mesh>
+      ))}
+      {/* Alavanca saindo do meio da esfera, pra trás */}
+      <mesh position={[0, 0, -0.012]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.006, 0.006, 0.024, 10]} />
+        <StdMat {...LEVER_STEEL} />
+      </mesh>
+      <mesh position={[0, 0, -0.045]}>
+        <boxGeometry args={[0.004, 0.014, 0.06]} />
+        <StdMat {...LEVER_STEEL} />
+      </mesh>
+      {/* Empunhadura de vinil laranja na ponta da alavanca */}
+      <mesh position={[0, 0, -0.08]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.0085, 0.0085, 0.04, 12]} />
+        <StdMat {...LEVER_GRIP} />
+      </mesh>
+      <mesh position={[0, 0, -0.1]}>
+        <sphereGeometry args={[0.0085, 12, 8]} />
+        <StdMat {...LEVER_GRIP} />
       </mesh>
     </group>
   );
@@ -72,12 +102,13 @@ export function Hydraulics({ layout, hydraulics: h }: { layout: Layout; hydrauli
   const cMan = h.manifold.points[0].c;
   const aMin = h.manifold.points[1].a;
   const aMax = h.manifold.points[2].a;
+  // Extensão total do barramento (inclui a saída da bomba): só nas pontas ele dobra em cotovelo.
+  const lo = Math.min(aMin, outlet.a);
+  const hi = Math.max(aMax, outlet.a);
   // Sai da bomba pro lado das máquinas, desce até o piso e corre ao longo da fileira.
   const manifoldLegs = [aMin, aMax]
     .filter((a) => Math.abs(a - outlet.a) > 1)
-    .map((a) =>
-      [outlet, L(outlet.a, cMan, outlet.y), L(outlet.a, cMan, manY), L(a, cMan, manY)].map(v)
-    );
+    .map((a) => [outlet, L(outlet.a, cMan, outlet.y), L(outlet.a, cMan, manY), L(a, cMan, manY)].map(v));
 
   return (
     <group>
@@ -93,7 +124,7 @@ export function Hydraulics({ layout, hydraulics: h }: { layout: Layout; hydrauli
 
       {/* Saída da bomba → barramento ao longo das máquinas */}
       {manifoldLegs.map((pts, i) => (
-        <Duct key={i} points={pts} radius={mainRadius} cornerRadius={CORNER} {...WATER_OUT} />
+        <Duct key={i} points={pts} radius={mainRadius} cornerRadius={0.1} {...WATER_OUT} />
       ))}
 
       {/* Por lavadora: tubo sobe do barramento no piso (registro no meio) até o
@@ -105,11 +136,40 @@ export function Hydraulics({ layout, hydraulics: h }: { layout: Layout; hydrauli
         return (
           <group key={`w${i}`}>
             <Duct points={w.water.riser.map(v)} radius={M(25) / 2} tubular={2} {...WATER_OUT} />
-            <BallValve position={v(w.water.valve)} />
+            <BallValve position={v(w.water.valve)} forward={cDir} />
+            {/* Base do tubo que sobe: na ponta do barramento um cotovelo de 90° fechado
+                (braço horizontal + vertical, canto arredondado); no meio, um T */}
+            {(() => {
+              const base = w.water.riser[0];
+              const atEnd = base.a <= lo + 1 || base.a >= hi - 1;
+              const radius = mainRadius + 0.002;
+              if (!atEnd) {
+                return (
+                  <mesh position={v(base)}>
+                    <sphereGeometry args={[radius, 18, 14]} />
+                    <StdMat {...ELBOW} />
+                  </mesh>
+                );
+              }
+              const toward = base.a <= lo + 1 ? 1 : -1; // o resto do barramento fica deste lado
+              return (
+                <Duct
+                  points={[
+                    L(base.a + toward * ELBOW_ARM_MM, base.c, base.y),
+                    base,
+                    L(base.a, base.c, base.y + ELBOW_ARM_MM),
+                  ].map(v)}
+                  radius={radius}
+                  cornerRadius={0.025}
+                  tubular={16}
+                  {...ELBOW}
+                />
+              );
+            })()}
             <Duct points={[t0, t1].map(v)} radius={M(25) / 2} tubular={2} {...WATER_OUT} />
             <mesh position={v(top)}>
               <sphereGeometry args={[M(25) / 2 + 0.006, 14, 10]} />
-              <meshStandardMaterial {...WATER_OUT} />
+              <StdMat {...WATER_OUT} />
             </mesh>
             {/* Cotovelos de 90° (azuis, como na foto) nas pontas do T */}
             {w.water.tee.map((t, k) => {
@@ -136,7 +196,7 @@ export function Hydraulics({ layout, hydraulics: h }: { layout: Layout; hydrauli
               <group key={`in${k}`} position={v(p)} rotation={[0, yaw, 0]}>
                 <mesh position={[0, 0, 0.012]} rotation={[Math.PI / 2, 0, 0]}>
                   <cylinderGeometry args={[0.012, 0.012, 0.024, 6]} />
-                  <meshStandardMaterial color="#c9a227" metalness={0.8} roughness={0.35} />
+                  <StdMat color="#c9a227" metalness={0.8} roughness={0.35} />
                 </mesh>
               </group>
             ))}
@@ -152,7 +212,7 @@ export function Hydraulics({ layout, hydraulics: h }: { layout: Layout; hydrauli
             />
             <mesh position={v(L(w.standpipe.a, w.standpipe.c, w.standpipe.topY))}>
               <torusGeometry args={[M(w.standpipe.diameterMm) / 2, 0.004, 8, 24]} />
-              <meshStandardMaterial {...PVC_WHITE} />
+              <StdMat {...PVC_WHITE} />
             </mesh>
           </group>
         );
@@ -166,7 +226,7 @@ export function Hydraulics({ layout, hydraulics: h }: { layout: Layout; hydrauli
           {i > 0 && i < h.drainLine.length - 1 && (
             <mesh position={v(seg.points[0])}>
               <sphereGeometry args={[M(seg.diameterMm) / 2 + 0.01, 14, 10]} />
-              <meshStandardMaterial color="#c8bfae" roughness={0.5} />
+              <StdMat color="#c8bfae" roughness={0.5} />
             </mesh>
           )}
         </group>
@@ -186,15 +246,15 @@ export function Hydraulics({ layout, hydraulics: h }: { layout: Layout; hydrauli
           <group key={`s${i}`} position={base}>
             <mesh position={[0, (y - r) / 2, 0]}>
               <boxGeometry args={[0.02, y - r, 0.02]} />
-              <meshStandardMaterial {...STEEL} />
+              <StdMat {...STEEL} />
             </mesh>
             <mesh position={[0, 0.004, 0]}>
               <boxGeometry args={[0.09, 0.008, 0.09]} />
-              <meshStandardMaterial {...STEEL} />
+              <StdMat {...STEEL} />
             </mesh>
             <mesh position={[0, y, 0]} rotation={[Math.PI / 2, 0, 0]}>
               <torusGeometry args={[r + 0.004, 0.004, 6, 20]} />
-              <meshStandardMaterial {...STEEL} />
+              <StdMat {...STEEL} />
             </mesh>
           </group>
         );
@@ -252,7 +312,7 @@ export function Hydraulics({ layout, hydraulics: h }: { layout: Layout; hydrauli
                   <group position={v(inlet)} rotation={[0, yaw, 0]}>
                     <mesh rotation={[Math.PI / 2, 0, 0]}>
                       <cylinderGeometry args={[0.014, 0.014, 0.012, 16]} />
-                      <meshStandardMaterial color="#111827" roughness={0.6} />
+                      <StdMat color="#111827" roughness={0.6} />
                     </mesh>
                   </group>
                 </group>
@@ -277,26 +337,16 @@ export function Hydraulics({ layout, hydraulics: h }: { layout: Layout; hydrauli
       <group position={v(L(h.floorDrain.a, h.floorDrain.c, 2))}>
         <mesh>
           <boxGeometry args={[M(h.floorDrain.sizeMm), 0.004, M(h.floorDrain.sizeMm)]} />
-          <meshStandardMaterial {...STEEL} />
+          <StdMat {...STEEL} />
         </mesh>
         {[-2, -1, 0, 1, 2].map((k) => (
           <mesh key={k} position={[k * M(h.floorDrain.sizeMm) * 0.16, 0.0025, 0]}>
             <boxGeometry args={[0.006, 0.002, M(h.floorDrain.sizeMm) * 0.75]} />
-            <meshStandardMaterial color="#1f2937" />
+            <StdMat color="#1f2937" />
           </mesh>
         ))}
       </group>
 
-      {/* Respiro (ventilação) subindo até perto do teto */}
-      {h.vents.map((vent, i) => (
-        <Duct
-          key={`v${i}`}
-          points={[L(vent.a, vent.c, h.drainLine[0].points[0].y), L(vent.a, vent.c, vent.topY)].map(v)}
-          radius={M(vent.diameterMm) / 2}
-          tubular={2}
-          {...PVC_WHITE}
-        />
-      ))}
     </group>
   );
 }

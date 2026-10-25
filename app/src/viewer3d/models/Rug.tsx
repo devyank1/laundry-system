@@ -1,6 +1,7 @@
 import { useLayoutEffect, useMemo, useRef } from "react";
 import { CanvasTexture, ExtrudeGeometry, InstancedMesh, Object3D, RepeatWrapping, Shape } from "three";
 import { PlacedLogo, type SceneLogo } from "./WallLogo";
+import { StdMat } from "./SharedMaterial";
 
 // Inspirado em tapete.html: tapete retangular azul-claro de cantos
 // arredondados, textura têxtil suave e franjas nas duas pontas. Aqui tem
@@ -102,7 +103,7 @@ function Fringes({ width, depth }: { width: number; depth: number }) {
   return (
     <instancedMesh ref={ref} args={[undefined, undefined, perSide * 2]} key={perSide} castShadow>
       <cylinderGeometry args={[0.003, 0.002, FRINGE_LENGTH, 5]} />
-      <meshStandardMaterial color="#f4f1ea" roughness={0.95} />
+      <StdMat color="#f4f1ea" roughness={0.95} />
     </instancedMesh>
   );
 }
@@ -114,7 +115,7 @@ export function Rug({ width, depth, logo }: { width: number; depth: number; logo
   return (
     <group>
       <mesh geometry={geometry} castShadow receiveShadow>
-        <meshStandardMaterial color="#ffffff" map={texture} roughness={0.95} metalness={0.05} />
+        <StdMat color="#ffffff" map={texture} roughness={0.95} metalness={0.05} />
       </mesh>
       <Fringes width={width} depth={depth} />
       {logo && (

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { CanvasTexture, CatmullRomCurve3, ExtrudeGeometry, Shape, TubeGeometry, Vector3 } from "three";
+import { StdMat } from "./SharedMaterial";
 
 // Portado de "Galoes amaciante lavadora.html": galão industrial de 5 L (corpo
 // de caixa arredondada com frisos, ombro, alça, gargalo com tampa nervurada e
@@ -109,37 +110,37 @@ export function Jug({ kind }: { kind: JugKind }) {
     <group scale={JUG_SCALE}>
       {/* Corpo */}
       <mesh geometry={geo.body} rotation={[Math.PI / 2, 0, 0]} position={[0, BODY.h / 2, 0]} castShadow receiveShadow>
-        <meshStandardMaterial color={style.body} roughness={0.55} metalness={0.05} />
+        <StdMat color={style.body} roughness={0.55} metalness={0.05} />
       </mesh>
       {/* Frisos de reforço */}
       {[-0.4, -0.1, 0.2].map((y) => (
         <mesh key={y} position={[0, BODY.h / 2 + y, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[1.15, 0.75, 1]} castShadow>
           <torusGeometry args={[0.52, 0.025, 8, 32]} />
-          <meshStandardMaterial color={style.body} roughness={0.7} metalness={0.05} />
+          <StdMat color={style.body} roughness={0.7} metalness={0.05} />
         </mesh>
       ))}
       {/* Ombro */}
       <mesh position={[0, BODY.h + 0.225, 0]} scale={[1.1, 1, 0.8]} castShadow receiveShadow>
         <cylinderGeometry args={[0.5, 0.62, 0.45, 32]} />
-        <meshStandardMaterial color={style.top} roughness={0.45} metalness={0.02} />
+        <StdMat color={style.top} roughness={0.45} metalness={0.02} />
       </mesh>
       {/* Alça */}
       <mesh geometry={geo.handle} scale={[1, 1, 0.75]} castShadow>
-        <meshStandardMaterial color={style.top} roughness={0.45} metalness={0.02} />
+        <StdMat color={style.top} roughness={0.45} metalness={0.02} />
       </mesh>
       {/* Gargalo e tampa nervurada */}
       <mesh position={[-0.18, BODY.h + 0.52, 0]} castShadow>
         <cylinderGeometry args={[0.2, 0.2, 0.22, 32]} />
-        <meshStandardMaterial color={style.top} roughness={0.45} metalness={0.02} />
+        <StdMat color={style.top} roughness={0.45} metalness={0.02} />
       </mesh>
       <mesh position={[-0.18, BODY.h + 0.65, 0]} castShadow>
         <cylinderGeometry args={[0.22, 0.22, 0.18, 32]} />
-        <meshStandardMaterial color="#ffffff" roughness={0.35} metalness={0.05} />
+        <StdMat color="#ffffff" roughness={0.35} metalness={0.05} />
       </mesh>
       {/* Rótulo */}
       <mesh position={[0, BODY.h / 2 + 0.02, BODY.d / 2 + 0.045]}>
         <planeGeometry args={[0.88, 1.0]} />
-        <meshStandardMaterial map={label} roughness={0.3} polygonOffset polygonOffsetFactor={-1} />
+        <StdMat map={label} roughness={0.3} polygonOffset polygonOffsetFactor={-1} />
       </mesh>
     </group>
   );

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { CatmullRomCurve3, DoubleSide, TubeGeometry, Vector3 } from "three";
+import { BasicMat, StdMat } from "./SharedMaterial";
 
 // Portado de gemini-code-*.html ("Bomba Hidráulica Pressurizadora"): base
 // preta com 4 pés, motor aletado, voluta cinza-escura com manômetro, tanque de
@@ -20,7 +21,7 @@ const BLACK = { color: "#1e1e1e", roughness: 0.7 } as const;
 const METAL = { color: "#999999", metalness: 0.8, roughness: 0.2 } as const;
 
 function Mat(props: { color: string; roughness?: number; metalness?: number }) {
-  return <meshStandardMaterial {...props} />;
+  return <StdMat {...props} />;
 }
 
 function useWire() {
@@ -87,11 +88,11 @@ export function WaterPump() {
         {/* Faixa da marca e etiqueta de especificações */}
         <mesh position={[0, 0.45, 0]}>
           <cylinderGeometry args={[0.86, 0.86, 0.35, 32]} />
-          <meshBasicMaterial color="#222222" />
+          <BasicMat color="#222222" />
         </mesh>
         <mesh position={[0, -0.2, 0]} rotation={[0, -Math.PI / 1.5, 0]}>
           <cylinderGeometry args={[0.86, 0.86, 0.3, 32, 1, true, 0, Math.PI]} />
-          <meshBasicMaterial color="#d4af37" side={DoubleSide} />
+          <BasicMat color="#d4af37" side={DoubleSide} />
         </mesh>
       </group>
 
@@ -161,10 +162,10 @@ export function WaterPump() {
       {/* 5. Caixa de ligações e fiação */}
       <mesh position={[-1.1, 1.4, 0.6]} rotation={[0, Math.PI / 6, Math.PI / 18]} castShadow>
         <boxGeometry args={[0.5, 0.8, 0.8]} />
-        <meshStandardMaterial color="#151515" roughness={0.4} />
+        <StdMat color="#151515" roughness={0.4} />
       </mesh>
       <mesh geometry={wire} castShadow>
-        <meshStandardMaterial color="#dca83a" roughness={0.6} />
+        <StdMat color="#dca83a" roughness={0.6} />
       </mesh>
     </group>
   );

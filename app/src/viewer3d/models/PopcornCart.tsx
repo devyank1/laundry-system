@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { StdMat } from "./SharedMaterial";
 
 // Portado de carro pipoca.html. Carrinho vermelho com cabine de vidro, teto
 // preto, rodas de raios e pipocas no fundo do vidro. Frente pra +z. Modelo em
@@ -10,7 +11,7 @@ const BLACK = "#222222";
 const METAL = "#cccccc";
 
 function Metal() {
-  return <meshStandardMaterial color={METAL} metalness={0.8} roughness={0.2} />;
+  return <StdMat color={METAL} metalness={0.8} roughness={0.2} />;
 }
 
 function Wheel({ z }: { z: number }) {
@@ -18,17 +19,17 @@ function Wheel({ z }: { z: number }) {
     <group position={[-1.2, 1.2, z]}>
       <mesh>
         <torusGeometry args={[1.2, 0.15, 16, 32]} />
-        <meshStandardMaterial color="#111111" />
+        <StdMat color="#111111" />
       </mesh>
       {[0, 1, 2, 3].map((i) => (
         <mesh key={i} rotation={[0, 0, (Math.PI / 4) * i]}>
           <cylinderGeometry args={[0.05, 0.05, 2.4]} />
-          <meshStandardMaterial color="#ffffff" />
+          <StdMat color="#ffffff" />
         </mesh>
       ))}
       <mesh rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[0.2, 0.2, 0.2]} />
-        <meshStandardMaterial color={RED} />
+        <StdMat color={RED} />
       </mesh>
     </group>
   );
@@ -56,25 +57,25 @@ export function PopcornCart() {
       {/* Base vermelha */}
       <mesh position={[0, 3, 0]} castShadow receiveShadow>
         <boxGeometry args={[4, 3, 3]} />
-        <meshStandardMaterial color={RED} roughness={0.3} />
+        <StdMat color={RED} roughness={0.3} />
       </mesh>
 
       {/* Cabine de vidro e pilares dos cantos */}
       <mesh position={[0, 6.25, 0]}>
         <boxGeometry args={[3.8, 3.5, 2.8]} />
-        <meshPhysicalMaterial color="#ffffff" transmission={0.7} transparent roughness={0.1} />
+        <StdMat color="#ffffff" transparent opacity={0.25} roughness={0.1} depthWrite={false} />
       </mesh>
       {([[1.8, 1.3], [-1.8, 1.3], [1.8, -1.3], [-1.8, -1.3]] as const).map(([x, z]) => (
         <mesh key={`${x}${z}`} position={[x, 6.25, z]}>
           <boxGeometry args={[0.2, 3.5, 0.2]} />
-          <meshStandardMaterial color={RED} roughness={0.3} />
+          <StdMat color={RED} roughness={0.3} />
         </mesh>
       ))}
 
       {/* Teto preto */}
       <mesh position={[0, 8.4, 0]} castShadow>
         <boxGeometry args={[4.4, 0.8, 3.4]} />
-        <meshStandardMaterial color={BLACK} roughness={0.8} />
+        <StdMat color={BLACK} roughness={0.8} />
       </mesh>
 
       {/* Panela suspensa */}
@@ -94,7 +95,7 @@ export function PopcornCart() {
       {[1.2, -1.2].map((z) => (
         <mesh key={z} position={[1.5, 0.75, z]}>
           <cylinderGeometry args={[0.1, 0.1, 1.5]} />
-          <meshStandardMaterial color={RED} roughness={0.3} />
+          <StdMat color={RED} roughness={0.3} />
         </mesh>
       ))}
 
@@ -114,7 +115,7 @@ export function PopcornCart() {
       {popcorn.map((p, i) => (
         <mesh key={i} position={p}>
           <sphereGeometry args={[0.12, 6, 6]} />
-          <meshStandardMaterial color="#ffeebb" roughness={0.9} />
+          <StdMat color="#ffeebb" roughness={0.9} />
         </mesh>
       ))}
 

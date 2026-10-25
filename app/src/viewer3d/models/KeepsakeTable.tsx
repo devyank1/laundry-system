@@ -1,4 +1,5 @@
 import { DoubleSide } from "three";
+import { StdMat } from "./SharedMaterial";
 
 // Portado de Potes mesa.html. Mesa de madeira com toalha azul-clara e 10
 // frascos de líquido azul (2 fileiras de 5), as lembranças da inauguração.
@@ -14,11 +15,11 @@ const BOTTLE_SPACING = 0.45;
 const BOTTLE_TILTS = [0.12, -0.2, 0.05, 0.22, -0.1, -0.15, 0.18, -0.05, 0.1, -0.22];
 
 function Wood() {
-  return <meshStandardMaterial color="#d2b48c" roughness={0.8} />;
+  return <StdMat color="#d2b48c" roughness={0.8} />;
 }
 
 function Cloth() {
-  return <meshStandardMaterial color="#cce6ff" roughness={0.9} side={DoubleSide} />;
+  return <StdMat color="#cce6ff" roughness={0.9} side={DoubleSide} />;
 }
 
 function Bottle({ x, z, tilt }: { x: number; z: number; tilt: number }) {
@@ -26,15 +27,15 @@ function Bottle({ x, z, tilt }: { x: number; z: number; tilt: number }) {
     <group position={[x, CLOTH_TOP_Y, z]} rotation={[0, tilt, 0]}>
       <mesh position={[0, 0.175, 0]} castShadow>
         <cylinderGeometry args={[0.12, 0.12, 0.35, 24]} />
-        <meshPhysicalMaterial color="#ffffff" transmission={1} transparent roughness={0.05} clearcoat={1} />
+        <StdMat color="#ffffff" transparent opacity={0.3} roughness={0.05} depthWrite={false} />
       </mesh>
       <mesh position={[0, 0.16, 0]}>
         <cylinderGeometry args={[0.105, 0.105, 0.3, 24]} />
-        <meshPhysicalMaterial color="#2288ff" transparent opacity={0.9} roughness={0.1} />
+        <StdMat color="#2288ff" transparent opacity={0.9} roughness={0.1} />
       </mesh>
       <mesh position={[0, 0.4, 0]}>
         <cylinderGeometry args={[0.06, 0.06, 0.1, 16]} />
-        <meshPhysicalMaterial color="#ffffff" transmission={1} transparent roughness={0.05} />
+        <StdMat color="#ffffff" transparent opacity={0.3} roughness={0.05} depthWrite={false} />
       </mesh>
       <mesh position={[0, 0.5, 0]}>
         <cylinderGeometry args={[0.06, 0.05, 0.12, 16]} />

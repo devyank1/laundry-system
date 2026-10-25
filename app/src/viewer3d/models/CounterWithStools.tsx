@@ -1,3 +1,4 @@
+import { StdMat } from "./SharedMaterial";
 // Portado de "Cadeira com mesa Trab.html". Balcão alto de madeira clara com 3
 // banquetas industriais de metal. Origem no ponto de contato com a parede, no
 // meio do comprimento: costas do balcão em z = 0, banquetas na frente (+z).
@@ -18,11 +19,11 @@ const STOOL_Z = 1.5;
 const STOOL_X = [-2.4, 0, 2.4];
 
 function Wood() {
-  return <meshStandardMaterial color="#dec29b" roughness={0.55} metalness={0.05} />;
+  return <StdMat color="#dec29b" roughness={0.55} metalness={0.05} />;
 }
 
 function Metal() {
-  return <meshStandardMaterial color="#1a1a1a" roughness={0.35} metalness={0.2} />;
+  return <StdMat color="#1a1a1a" roughness={0.35} metalness={0.2} />;
 }
 
 // Virada pro balcão: o encosto fica do lado de fora (+z), longe da mesa.
@@ -31,7 +32,7 @@ function Stool({ x }: { x: number }) {
     <group position={[x, 0, STOOL_Z]} rotation={[0, Math.PI, 0]}>
       <mesh position={[0, SEAT_Y, 0]} castShadow receiveShadow>
         <boxGeometry args={[SEAT_W, SEAT_THICKNESS, SEAT_W]} />
-        <meshStandardMaterial color="#222222" roughness={0.6} metalness={0.2} />
+        <StdMat color="#222222" roughness={0.6} metalness={0.2} />
       </mesh>
 
       {/* Pernas */}

@@ -111,6 +111,11 @@ export function logoPlacement(
   };
 }
 
+// As máquinas entram no vão do drywall: a frente fica a 1 cm da face do salão
+// (o motor as posiciona rentes à face de trás, 10 cm recuadas). Só visual 3D.
+export const MACHINE_DRYWALL_GAP_MM = 10;
+export const MACHINE_FORWARD_M = (DRYWALL_THICKNESS_MM - MACHINE_DRYWALL_GAP_MM) / 1000;
+
 export function drywallFrame(layout: Layout): DrywallFrame {
   const roomW = M(layout.roomWidthMm);
   if (layout.orientation !== "side") {

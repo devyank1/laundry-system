@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef } from "react";
 import { InstancedMesh, Object3D } from "three";
+import { StdMat } from "./SharedMaterial";
 
 // Portado de balaoes.html. Arco em espiral de "quartetos" de balões (2 azuis,
 // 2 brancos), no plano XY, com os pés no chão e centrado em x = 0. O modelo
@@ -56,11 +57,11 @@ export function BalloonArch() {
     <group>
       <instancedMesh ref={blue} args={[undefined, undefined, perColor]} castShadow>
         <sphereGeometry args={[BALLOON_RADIUS, 20, 20]} />
-        <meshPhysicalMaterial color="#1e90ff" roughness={0.15} clearcoat={1} />
+        <StdMat color="#1e90ff" roughness={0.2} />
       </instancedMesh>
       <instancedMesh ref={white} args={[undefined, undefined, perColor]} castShadow>
         <sphereGeometry args={[BALLOON_RADIUS, 20, 20]} />
-        <meshPhysicalMaterial color="#ffffff" roughness={0.15} clearcoat={1} />
+        <StdMat color="#ffffff" roughness={0.2} />
       </instancedMesh>
     </group>
   );

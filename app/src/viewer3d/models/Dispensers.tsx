@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { ExtrudeGeometry, Shape } from "three";
+import { StdMat } from "./SharedMaterial";
 
 // Portado de dispensers_3d.html. Dispenser de papel toalha (topo arqueado) e
 // de sabonete líquido, em plástico branco brilhante. Medidas nativas em
@@ -61,14 +62,14 @@ function useDispenserGeometries() {
 }
 
 function Gloss() {
-  return <meshPhysicalMaterial color="#ffffff" roughness={0.1} metalness={0.1} clearcoat={1} clearcoatRoughness={0.1} />;
+  return <StdMat color="#ffffff" roughness={0.18} metalness={0.1} />;
 }
 
 function Window({ size, z }: { size: [number, number, number]; z: number }) {
   return (
     <mesh position={[0, 0, z]}>
       <boxGeometry args={size} />
-      <meshStandardMaterial color="#050505" roughness={0.2} metalness={0.8} />
+      <StdMat color="#050505" roughness={0.2} metalness={0.8} />
     </mesh>
   );
 }
@@ -88,7 +89,7 @@ export function Dispensers() {
         </group>
         <mesh position={[0, -PAPER.h / 2 - 0.005, PAPER.d / 2]}>
           <boxGeometry args={[PAPER.w, 0.01, PAPER.d]} />
-          <meshStandardMaterial color="#222222" roughness={0.8} metalness={0.1} />
+          <StdMat color="#222222" roughness={0.8} metalness={0.1} />
         </mesh>
       </group>
 

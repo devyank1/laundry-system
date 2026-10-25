@@ -1,9 +1,9 @@
 import { Vector3 } from "three";
 import { Duct } from "./Duct";
 import type { ExhaustDuct, ExhaustLayout, ExhaustPoint } from "../../engine/exhaust";
-import { WALL_DUCT_CLEARANCE_MM } from "../../engine/exhaust";
 import type { Layout } from "../../engine/types";
-import { drywallFrame } from "../placement";
+import { MACHINE_FORWARD_M, drywallFrame } from "../placement";
+import { StdMat } from "./SharedMaterial";
 
 // Exaustão das secadoras no 3D: ramais a 45° até o coletor escalonado, que
 // sai pela parede de trás da área técnica com o bocal virado pra baixo.
@@ -22,9 +22,9 @@ export function Exhaust({ layout, exhaust }: { layout: Layout; exhaust: ExhaustL
   const collarOf = (d: ExhaustDuct, p: ExhaustPoint) => ({ position: v(p), radius: M(d.diameterMm) / 2 });
   const first = exhaust.collector[0];
   const exitStart = exhaust.exit.points[0];
-  const wallInner = { ...exitStart, c: 0 };
-  const wallOuter = { ...exitStart, c: -100 };
-  const sleeveRadius = M(exhaust.exit.diameterMm / 2 + WALL_DUCT_CLEARANCE_MM);
+  // o grupo da cena avança tudo MACHINE_FORWARD_M; o anel fica rente à parede
+  const wallInner = { ...exitStart, c: -MACHINE_FORWARD_M * 1000 };
+  const sleeveRadius = M(exhaust.exit.diameterMm) / 2 + 0.02;
   const cap = collarOf(first, exhaust.cleaningCap);
 
   return (
@@ -36,7 +36,7 @@ export function Exhaust({ layout, exhaust }: { layout: Layout; exhaust: ExhaustL
           {/* Braçadeira no encaixe da máquina (tubo semirrígido + abraçadeira) */}
           <mesh position={v(b.points[0])}>
             <sphereGeometry args={[M(b.diameterMm) / 2 + 0.012, 16, 12]} />
-            <meshStandardMaterial color="#6b7280" metalness={0.9} roughness={0.3} />
+            <StdMat color="#6b7280" metalness={0.9} roughness={0.3} />
           </mesh>
         </group>
       ))}
@@ -48,7 +48,7 @@ export function Exhaust({ layout, exhaust }: { layout: Layout; exhaust: ExhaustL
           {i > 0 && (
             <mesh position={v(seg.points[0])} rotation={frame.alongBarRotation}>
               <cylinderGeometry args={[M(seg.diameterMm) / 2 + 0.012, M(seg.diameterMm) / 2 + 0.012, 0.03, 24]} />
-              <meshStandardMaterial color="#6b7280" metalness={0.9} roughness={0.3} />
+              <StdMat color="#6b7280" metalness={0.9} roughness={0.3} />
             </mesh>
           )}
         </group>
@@ -57,7 +57,7 @@ export function Exhaust({ layout, exhaust }: { layout: Layout; exhaust: ExhaustL
       {/* Tampa removível de limpeza na ponta fechada */}
       <mesh position={cap.position} rotation={frame.alongBarRotation}>
         <cylinderGeometry args={[cap.radius + 0.02, cap.radius + 0.02, 0.04, 24]} />
-        <meshStandardMaterial color="#374151" metalness={0.6} roughness={0.5} />
+        <StdMat color="#374151" metalness={0.6} roughness={0.5} />
       </mesh>
 
       {/* Saída: canto do coletor → atravessa a parede → bocal pra baixo */}
@@ -67,8 +67,11 @@ export function Exhaust({ layout, exhaust }: { layout: Layout; exhaust: ExhaustL
         cornerRadius={CORNER_RADIUS_EXIT}
       />
 
-      {/* Manga na parede: folga de 50 mm em volta do duto */}
-      <Duct points={[v(wallInner), v(wallOuter)]} radius={sleeveRadius} tubular={2} />
+      {/* Moldura da manga na parede: só o anel de acabamento rente ao duto */}
+      <mesh position={v(wallInner)} rotation={layout.orientation === "side" ? [0, 0, Math.PI / 2] : [Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[sleeveRadius, sleeveRadius, 0.02, 32]} />
+        <StdMat color="#6b7280" metalness={0.9} roughness={0.3} />
+      </mesh>
     </group>
   );
 }

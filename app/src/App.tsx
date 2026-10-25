@@ -1,9 +1,8 @@
-import { useState, type CSSProperties } from "react";
+import { Suspense, lazy, useEffect, useState, type CSSProperties } from "react";
 import { ControlPanel } from "./ui/ControlPanel";
 import { ViolationsPanel } from "./ui/ViolationsPanel";
 import { CatalogManager } from "./ui/CatalogManager";
 import { FloorPlan, PLAN_SHEETS, type PlanSheet } from "./viewer2d/FloorPlan";
-import { Scene } from "./viewer3d/Scene";
 import { useLayout } from "./state/useLayout";
 import { useProjectStore } from "./state/projectStore";
 import { exportFloorPlanPDF, exportFloorPlanPNG } from "./export/export2d";
@@ -13,8 +12,22 @@ import "./App.css";
 
 const PLAN_ZOOMS = [1, 1.5, 2, 3];
 
+// O 3D (three + react-three-fiber + drei, ~800 kB) só é baixado quando a aba
+// 3D é aberta; a planta 2D abre sem ele. `loadScene` também serve pra aquecer
+// o download (ao passar o mouse no botão e quando o navegador está ocioso).
+const loadScene = () => import("./viewer3d/Scene");
+const Scene = lazy(() => loadScene().then((m) => ({ default: m.Scene })));
+
 export function App() {
   const { layout, violations } = useLayout();
+  // Com a 2D já na tela e o navegador ocioso, baixa o 3D pra abrir sem espera.
+  useEffect(() => {
+    const idle = (window as { requestIdleCallback?: (cb: () => void) => number }).requestIdleCallback;
+    const timer = idle ? idle(() => void loadScene()) : window.setTimeout(() => void loadScene(), 1500);
+    return () => {
+      if (!idle) window.clearTimeout(timer);
+    };
+  }, []);
   const logoDataUrl = useProjectStore((s) => s.logoDataUrl);
   const logoStyle = useProjectStore((s) => s.logoStyle);
   const logoDepthMm = useProjectStore((s) => s.logoDepthMm);
@@ -59,7 +72,12 @@ export function App() {
         <button type="button" onClick={() => setTab("2d")}>
           Planta 2D
         </button>
-        <button type="button" onClick={() => setTab("3d")}>
+        <button
+          type="button"
+          onClick={() => setTab("3d")}
+          onMouseEnter={() => void loadScene()}
+          onFocus={() => void loadScene()}
+        >
           Planta 3D
         </button>
       </nav>
@@ -136,23 +154,25 @@ export function App() {
 
       {layout && tab === "3d" && (
         <>
-          <Scene
-            layout={layout}
-            logo={
-              logoDataUrl
-                ? { url: logoDataUrl, style: logoStyle, depthMm: logoDepthMm, sideColor: logoSideColor }
-                : null
-            }
-            facade={
-              facadeOn ? { wallColor: facadeColor, signColor: facadeSignColor } : null
-            }
-            drywallColor={drywallColorFor(facadeColor)}
-            lighting={sceneLighting}
-            showRoof={facadeOn && roofVisible}
-            inauguracao={inauguracao}
-            tourRun={tourRun}
-            onCanvasReady={setCanvasEl}
-          />
+          <Suspense fallback={<div className="scene3d-placeholder" role="status">Carregando o 3D…</div>}>
+            <Scene
+              layout={layout}
+              logo={
+                logoDataUrl
+                  ? { url: logoDataUrl, style: logoStyle, depthMm: logoDepthMm, sideColor: logoSideColor }
+                  : null
+              }
+              facade={
+                facadeOn ? { wallColor: facadeColor, signColor: facadeSignColor } : null
+              }
+              drywallColor={drywallColorFor(facadeColor)}
+              lighting={sceneLighting}
+              showRoof={facadeOn && roofVisible}
+              inauguracao={inauguracao}
+              tourRun={tourRun}
+              onCanvasReady={setCanvasEl}
+            />
+          </Suspense>
           <div className="export-actions">
             <button
               type="button"

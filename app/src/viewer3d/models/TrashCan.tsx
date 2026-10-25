@@ -1,3 +1,4 @@
+import { StdMat } from "./SharedMaterial";
 // Portado de Lixo.html. Lixeira cilíndrica de inox escovado, base preta,
 // aro superior e tampa basculante. Origem no centro da base, no chão. Modelo em
 // unidades arbitrárias; SCALE leva pra metros (~0,32 m de diâmetro, ~0,55 m de altura).
@@ -8,11 +9,11 @@ const RIM_HEIGHT = 0.16;
 const TOP_Y = 0.1 + BODY_HEIGHT + RIM_HEIGHT;
 
 function Chrome({ color = "#c8cccf", roughness = 0.22 }: { color?: string; roughness?: number }) {
-  return <meshStandardMaterial color={color} metalness={0.6} roughness={roughness} />;
+  return <StdMat color={color} metalness={0.6} roughness={roughness} />;
 }
 
 function BlackPlastic() {
-  return <meshStandardMaterial color="#1a1a1a" roughness={0.75} metalness={0.1} />;
+  return <StdMat color="#1a1a1a" roughness={0.75} metalness={0.1} />;
 }
 
 export function TrashCan() {

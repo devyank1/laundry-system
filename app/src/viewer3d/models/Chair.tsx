@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { BoxGeometry, CanvasTexture, DoubleSide, PlaneGeometry, RepeatWrapping } from "three";
+import { StdMat } from "./SharedMaterial";
 
 // Portado de cadeira_pl_stica_3d.html. Medidas nativas em metros, origem no
 // centro da base. Encosto perfurado (textura com furos via alphaMap), pernas
@@ -89,7 +90,7 @@ export function Chair() {
   return (
     <group>
       <mesh geometry={seatGeometry} position={[0, SEAT_Y, 0]} castShadow receiveShadow>
-        <meshStandardMaterial color={CHAIR_COLOR} roughness={0.7} metalness={0.1} />
+        <StdMat color={CHAIR_COLOR} roughness={0.7} metalness={0.1} />
       </mesh>
 
       {LEG_POSITIONS.map(([x, z, rotX, rotZ], i) => (
@@ -100,21 +101,21 @@ export function Chair() {
           castShadow
         >
           <cylinderGeometry args={[0.015, 0.008, 0.46, 16]} />
-          <meshStandardMaterial color={CHAIR_COLOR} roughness={0.7} metalness={0.1} />
+          <StdMat color={CHAIR_COLOR} roughness={0.7} metalness={0.1} />
         </mesh>
       ))}
 
       <mesh position={[-0.18, 0.58, -0.22]} rotation={[-0.2, 0, 0]} castShadow>
         <cylinderGeometry args={[0.015, 0.02, 0.25, 16]} />
-        <meshStandardMaterial color={CHAIR_COLOR} roughness={0.7} metalness={0.1} />
+        <StdMat color={CHAIR_COLOR} roughness={0.7} metalness={0.1} />
       </mesh>
       <mesh position={[0.18, 0.58, -0.22]} rotation={[-0.2, 0, 0]} castShadow>
         <cylinderGeometry args={[0.015, 0.02, 0.25, 16]} />
-        <meshStandardMaterial color={CHAIR_COLOR} roughness={0.7} metalness={0.1} />
+        <StdMat color={CHAIR_COLOR} roughness={0.7} metalness={0.1} />
       </mesh>
 
       <mesh geometry={backGeometry} position={[0, 0.75, -0.25]} rotation={[-0.15, 0, 0]} castShadow>
-        <meshStandardMaterial
+        <StdMat
           color={CHAIR_COLOR}
           roughness={0.7}
           metalness={0.1}

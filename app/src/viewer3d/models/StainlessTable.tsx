@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { CanvasTexture, ClampToEdgeWrapping, DoubleSide, RepeatWrapping } from "three";
+import { StdMat } from "./SharedMaterial";
 
 // Portado de mesa_inox_com_cestos.html. Medidas nativas em metros, origem no
 // centro da base. Mesa de aço inox (igual mesa_a_o_inox_3d.html) + 3 cestos
@@ -25,7 +26,7 @@ const BASKET_RADIUS_BOTTOM = 0.16;
 const BASKET_X_POSITIONS = [-0.6, 0, 0.6];
 
 function Inox() {
-  return <meshStandardMaterial color="#dddddd" roughness={0.25} metalness={0.9} />;
+  return <StdMat color="#dddddd" roughness={0.25} metalness={0.9} />;
 }
 
 function useBasketAlphaMap(): CanvasTexture {
@@ -76,7 +77,7 @@ function Basket({ x, alphaMap }: { x: number; alphaMap: CanvasTexture }) {
     <group position={[x, y, 0]} rotation={[0, Math.PI / 4, 0]}>
       <mesh castShadow receiveShadow>
         <cylinderGeometry args={[BASKET_RADIUS_TOP, BASKET_RADIUS_BOTTOM, BASKET_HEIGHT, 32, 1, true]} />
-        <meshStandardMaterial
+        <StdMat
           color="#ffffff"
           roughness={0.9}
           metalness={0.05}
@@ -88,7 +89,7 @@ function Basket({ x, alphaMap }: { x: number; alphaMap: CanvasTexture }) {
       </mesh>
       <mesh position={[0, -BASKET_HEIGHT / 2, 0]} castShadow receiveShadow>
         <cylinderGeometry args={[BASKET_RADIUS_BOTTOM, BASKET_RADIUS_BOTTOM, 0.01, 24]} />
-        <meshStandardMaterial color="#ffffff" roughness={0.9} metalness={0.05} />
+        <StdMat color="#ffffff" roughness={0.9} metalness={0.05} />
       </mesh>
     </group>
   );
@@ -118,7 +119,7 @@ export function StainlessTable() {
           </mesh>
           <mesh position={[0, 0.02, 0]} castShadow>
             <cylinderGeometry args={[LEG_R + 0.005, LEG_R + 0.002, 0.04, 16]} />
-            <meshStandardMaterial color="#111111" roughness={0.9} metalness={0.1} />
+            <StdMat color="#111111" roughness={0.9} metalness={0.1} />
           </mesh>
         </group>
       ))}

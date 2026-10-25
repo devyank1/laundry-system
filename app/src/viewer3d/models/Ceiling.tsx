@@ -1,6 +1,7 @@
 import type { Layout } from "../../engine/types";
 import { ROOM_WALL_THICKNESS } from "../facade";
 import { CEILING_PANEL_SIZE_M, ceilingLightPositions } from "../lighting";
+import { StdMat } from "./SharedMaterial";
 
 const ROOF_THICKNESS = 0.12; // laje
 
@@ -37,12 +38,12 @@ export function Ceiling({
           <boxGeometry
             args={[w + ROOM_WALL_THICKNESS * 2, ROOF_THICKNESS, d + ROOM_WALL_THICKNESS]}
           />
-          <meshStandardMaterial color="#cbd5e1" roughness={0.95} />
+          <StdMat color="#cbd5e1" roughness={0.95} />
         </mesh>
       )}
       <mesh position={[w / 2, h, d / 2]} rotation={FACE_DOWN} receiveShadow>
         <planeGeometry args={[w, d]} />
-        <meshStandardMaterial color="#f8fafc" roughness={0.9} />
+        <StdMat color="#f8fafc" roughness={0.9} />
       </mesh>
 
       {ceilingLightPositions(layout).map(([x, z]) => (
@@ -50,7 +51,7 @@ export function Ceiling({
           <mesh position={[x, h - 0.004, z]} rotation={FACE_DOWN}>
             <planeGeometry args={[CEILING_PANEL_SIZE_M, CEILING_PANEL_SIZE_M]} />
             {/* toneMapped=false: o painel "estoura" de branco, parece aceso */}
-            <meshStandardMaterial
+            <StdMat
               color="#ffffff"
               emissive="#fff8e7"
               emissiveIntensity={1.5}

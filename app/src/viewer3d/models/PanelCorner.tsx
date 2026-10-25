@@ -4,6 +4,7 @@ import type { Layout } from "../../engine/types";
 import { drywallFrame } from "../placement";
 import { ElectricalPanel, PANEL_SIZE_M } from "./ElectricalPanel";
 import { MODEM_SIZE_M, Modem } from "./Modem";
+import { StdMat } from "./SharedMaterial";
 
 // QD-01 e modem, como na prancha elétrica (engine/electricalPlan.ts): na
 // parede lateral (a cinza) ao lado da porta técnica, dentro da área técnica;
@@ -25,7 +26,7 @@ function Cable({ points, color, radius }: { points: V3[]; color: string; radius:
   );
   return (
     <mesh geometry={geo}>
-      <meshStandardMaterial color={color} roughness={0.6} />
+      <StdMat color={color} roughness={0.6} />
     </mesh>
   );
 }
@@ -36,21 +37,21 @@ function OutletPlate() {
     <group>
       <mesh position={[0, 0, PLATE.depth / 2]}>
         <boxGeometry args={[PLATE.width, PLATE.height, PLATE.depth]} />
-        <meshStandardMaterial color="#f4f4f5" roughness={0.4} />
+        <StdMat color="#f4f4f5" roughness={0.4} />
       </mesh>
       <mesh position={[0, 0.03, PLATE.depth + 0.001]}>
         <circleGeometry args={[0.019, 24]} />
-        <meshStandardMaterial color="#e4e4e7" roughness={0.5} />
+        <StdMat color="#e4e4e7" roughness={0.5} />
       </mesh>
       {[-0.007, 0.007, 0].map((x, i) => (
         <mesh key={i} position={[x, i === 2 ? 0.039 : 0.026, PLATE.depth + 0.002]}>
           <circleGeometry args={[0.003, 12]} />
-          <meshStandardMaterial color="#27272a" />
+          <StdMat color="#27272a" />
         </mesh>
       ))}
       <mesh position={[0, -0.03, PLATE.depth + 0.002]}>
         <planeGeometry args={[0.016, 0.013]} />
-        <meshStandardMaterial color="#27272a" />
+        <StdMat color="#27272a" />
       </mesh>
     </group>
   );

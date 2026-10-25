@@ -4,6 +4,7 @@ import type { Layout } from "../../engine/types";
 import { drywallFrame, wallYaw } from "../placement";
 import { Cable } from "./Cable";
 import { Duct } from "./Duct";
+import { StdMat } from "./SharedMaterial";
 
 // Elétrica suspensa no 3D (engine/electrical.ts): eletrocalha de alumínio sob
 // o forro, perfilado de alumínio descendo por maquinário, tomada Steck
@@ -22,7 +23,7 @@ function Rod({ position, length }: { position: Vector3; length: number }) {
   return (
     <mesh position={[position.x, position.y + length / 2, position.z]}>
       <cylinderGeometry args={[0.004, 0.004, length, 8]} />
-      <meshStandardMaterial color="#8b949e" metalness={0.8} roughness={0.4} />
+      <StdMat color="#8b949e" metalness={0.8} roughness={0.4} />
     </mesh>
   );
 }
@@ -33,11 +34,11 @@ function Plug220() {
     <group>
       <mesh position={[0, 0, 0.02]} castShadow>
         <boxGeometry args={[0.032, 0.042, 0.04]} />
-        <meshStandardMaterial {...CORD} />
+        <StdMat {...CORD} />
       </mesh>
       <mesh position={[0, 0, 0.042]}>
         <boxGeometry args={[0.026, 0.034, 0.006]} />
-        <meshStandardMaterial color="#27272a" roughness={0.6} />
+        <StdMat color="#27272a" roughness={0.6} />
       </mesh>
     </group>
   );
@@ -50,17 +51,17 @@ function SteckPlug() {
     <group rotation={[Math.PI / 2, 0, 0]}>
       <mesh position={[0, 0.04, 0]} castShadow>
         <cylinderGeometry args={[0.026, 0.03, 0.08, 20]} />
-        <meshStandardMaterial color={STECK_BLUE} roughness={0.45} />
+        <StdMat color={STECK_BLUE} roughness={0.45} />
       </mesh>
       {[0.03, 0.05].map((y) => (
         <mesh key={y} position={[0, y, 0]}>
           <torusGeometry args={[0.029, 0.003, 6, 20]} />
-          <meshStandardMaterial color="#1e3a8a" roughness={0.5} />
+          <StdMat color="#1e3a8a" roughness={0.5} />
         </mesh>
       ))}
       <mesh position={[0, 0.085, 0]}>
         <cylinderGeometry args={[0.01, 0.014, 0.012, 12]} />
-        <meshStandardMaterial {...CORD} />
+        <StdMat {...CORD} />
       </mesh>
     </group>
   );
@@ -72,22 +73,22 @@ function SocketFace({ x = 0, y = 0, voltageColor }: { x?: number; y?: number; vo
     <group position={[x, y, 0]}>
       <mesh position={[0, 0, 0.0015]}>
         <cylinderGeometry args={[0.019, 0.019, 0.004, 20]} />
-        <meshStandardMaterial color="#f5f5f4" roughness={0.5} />
+        <StdMat color="#f5f5f4" roughness={0.5} />
       </mesh>
       {[-0.006, 0.006].map((dx) => (
         <mesh key={dx} position={[dx, 0.004, 0.004]}>
           <boxGeometry args={[0.003, 0.009, 0.002]} />
-          <meshStandardMaterial color="#111827" />
+          <StdMat color="#111827" />
         </mesh>
       ))}
       <mesh position={[0, -0.008, 0.004]}>
         <cylinderGeometry args={[0.0028, 0.0028, 0.002, 10]} />
-        <meshStandardMaterial color="#111827" />
+        <StdMat color="#111827" />
       </mesh>
       {/* etiqueta de tensão */}
       <mesh position={[0, 0.026, 0.0035]}>
         <boxGeometry args={[0.03, 0.006, 0.001]} />
-        <meshStandardMaterial color={voltageColor} />
+        <StdMat color={voltageColor} />
       </mesh>
     </group>
   );
@@ -115,7 +116,7 @@ export function Electrical({ layout, electrical: e }: { layout: Layout; electric
       {/* Eletrocalha de alumínio sob o forro, com tirantes */}
       <mesh position={v(trunkMid)} castShadow>
         <boxGeometry args={frame.size(trunkLen, M(e.trunk.heightMm), M(e.trunk.widthMm))} />
-        <meshStandardMaterial {...ALUMINUM} />
+        <StdMat {...ALUMINUM} />
       </mesh>
       {[e.trunk.from.a, e.trunk.to.a, ...e.machines.map((m) => m.profile.a)].map((a, i) => (
         <Rod
@@ -149,12 +150,12 @@ export function Electrical({ layout, electrical: e }: { layout: Layout; electric
             {/* Perfilado de alumínio (com a fenda voltada pra parede) */}
             <mesh position={center} castShadow>
               <boxGeometry args={frame.size(M(p.sizeMm), len, M(p.sizeMm))} />
-              <meshStandardMaterial {...ALUMINUM} />
+              <StdMat {...ALUMINUM} />
             </mesh>
             <group position={center} rotation={[0, towardWall, 0]}>
               <mesh position={[0, 0, half + 0.0006]}>
                 <boxGeometry args={[0.012, len * 0.98, 0.001]} />
-                <meshStandardMaterial color="#4b5563" metalness={0.6} roughness={0.5} />
+                <StdMat color="#4b5563" metalness={0.6} roughness={0.5} />
               </mesh>
             </group>
 
@@ -162,21 +163,21 @@ export function Electrical({ layout, electrical: e }: { layout: Layout; electric
             <group position={dryer} rotation={[0, towardWall, 0]}>
               <mesh position={[0, 0, half + 0.017]} rotation={[Math.PI / 2, 0, 0]} castShadow>
                 <cylinderGeometry args={[0.032, 0.036, 0.034, 20]} />
-                <meshStandardMaterial color="#1d4ed8" roughness={0.45} />
+                <StdMat color="#1d4ed8" roughness={0.45} />
               </mesh>
               <mesh position={[0, 0, half + 0.0345]} rotation={[Math.PI / 2, 0, 0]}>
                 <cylinderGeometry args={[0.024, 0.024, 0.002, 20]} />
-                <meshStandardMaterial color="#e5e7eb" roughness={0.4} />
+                <StdMat color="#e5e7eb" roughness={0.4} />
               </mesh>
               {[-0.01, 0.01].map((dx) => (
                 <mesh key={dx} position={[dx, 0.005, half + 0.0365]}>
                   <boxGeometry args={[0.004, 0.012, 0.002]} />
-                  <meshStandardMaterial color="#111827" />
+                  <StdMat color="#111827" />
                 </mesh>
               ))}
               <mesh position={[0, -0.012, half + 0.0365]} rotation={[Math.PI / 2, 0, 0]}>
                 <cylinderGeometry args={[0.004, 0.004, 0.002, 10]} />
-                <meshStandardMaterial color="#111827" />
+                <StdMat color="#111827" />
               </mesh>
               {/* Plugue Steck macho da secadora, ligado */}
               {hasSteckCord && (
@@ -191,7 +192,7 @@ export function Electrical({ layout, electrical: e }: { layout: Layout; electric
             <group position={boxPos} rotation={[0, towardWall, 0]}>
               <mesh position={[0, 0, half + 0.015]} castShadow>
                 <boxGeometry args={[0.075, boxH, 0.03]} />
-                <meshStandardMaterial color="#e5e7eb" roughness={0.5} />
+                <StdMat color="#e5e7eb" roughness={0.5} />
               </mesh>
               <group position={[0, 0, half + 0.03]}>
                 {box.map((s, k) => (
@@ -233,7 +234,7 @@ export function Electrical({ layout, electrical: e }: { layout: Layout; electric
           >
             <mesh position={[0, 0, 0.008]} castShadow>
               <boxGeometry args={[0.07, 0.14, 0.016]} />
-              <meshStandardMaterial color="#f5f5f4" roughness={0.5} />
+              <StdMat color="#f5f5f4" roughness={0.5} />
             </mesh>
             {Array.from({ length: o.sockets }, (_, k) => (
               <group key={k} position={[0, (k - (o.sockets - 1) / 2) * 0.06, 0.016]} scale={1.15}>
@@ -245,7 +246,7 @@ export function Electrical({ layout, electrical: e }: { layout: Layout; electric
           <group key={`c${i}`} position={[M(o.x), 0, M(o.y)]}>
             <mesh position={[0, 0.006, 0]} receiveShadow>
               <boxGeometry args={[0.1, 0.012, 0.16]} />
-              <meshStandardMaterial color="#9ca3af" metalness={0.7} roughness={0.35} />
+              <StdMat color="#9ca3af" metalness={0.7} roughness={0.35} />
             </mesh>
             {Array.from({ length: o.sockets }, (_, k) => (
               <group

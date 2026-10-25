@@ -7,6 +7,7 @@ import {
   TubeGeometry,
   Vector3,
 } from "three";
+import { StdMat } from "./SharedMaterial";
 
 export const DUCT_COLOR = "#aeb4ba";
 
@@ -58,7 +59,7 @@ export function Duct({
 
   return (
     <mesh geometry={geometry} castShadow>
-      <meshStandardMaterial color={color} metalness={metalness} roughness={roughness} side={DoubleSide} />
+      <StdMat color={color} metalness={metalness} roughness={roughness} side={DoubleSide} />
     </mesh>
   );
 }

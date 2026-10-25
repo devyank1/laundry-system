@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { CylinderGeometry, EdgesGeometry, ExtrudeGeometry, Shape } from "three";
+import { StdMat } from "./SharedMaterial";
 
 // Portado de pufs.html. Conjunto de 3 pufs hexagonais encaixados (azul-escuro na
 // frente, azul-claro e verde-água atrás). Origem no centro da caixa de
@@ -53,13 +54,13 @@ function Pouf({ color, x, z }: { color: string; x: number; z: number }) {
   return (
     <group position={[x, HEIGHT / 2 + 0.04, z - CLOUD_CENTER_Z]}>
       <mesh geometry={geo.body} rotation={[Math.PI / 2, 0, 0]} castShadow receiveShadow>
-        <meshStandardMaterial color={color} roughness={0.65} metalness={0.1} />
+        <StdMat color={color} roughness={0.65} metalness={0.1} />
       </mesh>
       <lineSegments geometry={geo.seam} rotation={[Math.PI / 2, 0, 0]}>
         <lineBasicMaterial color="#000000" transparent opacity={0.15} />
       </lineSegments>
       <mesh geometry={geo.foot} position={[0, -HEIGHT / 2 - 0.02, 0]} rotation={[0, Math.PI / 6, 0]} receiveShadow>
-        <meshStandardMaterial color="#1a1a1a" roughness={0.9} />
+        <StdMat color="#1a1a1a" roughness={0.9} />
       </mesh>
     </group>
   );

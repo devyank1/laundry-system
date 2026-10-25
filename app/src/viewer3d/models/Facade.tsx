@@ -5,6 +5,7 @@ import type { Layout } from "../../engine/types";
 import { doorShouldOpen, facadeDims, facadeLogoPlacement, type FacadeDims } from "../facade";
 import { cachedCanvasTexture } from "./canvasTexture";
 import { PlacedLogo, type SceneLogo } from "./WallLogo";
+import { StdMat } from "./SharedMaterial";
 
 const FRAME_COLOR = "#1f2937"; // perfis de alumínio preto
 const FRAME_WIDTH = 0.04;
@@ -16,7 +17,7 @@ const DOOR_SPEED = 2.2; // rad/s abrindo e fechando
 const DOOR_LEAF_GAP = 0.01;
 
 const glassMaterial = (
-  <meshStandardMaterial
+  <StdMat
     color="#bfdbfe"
     transparent
     opacity={0.18}
@@ -26,7 +27,7 @@ const glassMaterial = (
     side={DoubleSide}
   />
 );
-const profileMaterial = <meshStandardMaterial color={FRAME_COLOR} metalness={0.6} roughness={0.4} />;
+const profileMaterial = <StdMat color={FRAME_COLOR} metalness={0.6} roughness={0.4} />;
 
 function GlassPane({ x0, x1, y0, y1, z }: { x0: number; x1: number; y0: number; y1: number; z: number }) {
   return (
@@ -47,7 +48,7 @@ function FrontDoor({ dims }: { dims: FacadeDims }) {
   const w = door.x1 - door.x0 - DOOR_LEAF_GAP * 2;
   const h = door.height - DOOR_LEAF_GAP;
 
-  useFrame(({ camera }, delta) => {
+  useFrame(({ camera, invalidate, gl }, delta) => {
     const target = doorShouldOpen(dims, [camera.position.x, camera.position.y, camera.position.z])
       ? DOOR_OPEN_ANGLE
       : 0;
@@ -56,6 +57,11 @@ function FrontDoor({ dims }: { dims: FacadeDims }) {
     angle.current = a < target ? Math.min(target, a + step) : Math.max(target, a - step);
     // y positivo leva a ponta da folha pra -z (dentro da loja)
     if (leaf.current) leaf.current.rotation.y = angle.current;
+    // frameloop="demand": a porta ainda está abrindo/fechando, pede mais um quadro.
+    if (angle.current !== target) {
+      gl.shadowMap.needsUpdate = true; // sombras estáticas: porta mexendo refaz
+      invalidate();
+    }
   });
 
   return (
@@ -79,7 +85,7 @@ function FrontDoor({ dims }: { dims: FacadeDims }) {
       {/* Puxador vertical dos dois lados */}
       <mesh position={[w - 0.12, 1.05, 0]}>
         <boxGeometry args={[0.025, 0.8, 0.14]} />
-        <meshStandardMaterial color="#d1d5db" metalness={0.9} roughness={0.25} />
+        <StdMat color="#d1d5db" metalness={0.9} roughness={0.25} />
       </mesh>
     </group>
   );
@@ -160,9 +166,9 @@ export function Facade({
   const { opening, marquee, sign, wallZ, frontZ, nicheZ, glassZ } = d;
   const granite = graniteTexture(signColor);
   const graniteMaterial = (
-    <meshStandardMaterial color={granite ? "#ffffff" : signColor} map={granite} roughness={0.95} />
+    <StdMat color={granite ? "#ffffff" : signColor} map={granite} roughness={0.95} />
   );
-  const frame = <meshStandardMaterial color={wallColor} roughness={0.85} />;
+  const frame = <StdMat color={wallColor} roughness={0.85} />;
   // Perfis verticais: bordas de cada vidro fixo e os dois lados da porta.
   const mullionXs = [
     ...new Set([...d.glassPanes.flatMap((p) => [p.x0, p.x1]), d.door.x0, d.door.x1]),
@@ -254,7 +260,7 @@ export function Facade({
         <group key={`spot-${x}`}>
           <mesh position={[x, marquee.y - 0.004, spotZ]} rotation={[Math.PI / 2, 0, 0]}>
             <planeGeometry args={[0.28, 0.08]} />
-            <meshStandardMaterial
+            <StdMat
               color={MARQUEE_DOWN}
               emissive="#fff7e0"
               emissiveIntensity={2}
@@ -280,7 +286,7 @@ export function Facade({
         <boxGeometry
           args={[d.outerX1 - d.outerX0 + SIDEWALK_MARGIN * 2, 0.02, SIDEWALK_DEPTH]}
         />
-        <meshStandardMaterial color="#d6d3d1" roughness={0.95} />
+        <StdMat color="#d6d3d1" roughness={0.95} />
       </mesh>
     </group>
   );

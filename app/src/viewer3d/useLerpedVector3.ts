@@ -1,5 +1,5 @@
-import { useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useEffect, useRef } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
 import { Vector3 } from "three";
 
 export function useLerpedVector3(target: [number, number, number], durationMs = 400): Vector3 {
@@ -14,11 +14,21 @@ export function useLerpedVector3(target: [number, number, number], durationMs = 
     elapsed.current = 0;
   }
 
-  useFrame((_, delta) => {
+  // frameloop="demand": mudou o destino, pede o 1º quadro do movimento
+  // (trocar o alvo não altera nenhuma prop do three, então nada pede sozinho).
+  const requestFrame = useThree((s) => s.invalidate);
+  useEffect(() => {
+    requestFrame();
+  }, [target[0], target[1], target[2], requestFrame]);
+
+  // frameloop="demand": enquanto o movimento não termina, pede o próximo quadro.
+  useFrame(({ invalidate, gl }, delta) => {
     if (elapsed.current < durationMs) {
       elapsed.current = Math.min(durationMs, elapsed.current + delta * 1000);
       const t = elapsed.current / durationMs;
       current.current.lerpVectors(from.current, to.current, t);
+      gl.shadowMap.needsUpdate = true; // sombras estáticas: máquina em movimento refaz
+      if (elapsed.current < durationMs) invalidate();
     }
   });
 

@@ -28,6 +28,7 @@ export function CameraRig({
   const controls = useRef<OrbitControlsImpl>(null);
   // Câmera e relógio lidos na hora (get), não guardados do render.
   const get = useThree((s) => s.get);
+  const invalidate = useThree((s) => s.invalidate);
   const path = useMemo(() => customerTourPath(layout), [layout]);
   const tour = useRef<{ start: number } | null>(null);
 
@@ -51,6 +52,7 @@ export function CameraRig({
     tour.current = { start: clock.getElapsedTime() };
     if (c) c.enabled = false;
     setFov(TOUR_FOV);
+    invalidate(); // frameloop="demand": põe o passeio pra andar
     // Só reage a tourRun: mudar o layout no meio não reinicia nem reposiciona.
   }, [tourRun]);
 
@@ -63,7 +65,7 @@ export function CameraRig({
     c.update();
   }, [tx, ty, tz, tourRun]);
 
-  useFrame(({ camera, clock }) => {
+  useFrame(({ camera, clock, invalidate: next }) => {
     const t = tour.current;
     if (!t) return;
     const elapsed = clock.getElapsedTime() - t.start;
@@ -79,6 +81,7 @@ export function CameraRig({
         c.update();
       }
     }
+    if (tour.current) next(); // passeio em andamento: próximo quadro
   });
 
   return (

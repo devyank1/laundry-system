@@ -1,4 +1,5 @@
 import { cachedCanvasTexture } from "./canvasTexture";
+import { BasicMat, StdMat } from "./SharedMaterial";
 
 // Totem de pagamento de parede, baseado em totem_3d_lavanderia.html (tela PagLave +
 // módulo verde com impressora e NFC), sem pés nem inclinação: fica embutido no drywall.
@@ -60,7 +61,7 @@ function drawNfc(ctx: CanvasRenderingContext2D) {
 }
 
 function DarkMetal() {
-  return <meshStandardMaterial color="#111111" roughness={0.7} metalness={0.6} />;
+  return <StdMat color="#111111" roughness={0.7} metalness={0.6} />;
 }
 
 export function PaymentTotem() {
@@ -83,22 +84,22 @@ export function PaymentTotem() {
       ))}
       <mesh position={[0, BODY_H / 2, front + 0.002]}>
         <planeGeometry args={[0.24, 0.38]} />
-        <meshBasicMaterial map={screen} color={screen ? "#ffffff" : "#e5e7eb"} />
+        <BasicMat map={screen} color={screen ? "#ffffff" : "#e5e7eb"} />
       </mesh>
 
       {/* Módulo verde superior: impressora e NFC na frente */}
       <group position={[0, BODY_H + TOP_H / 2, 0.01]}>
         <mesh castShadow receiveShadow>
           <boxGeometry args={[BODY_W, TOP_H, BODY_D + 0.02]} />
-          <meshStandardMaterial color={LIME} roughness={0.3} metalness={0.1} />
+          <StdMat color={LIME} roughness={0.3} metalness={0.1} />
         </mesh>
         <mesh position={[-0.08, -0.03, front + 0.011]}>
           <boxGeometry args={[0.16, 0.012, 0.004]} />
-          <meshBasicMaterial color="#000000" />
+          <BasicMat color="#000000" />
         </mesh>
         <mesh position={[0.11, 0, front + 0.012]}>
           <planeGeometry args={[0.1, 0.1]} />
-          <meshStandardMaterial map={nfc} color={LIME} roughness={0.3} />
+          <StdMat map={nfc} color={LIME} roughness={0.3} />
         </mesh>
       </group>
     </group>

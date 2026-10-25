@@ -12,6 +12,7 @@ import type { Layout } from "../../engine/types";
 import type { LogoSideColor, LogoStyle } from "../../state/projectStore";
 import { alphaFromRGBA, traceLogo, type LogoOutline } from "../logoShape";
 import { logoPlacement, type LogoPlacement } from "../placement";
+import { StdMat } from "./SharedMaterial";
 
 export interface SceneLogo {
   url: string;
@@ -96,7 +97,8 @@ export function PlacedLogo({
   }, [logo.url]);
 
   const image = texture?.image as HTMLImageElement | undefined;
-  const outline = useMemo(() => (image ? traceImage(image) : null), [image]);
+  // O contorno (trace) só serve pro letreiro 3D: logo "flat" (tapetes, adesivo) não paga por ele.
+  const outline = useMemo(() => (image && logo.style === "3d" ? traceImage(image) : null), [image, logo.style]);
   const geometry = useMemo(
     () => (outline && logo.style === "3d" ? buildGeometry(outline, logo.depthMm / 1000) : null),
     [outline, logo.style, logo.depthMm]
@@ -122,8 +124,8 @@ export function PlacedLogo({
           castShadow
         >
           {/* grupo 0 = frente/fundo (com a logo), grupo 1 = laterais */}
-          <meshStandardMaterial attach="material-0" map={texture} roughness={0.5} />
-          <meshStandardMaterial
+          <StdMat attach="material-0" map={texture} roughness={0.5} />
+          <StdMat
             attach="material-1"
             color={side.color}
             metalness={side.metalness}
@@ -139,7 +141,7 @@ export function PlacedLogo({
   return (
     <mesh position={placement.position} rotation={[0, placement.yaw, 0]}>
       <planeGeometry args={[placement.width, placement.height]} />
-      <meshStandardMaterial map={texture} transparent alphaTest={0.05} roughness={0.6} />
+      <StdMat map={texture} transparent alphaTest={0.05} roughness={0.6} />
     </mesh>
   );
 }

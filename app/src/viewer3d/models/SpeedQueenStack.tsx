@@ -1,4 +1,5 @@
 import { cachedCanvasTexture } from "./canvasTexture";
+import { BasicMat, StdMat } from "./SharedMaterial";
 
 // Portado de modelo_3d_m_quina_speed_queen.html. Medidas nativas em metros,
 // origem no centro da base, frente voltada para +z.
@@ -54,11 +55,11 @@ function drawPanel(ctx: CanvasRenderingContext2D) {
 }
 
 function WhiteMetal() {
-  return <meshStandardMaterial color="#f9fafb" roughness={0.4} metalness={0.1} />;
+  return <StdMat color="#f9fafb" roughness={0.4} metalness={0.1} />;
 }
 
 function DarkGlass() {
-  return <meshStandardMaterial color="#111111" roughness={0.1} metalness={0.8} />;
+  return <StdMat color="#111111" roughness={0.1} metalness={0.8} />;
 }
 
 export function SpeedQueenStack() {
@@ -76,7 +77,7 @@ export function SpeedQueenStack() {
       {[0.95, 1.15].map((y) => (
         <mesh key={y} position={[0, y, 0]}>
           <boxGeometry args={[W + 0.002, 0.005, D + 0.002]} />
-          <meshBasicMaterial color="#9ca3af" />
+          <BasicMat color="#9ca3af" />
         </mesh>
       ))}
 
@@ -87,7 +88,7 @@ export function SpeedQueenStack() {
       </mesh>
       <mesh position={[0, 0.45, FRONT + 0.015]}>
         <torusGeometry args={[0.2, 0.015, 12, 48]} />
-        <meshStandardMaterial color="#cccccc" roughness={0.2} metalness={0.9} />
+        <StdMat color="#cccccc" roughness={0.2} metalness={0.9} />
       </mesh>
       <mesh position={[0, 0.45, FRONT]} rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[0.21, 0.18, 0.06, 32]} />
@@ -101,7 +102,7 @@ export function SpeedQueenStack() {
       {/* Dispenser de sabão */}
       <mesh position={[0.2, 0.85, FRONT + 0.002]}>
         <boxGeometry args={[0.185, 0.065, 0.005]} />
-        <meshBasicMaterial color="#9ca3af" />
+        <BasicMat color="#9ca3af" />
       </mesh>
       <mesh position={[0.2, 0.85, FRONT + 0.005]}>
         <boxGeometry args={[0.18, 0.06, 0.01]} />
@@ -111,11 +112,11 @@ export function SpeedQueenStack() {
       {/* Painel de controle */}
       <mesh position={[0, 1.05, FRONT]}>
         <boxGeometry args={[0.68, 0.2, 0.01]} />
-        <meshStandardMaterial color="#111111" roughness={0.6} />
+        <StdMat color="#111111" roughness={0.6} />
       </mesh>
       <mesh position={[0, 1.05, FRONT + 0.006]}>
         <planeGeometry args={[0.66, 0.16]} />
-        <meshBasicMaterial map={panel} color={panel ? "#ffffff" : "#111111"} />
+        <BasicMat map={panel} color={panel ? "#ffffff" : "#111111"} />
       </mesh>
 
       {/* Secadora: porta retangular */}

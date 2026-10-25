@@ -1,3 +1,4 @@
+import { StdMat } from "./SharedMaterial";
 // Portado de html-3d/Quadro energia.html: quadro de distribuição de embutir —
 // caixa escura embutida, moldura branca, 2 trilhos DIN (em cima DR + geral
 // trifásico + tampas cegas; embaixo 11 disjuntores unipolares) e porta de
@@ -32,7 +33,7 @@ function Block({ args, mat, position, rotation }: {
   return (
     <mesh position={position} rotation={rotation} castShadow>
       <boxGeometry args={args} />
-      <meshStandardMaterial {...mat} />
+      <StdMat {...mat} />
     </mesh>
   );
 }
@@ -52,7 +53,7 @@ function Breaker({ width, dr = false, position }: { width: number; dr?: boolean;
         <>
           <mesh position={[-width * 0.25, -0.12, d / 2 + 0.05]} rotation={[Math.PI / 2, 0, 0]}>
             <cylinderGeometry args={[0.025, 0.025, 0.03, 16]} />
-            <meshStandardMaterial {...YELLOW} />
+            <StdMat {...YELLOW} />
           </mesh>
           <Block args={[0.04, 0.03, 0.01]} mat={RED} position={[width * 0.25, -0.12, d / 2 + 0.05]} />
         </>
@@ -74,7 +75,7 @@ export function ElectricalPanel() {
       <Block args={[PANEL_W, PANEL_H, FRAME_T]} mat={WHITE} position={[0, 0, PANEL_D / 2 + FRAME_T / 2]} />
       <mesh position={[0, 0, PANEL_D / 2 + FRAME_T + 0.001]}>
         <planeGeometry args={[PANEL_W - 0.3, PANEL_H - 0.3]} />
-        <meshStandardMaterial {...INNER} />
+        <StdMat {...INNER} />
       </mesh>
       {ROW_Y.map((y) => (
         <Block key={y} args={[1.7, 0.08, 0.03]} mat={RAIL} position={[0, y, PANEL_D / 2 + FRAME_T + 0.02]} />
@@ -99,7 +100,7 @@ export function ElectricalPanel() {
       <group position={[0, 0, PANEL_D / 2 + FRAME_T + 0.3]}>
         <mesh>
           <boxGeometry args={[PANEL_W * 0.98, PANEL_H * 0.98, 0.05]} />
-          <meshStandardMaterial color="#e8ebef" roughness={0.15} metalness={0.05} transparent opacity={0.35} depthWrite={false} />
+          <StdMat color="#e8ebef" roughness={0.15} metalness={0.05} transparent opacity={0.35} depthWrite={false} />
         </mesh>
         <Block args={[0.04, 0.35, 0.04]} mat={WHITE} position={[PANEL_W * 0.98 / 2 - 0.06, 0, 0.045]} />
       </group>

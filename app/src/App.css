@@ -432,6 +432,7 @@
 }
 
 .app > .scene3d {
+  position: relative;
   grid-column: 2;
   grid-row: 5;
   display: flex;
@@ -695,6 +696,7 @@
   .app > .plan2d,
   .app canvas,
   .app > .scene3d,
+  .app > .scene3d-placeholder,
   .app > div.export-actions {
     grid-column: 1;
     grid-row: auto;
@@ -707,4 +709,38 @@
   .app div[role="dialog"] fieldset {
     grid-template-columns: 1fr;
   }
+}
+
+/* Aviso enquanto os shaders do 3D compilam em paralelo (sem travar o navegador). */
+.app .scene3d-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+  color: var(--text-muted);
+  font-weight: 600;
+  pointer-events: none;
+}
+
+/* Espaço do 3D enquanto o pacote do 3D (three/fiber/drei) é baixado. */
+.app .scene3d-placeholder {
+  grid-column: 2;
+  grid-row: 5;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text-muted);
+  font-weight: 600;
 }

@@ -1,3 +1,4 @@
+import { StdMat } from "./SharedMaterial";
 // Portado de html-3d/Molden internet.html: roteador/modem preto de parede —
 // corpo com painel frontal chanfrado, suporte traseiro, etiqueta branca,
 // faixa da marca, 5 LEDs (4 verdes acesos) e 4 antenas articuladas.
@@ -27,31 +28,31 @@ export function Modem() {
     <group scale={MODEM_SCALE} position={[0, 0, 0.3 * MODEM_SCALE]}>
       <mesh castShadow>
         <boxGeometry args={[4.0, 2.8, 0.45]} />
-        <meshStandardMaterial {...BODY} />
+        <StdMat {...BODY} />
       </mesh>
       <mesh position={[0, 0, 0.23]}>
         <boxGeometry args={[3.88, 2.68, 0.06]} />
-        <meshStandardMaterial {...BEVEL} />
+        <StdMat {...BEVEL} />
       </mesh>
       <mesh position={[0, 0, -0.26]}>
         <boxGeometry args={[2.4, 1.8, 0.08]} />
-        <meshStandardMaterial {...BEVEL} />
+        <StdMat {...BEVEL} />
       </mesh>
       <mesh position={[-1.3, 0.9, 0.262]}>
         <planeGeometry args={[0.7, 0.35]} />
-        <meshStandardMaterial color="#f8f9fa" roughness={0.2} />
+        <StdMat color="#f8f9fa" roughness={0.2} />
       </mesh>
       <mesh position={[0, 1.05, 0.262]}>
         <planeGeometry args={[0.9, 0.08]} />
-        <meshStandardMaterial color="#cccccc" roughness={0.3} />
+        <StdMat color="#cccccc" roughness={0.3} />
       </mesh>
       {Array.from({ length: 5 }, (_, i) => (
         <mesh key={i} position={[-0.8 + i * 0.4, -1.15, 0.262]} rotation={[Math.PI / 2, 0, 0]}>
           <cylinderGeometry args={[0.025, 0.025, 0.02, 12]} />
           {i < 4 ? (
-            <meshStandardMaterial color="#00ff66" emissive="#00ff66" emissiveIntensity={0.9} roughness={0.2} />
+            <StdMat color="#00ff66" emissive="#00ff66" emissiveIntensity={0.9} roughness={0.2} />
           ) : (
-            <meshStandardMaterial color="#224422" emissive="#001100" emissiveIntensity={0.1} roughness={0.5} />
+            <StdMat color="#224422" emissive="#001100" emissiveIntensity={0.1} roughness={0.5} />
           )}
         </mesh>
       ))}
@@ -59,19 +60,19 @@ export function Modem() {
         <group key={`${a.x}${a.y}`} position={[a.x, a.y, 0]} rotation={[0, 0, a.rotZ]}>
           <mesh rotation={[0, 0, Math.PI / 2]}>
             <cylinderGeometry args={[0.09, 0.09, 0.25, 16]} />
-            <meshStandardMaterial {...BEVEL} />
+            <StdMat {...BEVEL} />
           </mesh>
           <mesh position={[0, 0.18, 0]}>
             <boxGeometry args={[0.12, 0.35, 0.12]} />
-            <meshStandardMaterial {...ANTENNA} />
+            <StdMat {...ANTENNA} />
           </mesh>
           <mesh position={[0, 2.1, 0]} castShadow>
             <cylinderGeometry args={[0.05, 0.08, 3.8, 16]} />
-            <meshStandardMaterial {...ANTENNA} />
+            <StdMat {...ANTENNA} />
           </mesh>
           <mesh position={[0, 4.1, 0]}>
             <coneGeometry args={[0.05, 0.2, 16]} />
-            <meshStandardMaterial {...ANTENNA} />
+            <StdMat {...ANTENNA} />
           </mesh>
         </group>
       ))}
