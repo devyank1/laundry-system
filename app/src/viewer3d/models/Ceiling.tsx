@@ -1,6 +1,6 @@
 import type { Layout } from "../../engine/types";
 import { ROOM_WALL_THICKNESS } from "../facade";
-import { CEILING_PANEL_SIZE_M, ceilingLightPositions } from "../lighting";
+import { CEILING_PANEL_SIZE_M, ceilingLightPositions, clusterLights } from "../lighting";
 import { StdMat } from "./SharedMaterial";
 
 const ROOF_THICKNESS = 0.12; // laje
@@ -10,8 +10,8 @@ const ROOF_THICKNESS = 0.12; // laje
 // o interior de cima.
 const FACE_DOWN: [number, number, number] = [Math.PI / 2, 0, 0];
 
-// Teto básico (forro branco) com painéis de LED 60x60, cada um com uma luz
-// de verdade iluminando a loja.
+// Teto básico (forro branco) com painéis de LED 60x60. As luzes de verdade
+// são poucas (até 2x2, ver clusterLights): cada uma pesa em todo pixel.
 export function Ceiling({
   layout,
   panelIntensity,
@@ -24,6 +24,7 @@ export function Ceiling({
   const w = layout.roomWidthMm / 1000;
   const d = layout.roomDepthMm / 1000;
   const h = layout.ceilingHeightMm / 1000;
+  const panels = ceilingLightPositions(layout);
 
   return (
     <group>
@@ -46,26 +47,22 @@ export function Ceiling({
         <StdMat color="#f8fafc" roughness={0.9} />
       </mesh>
 
-      {ceilingLightPositions(layout).map(([x, z]) => (
-        <group key={`${x}-${z}`}>
-          <mesh position={[x, h - 0.004, z]} rotation={FACE_DOWN}>
-            <planeGeometry args={[CEILING_PANEL_SIZE_M, CEILING_PANEL_SIZE_M]} />
-            {/* toneMapped=false: o painel "estoura" de branco, parece aceso */}
-            <StdMat
-              color="#ffffff"
-              emissive="#fff8e7"
-              emissiveIntensity={1.5}
-              toneMapped={false}
-            />
-          </mesh>
-          <pointLight
-            position={[x, h - 0.25, z]}
-            color="#fff4dc"
-            intensity={panelIntensity}
-            distance={6}
-            decay={2}
-          />
-        </group>
+      {panels.map(([x, z]) => (
+        <mesh key={`${x}-${z}`} position={[x, h - 0.004, z]} rotation={FACE_DOWN}>
+          <planeGeometry args={[CEILING_PANEL_SIZE_M, CEILING_PANEL_SIZE_M]} />
+          {/* toneMapped=false: o painel "estoura" de branco, parece aceso */}
+          <StdMat color="#ffffff" emissive="#fff8e7" emissiveIntensity={1.5} toneMapped={false} />
+        </mesh>
+      ))}
+      {clusterLights(panels).map(([x, z, n]) => (
+        <pointLight
+          key={`light-${x}-${z}`}
+          position={[x, h - 0.25, z]}
+          color="#fff4dc"
+          intensity={panelIntensity * n}
+          distance={6 + Math.sqrt(n)}
+          decay={2}
+        />
       ))}
     </group>
   );

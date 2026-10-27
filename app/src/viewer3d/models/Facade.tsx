@@ -4,6 +4,7 @@ import { DoubleSide, RepeatWrapping, type Group } from "three";
 import type { Layout } from "../../engine/types";
 import { doorShouldOpen, facadeDims, facadeLogoPlacement, type FacadeDims } from "../facade";
 import { cachedCanvasTexture } from "./canvasTexture";
+import { clusterLights } from "../lighting";
 import { PlacedLogo, type SceneLogo } from "./WallLogo";
 import { StdMat } from "./SharedMaterial";
 
@@ -65,7 +66,8 @@ function FrontDoor({ dims }: { dims: FacadeDims }) {
   });
 
   return (
-    <group ref={leaf} position={[door.x0 + DOOR_LEAF_GAP, 0, glassZ]}>
+    // Folha gira sozinha (sensor): fora do lote de peças paradas.
+    <group ref={leaf} position={[door.x0 + DOOR_LEAF_GAP, 0, glassZ]} userData={{ noBatch: true }}>
       <mesh position={[w / 2, h / 2, 0]}>
         <planeGeometry args={[w, h]} />
         {glassMaterial}
@@ -257,25 +259,27 @@ export function Facade({
         {graniteMaterial}
       </Block>
       {d.downlightsX.map((x) => (
-        <group key={`spot-${x}`}>
-          <mesh position={[x, marquee.y - 0.004, spotZ]} rotation={[Math.PI / 2, 0, 0]}>
-            <planeGeometry args={[0.28, 0.08]} />
-            <StdMat
-              color={MARQUEE_DOWN}
-              emissive="#fff7e0"
-              emissiveIntensity={2}
-              toneMapped={false}
-              side={DoubleSide}
-            />
-          </mesh>
-          <pointLight
-            position={[x, marquee.y - 0.15, spotZ]}
-            color="#ffe9c4"
-            intensity={spotIntensity}
-            distance={3.5}
-            decay={2}
+        <mesh key={`spot-${x}`} position={[x, marquee.y - 0.004, spotZ]} rotation={[Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[0.28, 0.08]} />
+          <StdMat
+            color={MARQUEE_DOWN}
+            emissive="#fff7e0"
+            emissiveIntensity={2}
+            toneMapped={false}
+            side={DoubleSide}
           />
-        </group>
+        </mesh>
+      ))}
+      {/* Luz de verdade: no máximo 2 (cada pointLight pesa em todo pixel) */}
+      {clusterLights(d.downlightsX.map((x) => [x, spotZ]), 2).map(([x, z, n]) => (
+        <pointLight
+          key={`spot-light-${x}`}
+          position={[x, marquee.y - 0.15, z]}
+          color="#ffe9c4"
+          intensity={spotIntensity * n}
+          distance={3.5 + Math.sqrt(n)}
+          decay={2}
+        />
       ))}
 
       {/* Calçada */}

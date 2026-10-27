@@ -4,7 +4,7 @@ import { PLAN_COLORS } from "../viewer2d/planTheme";
 export type SceneLighting = "day" | "night";
 
 const PANEL_SPACING_M = 2.0; // um painel de LED a cada ~2m
-const MAX_PANELS = 16; // cada painel é uma luz de verdade: limita pelo desempenho
+const MAX_PANELS = 16;
 export const CEILING_PANEL_SIZE_M = 0.6; // painel de LED 60x60
 
 // Painéis de LED do teto em grade regular sobre a sala inteira, centrados em
@@ -59,3 +59,30 @@ export const LIGHTING_PRESETS: Record<SceneLighting, LightingPreset> = {
     facadeSpot: 3,
   },
 };
+
+// Luzes de verdade: cada pointLight entra no cálculo de TODO pixel da tela,
+// então os painéis (só visuais) são agrupados em no máximo `perAxis` x
+// `perAxis` blocos, cada um com uma luz no centro e a força somada dos
+// painéis do bloco. [x, z, quantos painéis].
+export function clusterLights(points: [number, number][], perAxis = 2): [number, number, number][] {
+  if (points.length === 0) return [];
+  const split = (values: number[]) => {
+    const sorted = [...new Set(values.map((v) => +v.toFixed(3)))].sort((a, b) => a - b);
+    const k = Math.min(perAxis, sorted.length);
+    // limites entre os blocos, por quantidade de colunas/linhas distintas
+    return Array.from({ length: k - 1 }, (_, i) => sorted[Math.round(((i + 1) * sorted.length) / k) - 1]);
+  };
+  const bx = split(points.map((p) => p[0]));
+  const bz = split(points.map((p) => p[1]));
+  const cell = (v: number, bounds: number[]) => bounds.filter((b) => v > b + 1e-6).length;
+  const groups = new Map<string, [number, number][]>();
+  for (const p of points) {
+    const key = `${cell(p[0], bx)}|${cell(p[1], bz)}`;
+    groups.set(key, [...(groups.get(key) ?? []), p]);
+  }
+  return [...groups.values()].map((g) => [
+    g.reduce((a, p) => a + p[0], 0) / g.length,
+    g.reduce((a, p) => a + p[1], 0) / g.length,
+    g.length,
+  ]);
+}

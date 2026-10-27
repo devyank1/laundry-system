@@ -1,30 +1,36 @@
 :root {
-  --bg: #f2f4f8;
+  /* Base neutra + azul-marinho da marca como única cor de destaque */
+  --bg: #f4f5f7;
   --surface: #ffffff;
-  --border: #e4e8ef;
-  --text: #1a2233;
-  --text-muted: #667085;
-
-  --grad-start: #0b3d59;
-  --grad-end: #6b3fa0;
-  --gradient: linear-gradient(135deg, var(--grad-start) 0%, var(--grad-end) 100%);
+  --surface-muted: #f8f9fb;
+  --border: #e3e6eb;
+  --border-strong: #cfd4dc;
+  --text: #111827;
+  --text-muted: #5f6b7a;
+  --text-subtle: #8a94a3;
 
   --primary: #0b3d59;
-  --primary-soft: #a9c6e8;
-  --primary-bg: #eaf1fb;
-  --accent: #6b3fa0;
-  --accent-bg: #f3edfb;
+  --primary-hover: #082f45;
+  --primary-soft: #c9dbe8;
+  --primary-bg: #edf3f7;
+  --accent: #0b3d59;
+  --accent-bg: #edf3f7;
+  --focus-ring: 0 0 0 3px rgba(11, 61, 89, 0.18);
 
-  --danger: #c0352b;
-  --danger-bg: #fdecea;
+  --danger: #b42318;
+  --danger-bg: #fef3f2;
+  --danger-border: #fecdca;
 
-  --radius-lg: 18px;
-  --radius: 12px;
-  --radius-sm: 8px;
+  --radius-lg: 12px;
+  --radius: 10px;
+  --radius-sm: 6px;
   --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
-  --shadow: 0 2px 8px rgba(16, 24, 40, 0.06), 0 8px 24px rgba(16, 24, 40, 0.06);
-  --shadow-lg: 0 12px 32px rgba(16, 24, 40, 0.14), 0 4px 10px rgba(16, 24, 40, 0.08);
-  --transition: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow: 0 1px 3px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-lg: 0 20px 40px -12px rgba(16, 24, 40, 0.22), 0 4px 12px rgba(16, 24, 40, 0.08);
+  --transition: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  --topbar-h: 60px;
+  --sidebar-w: 340px;
 }
 
 *,
@@ -40,13 +46,10 @@ html {
 body {
   margin: 0;
   background: var(--bg);
-  background-image:
-    radial-gradient(640px circle at 8% -10%, rgba(107, 63, 160, 0.10), transparent 55%),
-    radial-gradient(520px circle at 96% 8%, rgba(11, 61, 89, 0.10), transparent 55%);
-  background-attachment: fixed;
   color: var(--text);
   font-family: "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
-  font-size: 15px;
+  font-size: 14px;
+  font-feature-settings: "cv11", "ss01";
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -55,8 +58,8 @@ body {
 h1,
 h2,
 h3 {
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-weight: 600;
+  letter-spacing: -0.015em;
   color: var(--text);
 }
 
@@ -83,7 +86,7 @@ select {
 /* Subtle, modern scrollbars (progressive enhancement, webkit) */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--primary-soft) transparent;
+  scrollbar-color: var(--border-strong) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -92,7 +95,7 @@ select {
 }
 
 *::-webkit-scrollbar-thumb {
-  background: var(--primary-soft);
+  background: var(--border-strong);
   border-radius: 8px;
 }
 

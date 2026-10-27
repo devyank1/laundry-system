@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useLayoutEffect, useRef } from "react";
+import { Object3D, type InstancedMesh } from "three";
 import { StdMat } from "./SharedMaterial";
 
 // Portado de carro pipoca.html. Carrinho vermelho com cabine de vidro, teto
@@ -35,6 +36,8 @@ function Wheel({ z }: { z: number }) {
   );
 }
 
+const POPCORN_COUNT = 250;
+
 // Pipocas em posições fixas (pseudo-aleatórias determinísticas) pra não mudar a cada render.
 function popcornPositions(): [number, number, number][] {
   let seed = 7;
@@ -42,16 +45,38 @@ function popcornPositions(): [number, number, number][] {
     seed = (seed * 16807) % 2147483647;
     return seed / 2147483647;
   };
-  return Array.from({ length: 250 }, () => [
+  return Array.from({ length: POPCORN_COUNT }, () => [
     (rand() - 0.5) * 3.4,
     4.6 + rand() * 0.4,
     (rand() - 0.5) * 2.4,
   ]);
 }
 
-export function PopcornCart() {
-  const popcorn = useMemo(popcornPositions, []);
+// Uma malha instanciada (1 chamada de desenho) em vez de 250 malhas.
+function Popcorn() {
+  const ref = useRef<InstancedMesh>(null);
+  useLayoutEffect(() => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    const dummy = new Object3D();
+    popcornPositions().forEach((p, i) => {
+      dummy.position.set(...p);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
+  }, []);
+  return (
+    <instancedMesh ref={ref} args={[undefined, undefined, POPCORN_COUNT]}>
+      <sphereGeometry args={[0.12, 6, 6]} />
+      {/* levemente emissiva: parece iluminada pela lâmpada da máquina */}
+      <StdMat color="#ffeebb" emissive="#ffcc66" emissiveIntensity={0.25} roughness={0.9} />
+    </instancedMesh>
+  );
+}
 
+export function PopcornCart() {
   return (
     <group scale={SCALE}>
       {/* Base vermelha */}
@@ -111,16 +136,7 @@ export function PopcornCart() {
         </mesh>
       ))}
 
-      {/* Pipocas */}
-      {popcorn.map((p, i) => (
-        <mesh key={i} position={p}>
-          <sphereGeometry args={[0.12, 6, 6]} />
-          <StdMat color="#ffeebb" roughness={0.9} />
-        </mesh>
-      ))}
-
-      {/* Luz amarela da máquina */}
-      <pointLight position={[0, 5.5, 0]} color="#ffddaa" intensity={0.4} distance={4} />
+      <Popcorn />
     </group>
   );
 }

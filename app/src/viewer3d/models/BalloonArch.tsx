@@ -14,6 +14,9 @@ const BALLOON_RADIUS = 1.2 * SCALE;
 const HEIGHT_STRETCH = 1.6;
 const SEGMENTS = 90;
 const TWIST = 0.45;
+// 364 balões: esfera 20x20 dava 277 mil triângulos (o dobro da loja inteira).
+// Balão de 14 cm visto de longe: 12x8 já fica redondo.
+const BALLOON_SEGMENTS: [number, number, number] = [BALLOON_RADIUS, 12, 8];
 
 function useBalloonMatrices() {
   const blue = useRef<InstancedMesh>(null);
@@ -56,11 +59,11 @@ export function BalloonArch() {
   return (
     <group>
       <instancedMesh ref={blue} args={[undefined, undefined, perColor]} castShadow>
-        <sphereGeometry args={[BALLOON_RADIUS, 20, 20]} />
+        <sphereGeometry args={BALLOON_SEGMENTS} />
         <StdMat color="#1e90ff" roughness={0.2} />
       </instancedMesh>
       <instancedMesh ref={white} args={[undefined, undefined, perColor]} castShadow>
-        <sphereGeometry args={[BALLOON_RADIUS, 20, 20]} />
+        <sphereGeometry args={BALLOON_SEGMENTS} />
         <StdMat color="#ffffff" roughness={0.2} />
       </instancedMesh>
     </group>

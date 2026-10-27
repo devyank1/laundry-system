@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
 import { Box3, Vector3, type Group, type Mesh } from "three";
 import { useLerpedVector3 } from "./useLerpedVector3";
+import { MIN_SHADOW_CASTER_M, StaticBatch } from "./StaticBatch";
 import {
   CHAIR_HEIGHT_MM,
   DRYWALL_THICKNESS_MM,
@@ -113,7 +114,9 @@ function MachineMesh({
   });
 
   return (
-    <group ref={groupRef} position={targetPosition}>
+    // Desliza sozinha quando o layout muda: fora do lote geral, com lote próprio.
+    <group ref={groupRef} position={targetPosition} userData={{ noBatch: true }}>
+      <StaticBatch>
       {/* Máquina pesada: base de concreto de 2 cm embaixo (um pouco maior que ela) */}
       {base > 0 && (
         <mesh position={[0, base / 2, 0]} castShadow receiveShadow>
@@ -126,6 +129,7 @@ function MachineMesh({
           {model.kind === "speedQueen" ? <SpeedQueenStack /> : <TowerMachine finish={model.finish} />}
         </FitBox>
       </group>
+      </StaticBatch>
     </group>
   );
 }
@@ -299,7 +303,6 @@ function CompileGate({ onReady }: { onReady: () => void }) {
 // refeito quando a CENA muda (props novas, máquina deslizando, porta mexendo) —
 // e não a cada quadro de órbita. Redesenhar 400 casters por quadro era o
 // maior custo do 1º quadro e de cada giro de câmera.
-const MIN_SHADOW_CASTER_M = 0.12; // peça menor que isso não projeta sombra visível
 
 function StaticShadows() {
   const get = useThree((s) => s.get);
@@ -323,6 +326,28 @@ function StaticShadows() {
     invalidate();
   });
   return null;
+}
+
+// Grupo escondido que já deixa os shaders prontos: o compile do three só olha
+// o que está visível, então mostra por um instante só pra compilar. Fica fora
+// do lote geral (tem lote próprio) pra ligar/desligar não refazer a loja toda.
+function Prewarmed({ visible, children }: { visible: boolean; children: ReactNode }) {
+  const ref = useRef<Group>(null);
+  const get = useThree((s) => s.get);
+  useEffect(() => {
+    const group = ref.current;
+    if (!group) return;
+    const { gl, scene, camera } = get();
+    const was = group.visible;
+    group.visible = true;
+    if (typeof gl.compileAsync === "function") void gl.compileAsync(group, camera, scene).catch(() => {});
+    group.visible = was;
+  }, [get]);
+  return (
+    <group ref={ref} visible={visible} userData={{ noBatch: true }}>
+      <StaticBatch>{children}</StaticBatch>
+    </group>
+  );
 }
 
 // Ao sair de "never" pra "demand" nada pede o 1º quadro: este componente pede.
@@ -386,8 +411,9 @@ export function Scene({
       <Canvas
         // PCF simples: o "soft" (padrão) custava ~600 ms no 1º quadro por causa dos shaders.
         shadows="percentage"
-        // Telas retina: 2x só gasta GPU (4x os pixels) sem ganho visível aqui.
-        dpr={[1, 1.5]}
+        // Telas com escala (125%, 150%, retina): acima de 1,25x só gasta GPU
+        // (o 3D ocupa a tela toda) sem ganho visível.
+        dpr={[1, 1.25]}
         // "demand": só desenha quando algo muda (órbita, animação, props). Parado = GPU em 0%.
         frameloop={ready ? "demand" : "never"}
         gl={{ preserveDrawingBuffer: true }}
@@ -401,6 +427,8 @@ export function Scene({
           intensity={light.sun}
           castShadow
         />
+        {/* Tudo que fica parado entra num lote: menos chamadas de desenho por quadro */}
+        <StaticBatch>
         <Ceiling layout={layout} panelIntensity={light.panelLight} showRoof={showRoof} />
 
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[roomW / 2, 0, roomD / 2]} receiveShadow>
@@ -597,7 +625,14 @@ export function Scene({
           </group>
         )}
 
-        {inauguracao && <Inauguracao layout={layout} />}
+        {/* Montada desde o início (escondida) com os shaders já compilados:
+            ligar o modo inauguração só mostra, sem travar */}
+        {ready && (
+          <Prewarmed visible={inauguracao}>
+            <Inauguracao layout={layout} />
+          </Prewarmed>
+        )}
+        </StaticBatch>
 
         {/* Reflexos para os metais (inox, prata) sem baixar HDR da internet */}
         <Environment resolution={64} environmentIntensity={light.environment}>
@@ -617,14 +652,18 @@ export function Scene({
         <StaticShadows />
       </Canvas>
 
-      <ul className="plan-legend">
-        {[{ label: "Drywall: Verde Escuro Embutido", color: drywallColor }, ...LEGEND].map((item) => (
-          <li key={item.label}>
-            <span className="plan-legend-swatch" style={{ background: item.color }} />
-            {item.label}
-          </li>
-        ))}
-      </ul>
+      {/* Legenda recolhível por cima do 3D: a aba cabe na tela sem rolar. */}
+      <details className="scene-legend">
+        <summary>Legenda</summary>
+        <ul className="plan-legend">
+          {[{ label: "Drywall: Verde Escuro Embutido", color: drywallColor }, ...LEGEND].map((item) => (
+            <li key={item.label}>
+              <span className="plan-legend-swatch" style={{ background: item.color }} />
+              {item.label}
+            </li>
+          ))}
+        </ul>
+      </details>
     </div>
   );
 }

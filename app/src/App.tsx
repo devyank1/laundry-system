@@ -4,6 +4,18 @@ import { ViolationsPanel } from "./ui/ViolationsPanel";
 import { CatalogManager } from "./ui/CatalogManager";
 import { RoiCalculator } from "./roi/RoiCalculator";
 import { InsightsCalculator } from "./insights/InsightsCalculator";
+import {
+  IconChart,
+  IconCube,
+  IconDownload,
+  IconEye,
+  IconOrbit,
+  IconPlan,
+  IconSettings,
+  IconSignal,
+  IconSparkles,
+  LogoMark,
+} from "./ui/icons";
 import { FloorPlan, PLAN_SHEETS, type PlanSheet } from "./viewer2d/FloorPlan";
 import { useLayout } from "./state/useLayout";
 import { useProjectStore } from "./state/projectStore";
@@ -57,47 +69,100 @@ export function App() {
 
   return (
     <div className="app">
-      <header>
-        <h1>Configurador de Lavanderia</h1>
-        <p>Monte a planta da sua lavanderia e baixe em 2D ou 3D.</p>
+      <header className="topbar">
+        <div className="brand">
+          <LogoMark />
+          <div>
+            <h1>Configurador de Lavanderia</h1>
+            <p>Planta, instalações e retorno do investimento</p>
+          </div>
+        </div>
+        <div className="topbar-actions">
+          <button type="button" aria-label="Gerenciar máquinas" title="Gerenciar máquinas" onClick={() => setShowCatalog(true)}>
+            <IconSettings />
+            Gerenciar máquinas
+          </button>
+        </div>
       </header>
 
-      <ControlPanel />
-      <ViolationsPanel violations={violations} />
+      <aside className="sidebar">
+        <div className="sidebar-head">
+          <h2>Parâmetros do projeto</h2>
+          <p>As plantas e o 3D se atualizam na hora.</p>
+        </div>
+        <ControlPanel />
+      </aside>
 
-      <button type="button" onClick={() => setShowCatalog(true)}>
-        Gerenciar máquinas
-      </button>
       {showCatalog && <CatalogManager onClose={() => setShowCatalog(false)} />}
 
-      <nav>
-        <button type="button" onClick={() => setTab("2d")}>
+      <main className="workspace">
+      <ViolationsPanel violations={violations} />
+
+      <div className="tabs-row">
+      <nav className="tabs" aria-label="Visualizações">
+        <button type="button" aria-pressed={tab === "2d"} onClick={() => setTab("2d")}>
+          <IconPlan />
           Planta 2D
         </button>
         <button
           type="button"
+          aria-pressed={tab === "3d"}
           onClick={() => setTab("3d")}
           onMouseEnter={() => void loadScene()}
           onFocus={() => void loadScene()}
         >
+          <IconCube />
           Planta 3D
         </button>
         <button type="button" aria-pressed={tab === "roi"} onClick={() => setTab("roi")}>
+          <IconChart />
           Retorno (ROI)
         </button>
         <button type="button" aria-pressed={tab === "insights"} onClick={() => setTab("insights")}>
+          <IconSignal />
           Conectividade
         </button>
       </nav>
+      {layout && tab === "3d" && (
+        <div className="export-actions tabs-actions">
+          <button
+            type="button"
+            disabled={!canExport || !canvasEl}
+            title="Baixar imagem 3D"
+            onClick={() => canvasEl && exportSceneScreenshot(canvasEl)}
+          >
+            <IconDownload />
+            Baixar imagem 3D
+          </button>
+          <button type="button" title="Visão do cliente" onClick={() => setTourRun((n) => (n ?? 0) + 1)}>
+            <IconEye />
+            {tourRun === null ? "Visão do cliente" : "Repetir visão do cliente"}
+          </button>
+          <button type="button" title="Modo inauguração" aria-pressed={inauguracao} onClick={toggleInauguracao}>
+            <IconSparkles />
+            Modo inauguração
+          </button>
+          {tourRun !== null && (
+            <button type="button" title="Visão livre" onClick={() => setTourRun(null)}>
+              <IconOrbit />
+              Visão livre
+            </button>
+          )}
+        </div>
+      )}
+      </div>
 
       {tab === "roi" && <RoiCalculator />}
       {tab === "insights" && <InsightsCalculator />}
 
-      {!layout && tab !== "roi" && tab !== "insights" && <p>Ajuste as dimensões para visualizar a planta.</p>}
+      {!layout && tab !== "roi" && tab !== "insights" && (
+        <p className="empty-state">Ajuste as dimensões para visualizar a planta.</p>
+      )}
 
       {layout && tab === "2d" && (
         <>
           <div className="plan2d">
+          <div className="plan-toolbar">
           <div className="sheet-tabs" role="tablist" aria-label="Pranchas">
             {PLAN_SHEETS.map((sh) => (
               <button
@@ -130,6 +195,7 @@ export function App() {
               +
             </button>
           </div>
+          </div>
           <div className="plan-viewport" style={{ "--plan-zoom": planZoom } as CSSProperties}>
             <FloorPlan ref={setSvgEl} layout={layout} sheet={sheet} />
           </div>
@@ -140,6 +206,7 @@ export function App() {
               disabled={!canExport || !svgEl}
               onClick={() => svgEl && exportFloorPlanPNG(svgEl, `planta-${sheet}.png`)}
             >
+              <IconDownload />
               Baixar PNG
             </button>
             <button
@@ -157,6 +224,7 @@ export function App() {
                 )
               }
             >
+              <IconDownload />
               Baixar PDF
             </button>
           </div>
@@ -164,48 +232,27 @@ export function App() {
       )}
 
       {layout && tab === "3d" && (
-        <>
-          <Suspense fallback={<div className="scene3d-placeholder" role="status">Carregando o 3D…</div>}>
-            <Scene
-              layout={layout}
-              logo={
-                logoDataUrl
-                  ? { url: logoDataUrl, style: logoStyle, depthMm: logoDepthMm, sideColor: logoSideColor }
-                  : null
-              }
-              facade={
-                facadeOn ? { wallColor: facadeColor, signColor: facadeSignColor } : null
-              }
-              drywallColor={drywallColorFor(facadeColor)}
-              lighting={sceneLighting}
-              showRoof={facadeOn && roofVisible}
-              inauguracao={inauguracao}
-              tourRun={tourRun}
-              onCanvasReady={setCanvasEl}
-            />
-          </Suspense>
-          <div className="export-actions">
-            <button
-              type="button"
-              disabled={!canExport || !canvasEl}
-              onClick={() => canvasEl && exportSceneScreenshot(canvasEl)}
-            >
-              Baixar imagem 3D
-            </button>
-            <button type="button" onClick={() => setTourRun((n) => (n ?? 0) + 1)}>
-              {tourRun === null ? "Visão do cliente" : "Repetir visão do cliente"}
-            </button>
-            <button type="button" aria-pressed={inauguracao} onClick={toggleInauguracao}>
-              Modo inauguração
-            </button>
-            {tourRun !== null && (
-              <button type="button" onClick={() => setTourRun(null)}>
-                Visão livre
-              </button>
-            )}
-          </div>
-        </>
+        <Suspense fallback={<div className="scene3d-placeholder" role="status">Carregando o 3D…</div>}>
+          <Scene
+            layout={layout}
+            logo={
+              logoDataUrl
+                ? { url: logoDataUrl, style: logoStyle, depthMm: logoDepthMm, sideColor: logoSideColor }
+                : null
+            }
+            facade={
+              facadeOn ? { wallColor: facadeColor, signColor: facadeSignColor } : null
+            }
+            drywallColor={drywallColorFor(facadeColor)}
+            lighting={sceneLighting}
+            showRoof={facadeOn && roofVisible}
+            inauguracao={inauguracao}
+            tourRun={tourRun}
+            onCanvasReady={setCanvasEl}
+          />
+        </Suspense>
       )}
+      </main>
     </div>
   );
 }

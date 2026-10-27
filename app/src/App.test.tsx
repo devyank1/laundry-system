@@ -60,5 +60,6 @@ describe("Modo inauguração", () => {
     await userEvent.click(btn);
     expect(btn).toHaveAttribute("aria-pressed", "true");
     expect(useProjectStore.getState().inauguracao).toBe(true);
-  });
+    // abre o 3D (import dinâmico): passa dos 5 s padrão com a suíte toda rodando
+  }, 15_000);
 });
