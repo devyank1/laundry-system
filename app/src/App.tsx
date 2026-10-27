@@ -2,6 +2,8 @@ import { useState, type CSSProperties } from "react";
 import { ControlPanel } from "./ui/ControlPanel";
 import { ViolationsPanel } from "./ui/ViolationsPanel";
 import { CatalogManager } from "./ui/CatalogManager";
+import { RoiCalculator } from "./roi/RoiCalculator";
+import { InsightsCalculator } from "./insights/InsightsCalculator";
 import { FloorPlan, PLAN_SHEETS, type PlanSheet } from "./viewer2d/FloorPlan";
 import { Scene } from "./viewer3d/Scene";
 import { useLayout } from "./state/useLayout";
@@ -26,7 +28,7 @@ export function App() {
   const roofVisible = useProjectStore((s) => s.roofVisible);
   const inauguracao = useProjectStore((s) => s.inauguracao);
   const toggleInauguracao = useProjectStore((s) => s.toggleInauguracao);
-  const [tab, setTab] = useState<"2d" | "3d">("2d");
+  const [tab, setTab] = useState<"2d" | "3d" | "roi" | "insights">("2d");
   const [sheet, setSheet] = useState<PlanSheet>("layout");
   // Zoom da planta 2D (o desenho alarga e a área rola).
   const [planZoom, setPlanZoom] = useState(1);
@@ -62,9 +64,18 @@ export function App() {
         <button type="button" onClick={() => setTab("3d")}>
           Planta 3D
         </button>
+        <button type="button" aria-pressed={tab === "roi"} onClick={() => setTab("roi")}>
+          Retorno (ROI)
+        </button>
+        <button type="button" aria-pressed={tab === "insights"} onClick={() => setTab("insights")}>
+          Conectividade
+        </button>
       </nav>
 
-      {!layout && <p>Ajuste as dimensões para visualizar a planta.</p>}
+      {tab === "roi" && <RoiCalculator />}
+      {tab === "insights" && <InsightsCalculator />}
+
+      {!layout && tab !== "roi" && tab !== "insights" && <p>Ajuste as dimensões para visualizar a planta.</p>}
 
       {layout && tab === "2d" && (
         <>

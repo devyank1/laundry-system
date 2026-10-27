@@ -325,8 +325,24 @@
   content: "📐 ";
 }
 
-.app > nav button:last-of-type::before {
+.app > nav button:nth-of-type(2)::before {
   content: "🧊 ";
+}
+
+.app > nav button:nth-of-type(3)::before {
+  content: "💰 ";
+}
+
+.app > nav button:nth-of-type(4)::before {
+  content: "📡 ";
+}
+
+/* Abas de ROI e Conectividade: na coluna da planta, ao lado dos parâmetros */
+.app > .roi {
+  grid-column: 2;
+  grid-row: 5;
+  align-content: start;
+  min-width: 0;
 }
 
 /* ---------- Viewer area ---------- */
@@ -695,6 +711,7 @@
   .app > .plan2d,
   .app canvas,
   .app > .scene3d,
+  .app > .roi,
   .app > div.export-actions {
     grid-column: 1;
     grid-row: auto;
