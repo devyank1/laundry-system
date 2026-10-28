@@ -22,7 +22,9 @@ function slotLabels(machineWall: TechAccessSide): Record<SideSlot, string> {
 
 const SLOT_ORDER: SideSlot[] = ["farTop", "farBottom", "near"];
 
-export function ControlPanel() {
+// `show3dOptions`: logo, fachada e iluminação só mudam o 3D; fora da aba 3D
+// ficam escondidos pra barra lateral mostrar só o que vale pra tela atual.
+export function ControlPanel({ show3dOptions = true }: { show3dOptions?: boolean }) {
   const catalog = useSyncExternalStore(subscribeCatalog, getCatalog);
   const state = useProjectStore();
   const { layout } = useLayout();
@@ -268,9 +270,12 @@ export function ControlPanel() {
         </>
       )}
 
-      <LogoUpload />
-
-      <FacadeControls />
+      {show3dOptions && (
+        <>
+          <LogoUpload />
+          <FacadeControls />
+        </>
+      )}
 
       {hasTechInfo && (
         <fieldset>

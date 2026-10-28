@@ -1,6 +1,8 @@
 import { useMemo } from "react";
 import { TIERS, computeInsights, formatBRL0, mesesLabel, verdictText, type InsightsInputs } from "./model";
 import { useInsightsStore } from "./insightsStore";
+import { PlantLink } from "../roi/PlantLink";
+import { applyPlantToInsights, insightsMatchesPlant, usePlant } from "../plantLink";
 import "../roi/roi.css";
 
 function Text({
@@ -49,22 +51,38 @@ export function InsightsCalculator() {
   );
   const r = useMemo(() => computeInsights(inputs), [inputs]);
   const ok = r.verdict.kind === "ok";
+  const plant = usePlant();
   const neg = (n: number | null) => n !== null && n < 0;
 
   return (
     <section className="roi" aria-label="Calculadora de conectividade">
-      <div className="roi-head">
-        <h2>Retorno da conectividade</h2>
+      <header className="roi-head">
+        <div>
+          <h2>Retorno da conectividade</h2>
+          <p>Quanto a conexão das máquinas economiza em visitas técnicas e máquina parada, e em quanto tempo o hardware se paga.</p>
+        </div>
         <button type="button" onClick={() => window.confirm("Voltar tudo para os valores iniciais?") && s.reset()}>
           Restaurar padrões
         </button>
-      </div>
+      </header>
+
+      <PlantLink
+        plant={plant}
+        matches={insightsMatchesPlant(s.fleet, plant)}
+        onApply={() => applyPlantToInsights(plant)}
+        detail={`${r.bocas} boca(s) no cálculo · cada stack conta 2 (lavadora + secadora)`}
+      />
 
       <div className="roi-results">
-        <div className="roi-stat" data-testid="verdict">
+        <div className="roi-stat roi-stat-featured roi-stat-wide" data-testid="verdict">
           <span>Payback do hardware</span>
           <strong>{ok && r.verdict.kind === "ok" ? mesesLabel(r.verdict.months) : "—"}</strong>
           <small>{verdictText(r.verdict)}</small>
+        </div>
+        <div className="roi-stat">
+          <span>Economia por ano</span>
+          <strong>{formatBRL0(r.annual)}</strong>
+          <small>plano Gratuito</small>
         </div>
         <div className="roi-stat">
           <span>Total de bocas</span>
@@ -75,6 +93,9 @@ export function InsightsCalculator() {
           <strong>{formatBRL0(r.annualRev)}</strong>
         </div>
       </div>
+
+      <div className="roi-main roi-main-even">
+      <div className="roi-stack">
 
       <div className="roi-card">
         <h3>1 · O que o cliente tem</h3>
@@ -123,36 +144,50 @@ export function InsightsCalculator() {
         </div>
       </div>
 
-      <div className="roi-card">
-        <h3>Economia anual — plano Gratuito</h3>
-        <Line label="Visitas técnicas evitadas" value={formatBRL0(r.visitSav)} />
-        <Line label="Receita recuperada (menos parada)" value={formatBRL0(r.downRec)} />
-        <Line label="Economia anual" value={formatBRL0(r.annual)} />
       </div>
 
+      <div className="roi-stack roi-sticky">
+      <div className="roi-card">
+        <h3>Economia anual — plano Gratuito</h3>
+        <div>
+          <Line label="Visitas técnicas evitadas" value={formatBRL0(r.visitSav)} />
+          <Line label="Receita recuperada (menos parada)" value={formatBRL0(r.downRec)} />
+          <Line label="Economia anual" value={formatBRL0(r.annual)} />
+        </div>
+      </div>
+
+      <div className="roi-pair">
       <div className="roi-card">
         <h3>Cenário A · só hardware (Gratuito)</h3>
-        <Line label="Investimento em hardware" value={formatBRL0(r.capex)} />
-        <Line label="Payback do hardware" value={r.verdict.kind === "ok" ? mesesLabel(r.verdict.months) : "—"} />
-        <Line label="Resultado líquido em 3 anos" value={formatBRL0(r.net3)} neg={neg(r.net3)} />
+        <div>
+          <Line label="Investimento em hardware" value={formatBRL0(r.capex)} />
+          <Line label="Payback do hardware" value={r.verdict.kind === "ok" ? mesesLabel(r.verdict.months) : "—"} />
+          <Line label="Resultado líquido em 3 anos" value={formatBRL0(r.net3)} neg={neg(r.net3)} />
+        </div>
         <p className="roi-note">Reset remoto, diagnóstico e monitoramento já vêm no plano Gratuito.</p>
       </div>
 
       <div className="roi-card">
         <h3>Cenário B · hardware + plano Completo</h3>
-        <Line label="Custo anual do plano" value={formatBRL0(r.planA)} />
-        <Line label="Economia líquida por ano" value={formatBRL0(r.bNetYr)} neg={neg(r.bNetYr)} />
-        <Line label="Resultado líquido em 3 anos" value={formatBRL0(r.bNet3)} neg={neg(r.bNet3)} />
+        <div>
+          <Line label="Custo anual do plano" value={formatBRL0(r.planA)} />
+          <Line label="Economia líquida por ano" value={formatBRL0(r.bNetYr)} neg={neg(r.bNetYr)} />
+          <Line label="Resultado líquido em 3 anos" value={formatBRL0(r.bNet3)} neg={neg(r.bNet3)} />
+        </div>
         <p className="roi-note">O plano Completo acrescenta relatórios avançados, API, retenção multi-ano e suporte por e-mail, chat e telefone.</p>
       </div>
+      </div>
 
-      <div className="roi-card">
-        <h3>Premissas</h3>
+      </div>
+      </div>
+
+      <details className="roi-card roi-assumptions">
+        <summary>Premissas do cálculo</summary>
         <p className="roi-note">Receita: ciclos/dia × R$/ciclo por boca, somado em todas as bocas, × 365 dias.</p>
         <p className="roi-note">Economia anual: (problemas/ano × % resolvível × custo por visita) + (problemas resolvíveis × dias de parada × faturamento por boca/dia). Só problemas resolvidos remotamente contam como parada evitada.</p>
         <p className="roi-note">Payback: investimento em hardware ÷ economia mensal, arredondado para cima em meses inteiros.</p>
         <p className="roi-note">Estimativa de apoio à decisão: os valores dependem dos dados informados e não garantem resultado.</p>
-      </div>
+      </details>
     </section>
   );
 }

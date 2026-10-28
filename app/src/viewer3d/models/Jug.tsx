@@ -101,7 +101,9 @@ function useJugGeometry() {
   }, []);
 }
 
-export function Jug({ kind }: { kind: JugKind }) {
+// `mirror`: -1 quando o galão é espelhado por fora (scale x = -1) pra tampa
+// ficar do outro lado; o rótulo desespelha pra o texto não sair ao contrário.
+export function Jug({ kind, mirror = 1 }: { kind: JugKind; mirror?: 1 | -1 }) {
   const style = JUG_STYLE[kind];
   const geo = useJugGeometry();
   const label = useLabelTexture(kind);
@@ -138,7 +140,7 @@ export function Jug({ kind }: { kind: JugKind }) {
         <StdMat color="#ffffff" roughness={0.35} metalness={0.05} />
       </mesh>
       {/* Rótulo */}
-      <mesh position={[0, BODY.h / 2 + 0.02, BODY.d / 2 + 0.045]}>
+      <mesh position={[0, BODY.h / 2 + 0.02, BODY.d / 2 + 0.045]} scale={[mirror, 1, 1]}>
         <planeGeometry args={[0.88, 1.0]} />
         <StdMat map={label} roughness={0.3} polygonOffset polygonOffsetFactor={-1} />
       </mesh>

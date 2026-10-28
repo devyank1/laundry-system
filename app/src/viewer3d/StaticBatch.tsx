@@ -55,6 +55,17 @@ function normalized(source: BufferGeometry, matrix: Matrix4): BufferGeometry {
     g.setIndex(new BufferAttribute(index, 1));
   }
   g.applyMatrix4(matrix);
+  // Peça espelhada (escala negativa, ex.: galão/bomba do outro lado): o three
+  // compensa isso por objeto na hora de desenhar; assada na geometria, a ordem
+  // dos triângulos fica invertida e a peça aparece do avesso. Desinverte aqui.
+  if (matrix.determinant() < 0) {
+    const idx = g.index!;
+    for (let i = 0; i < idx.count; i += 3) {
+      const b = idx.getX(i + 1);
+      idx.setX(i + 1, idx.getX(i + 2));
+      idx.setX(i + 2, b);
+    }
+  }
   return g;
 }
 

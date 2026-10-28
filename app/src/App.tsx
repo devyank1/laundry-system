@@ -22,6 +22,7 @@ import { useProjectStore } from "./state/projectStore";
 import { exportFloorPlanPDF, exportFloorPlanPNG } from "./export/export2d";
 import { exportSceneScreenshot } from "./export/export3d";
 import { drywallColorFor } from "./viewer3d/colors";
+import { usePlantSync } from "./plantLink";
 import "./App.css";
 
 const PLAN_ZOOMS = [1, 1.5, 2, 3];
@@ -34,6 +35,8 @@ const Scene = lazy(() => loadScene().then((m) => ({ default: m.Scene })));
 
 export function App() {
   const { layout, violations } = useLayout();
+  // ROI e Conectividade seguem as máquinas da planta.
+  usePlantSync();
   // Com a 2D já na tela e o navegador ocioso, baixa o 3D pra abrir sem espera.
   useEffect(() => {
     const idle = (window as { requestIdleCallback?: (cb: () => void) => number }).requestIdleCallback;
@@ -68,7 +71,8 @@ export function App() {
   const canExport = layout !== null && violations.length === 0;
 
   return (
-    <div className="app">
+    // ROI e Conectividade não usam os parâmetros da planta: sem barra lateral.
+    <div className={tab === "roi" || tab === "insights" ? "app app-wide" : "app"}>
       <header className="topbar">
         <div className="brand">
           <LogoMark />
@@ -85,13 +89,15 @@ export function App() {
         </div>
       </header>
 
-      <aside className="sidebar">
-        <div className="sidebar-head">
-          <h2>Parâmetros do projeto</h2>
-          <p>As plantas e o 3D se atualizam na hora.</p>
-        </div>
-        <ControlPanel />
-      </aside>
+      {tab !== "roi" && tab !== "insights" && (
+        <aside className="sidebar">
+          <div className="sidebar-head">
+            <h2>Parâmetros do projeto</h2>
+            <p>As plantas e o 3D se atualizam na hora.</p>
+          </div>
+          <ControlPanel show3dOptions={tab === "3d"} />
+        </aside>
+      )}
 
       {showCatalog && <CatalogManager onClose={() => setShowCatalog(false)} />}
 

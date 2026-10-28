@@ -15,6 +15,7 @@ export const CATALOG_SEED: CatalogMachine[] = [
     exhaustDiameterMm: 102, // 4" (Ebook Stack)
     exhaustHeightMm: 1695, // saída traseira, dimensão B do manual SSU/SSG
     drainLpm: 14,
+    capacityKg: 10,
   },
   {
     id: "mamute-smart10",
@@ -30,6 +31,7 @@ export const CATALOG_SEED: CatalogMachine[] = [
     exhaustDiameterMm: 100,
     drainInch: '2"',
     weightKg: 250,
+    capacityKg: 10,
   },
   {
     id: "mamute-smart17",
@@ -42,5 +44,6 @@ export const CATALOG_SEED: CatalogMachine[] = [
     exhaustDiameterMm: 150,
     drainInch: '3"',
     weightKg: 615,
+    capacityKg: 17,
   },
 ];

@@ -23,6 +23,8 @@ export interface CatalogMachine {
   drainInch?: string;
   drainLpm?: number;
   weightKg?: number;
+  // Capacidade de lavagem (kg): liga a máquina às faixas do ROI/Conectividade.
+  capacityKg?: number;
 }
 
 export interface MachineSelection {

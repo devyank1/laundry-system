@@ -288,7 +288,7 @@ export function Hydraulics({ layout, hydraulics: h }: { layout: Layout; hydrauli
               return (
                 <group key={k}>
                   <group position={jugBase} rotation={[0, yaw, 0]} scale={[jugMirror, 1, 1]}>
-                    <Jug kind={jug.kind} />
+                    <Jug kind={jug.kind} mirror={jugMirror < 0 ? -1 : 1} />
                   </group>
                   <group position={pumpCenter} rotation={[0, yaw, 0]} scale={[mirror, 1, 1]}>
                     <DosingPump />

@@ -7,6 +7,18 @@
   min-height: 100vh;
 }
 
+/* ROI e Conectividade: sem painel lateral, conteúdo na largura toda */
+.app.app-wide {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.app.app-wide > .workspace {
+  grid-column: 1;
+  width: 100%;
+  max-width: 1440px;
+  justify-self: center;
+}
+
 /* ---------- Barra superior ---------- */
 
 .app > .topbar {
