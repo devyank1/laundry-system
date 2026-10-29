@@ -10,7 +10,8 @@ beforeEach(() => {
 describe("CatalogManager", () => {
   it("lista as máquinas do catálogo seed", () => {
     render(<CatalogManager onClose={() => {}} />);
-    expect(screen.getByText(/Speed Queen Stack/)).toBeInTheDocument();
+    expect(screen.getByText(/Speed Queen Stack 10/)).toBeInTheDocument();
+    expect(screen.getByText(/Speed Queen Stack Elétrica \(SSU\/SSG\)/)).toBeInTheDocument();
     expect(screen.getByText(/Mamute Smart 10/)).toBeInTheDocument();
     expect(screen.getByText(/Mamute Smart 17/)).toBeInTheDocument();
   });

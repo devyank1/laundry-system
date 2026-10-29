@@ -23,6 +23,10 @@ export interface CatalogMachine {
   drainInch?: string;
   drainLpm?: number;
   weightKg?: number;
+  /** base de concreto ou suporte embaixo da máquina (mm acima do piso); vence a regra do peso */
+  concreteBaseMm?: number;
+  /** a base é um pedestal de drywall (máquina num nicho da parede) */
+  baseDrywall?: boolean;
   // Capacidade de lavagem (kg): liga a máquina às faixas do ROI/Conectividade.
   capacityKg?: number;
 }
@@ -80,6 +84,8 @@ export interface PlacedMachine {
   heightMm: number;
   // Base de concreto embaixo da máquina (0 = direto no piso).
   baseMm: number;
+  /** a base é um pedestal de drywall (nicho na parede), não concreto */
+  baseDrywall?: boolean;
 }
 
 export interface Rect {

@@ -1,3 +1,4 @@
+import { CATALOG_SEED } from "../catalog/seed";
 import { describe, expect, it } from "vitest";
 import { computeLayout } from "./layout";
 import type { CatalogMachine, ProjectState } from "./types";
@@ -285,6 +286,25 @@ describe("base de concreto da máquina pesada", () => {
     ).layout!;
     expect(layout.machines.find((m) => m.catalogId === "pesada")!.baseMm).toBe(20);
     expect(layout.machines.find((m) => m.catalogId === "sq-stack")!.baseMm).toBe(0);
+  });
+
+  it("SYC180 e ST055 em nicho de drywall com o topo nivelado", () => {
+    const layout = computeLayout(
+      { ...validState, roomWidthMm: 7000, roomDepthMm: 6000, ceilingHeightMm: 2800, machines: [{ catalogId: "sq-syc180", qty: 1 }, { catalogId: "sq-st055", qty: 1 }] },
+      CATALOG_SEED
+    ).layout!;
+    const tops = layout.machines.map((m) => m.baseMm + m.heightMm);
+    expect(tops).toEqual([1780, 1780]);
+    expect(layout.machines.every((m) => m.baseDrywall)).toBe(true);
+  });
+
+  it("SSU/SSG: base de 20 cm do fabricante e vão do drywall até o topo dela", () => {
+    const layout = computeLayout(
+      { ...validState, roomWidthMm: 7000, roomDepthMm: 6000, ceilingHeightMm: 2800, machines: [{ catalogId: "sq-stack", qty: 1 }, { catalogId: "sq-ssu030", qty: 1 }] },
+      CATALOG_SEED
+    ).layout!;
+    expect(layout.machines.find((m) => m.catalogId === "sq-ssu030")!.baseMm).toBe(200);
+    expect(layout.drywall.openings.map((o) => o.height)).toEqual([1986, 2023 + 200]);
   });
 });
 

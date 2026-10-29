@@ -8,7 +8,12 @@
  */
 
 export interface RoiEquip {
+  /** título curto da linha ("Chassi grande 30") */
   nome: string;
+  /** como ela é, em texto menor ("Chassi grande 30, 2 × 13,6 kg (SSG30/SSU30)") */
+  modelo?: string;
+  /** texto menor completo, no lugar do montado (modelo · bocas · cestos) */
+  descricao?: string;
   /** bocas de lavagem por equipamento */
   wl: number;
   /** bocas de secagem por equipamento */
@@ -146,10 +151,24 @@ export function defaultRoiState(): RoiState {
   ];
   return {
     equip: [
-      { nome: "Chassi pequeno 2 × 10 kg", wl: 1, ws: 1, cb: 1, preco: 37234, qtd: 3 },
-      { nome: "Chassi grande 30, 2 × 13,6 kg", wl: 1, ws: 1, cb: 2, preco: 72616, qtd: 2 },
-      { nome: "Chassi grande 50, 2 × 22,7 kg", wl: 1, ws: 1, cb: 3, preco: 88723, qtd: 0 },
-      { nome: "Lavadora-extratora 20 kg + secadora", wl: 1, ws: 1, cb: 3, preco: 90014, qtd: 0 },
+      { nome: "Chassi pequeno", modelo: "Chassi pequeno, 2 × 10 kg (Speed Queen Stack 10)", wl: 1, ws: 1, cb: 1, preco: 37234, qtd: 3 },
+      { nome: "Chassi grande 30", modelo: "Chassi grande 30, 2 × 13,6 kg (SSG30/SSU30)", wl: 1, ws: 1, cb: 2, preco: 71500, qtd: 2 },
+      { nome: "Chassi grande 50", modelo: "Chassi grande 50, 2 × 22,7 kg", wl: 1, ws: 1, cb: 3, preco: 88723, qtd: 0 },
+      {
+        nome: "Lavadora 20kg e Secadora 25kg",
+        modelo: "SYC180 + ST055",
+        descricao: "SYC180 + ST055 · Lavadora-extratora 20 kg + secadora · 2 máquinas · 1 boca cada · 3 cesto(s) por boca",
+        wl: 1,
+        ws: 1,
+        cb: 3,
+        preco: 90014,
+        qtd: 0,
+      },
+      { nome: "LG Giant C", modelo: "LG Giant C, 2 × 10 kg (Stack)", wl: 1, ws: 1, cb: 1, preco: 29000, qtd: 0 },
+      // Titan: a pasta LG não traz preço; parte do chassi equivalente (ajustar com a cotação NEXLAV)
+      { nome: "LG Titan", modelo: "LG Titan, 17 kg + 13,6 kg (Stack)", wl: 1, ws: 1, cb: 2, preco: 72616, qtd: 0 },
+      { nome: "Mamute Smart 10", modelo: "Mamute Smart 10, 2 × 10 kg (Stack)", wl: 1, ws: 1, cb: 1, preco: 39900, qtd: 0 },
+      { nome: "Mamute Smart 17", modelo: "Mamute Smart 17, 2 × 17 kg (Stack) · com dosadores", wl: 1, ws: 1, cb: 2, preco: 67000, qtd: 0 },
     ],
     infra: [
       { nome: "Projeto da loja", tipo: "fixo", val: 5000 },
@@ -175,6 +194,7 @@ export function defaultRoiState(): RoiState {
       { nome: "Tubulação esgoto PVC", tipo: "maq", val: 70 },
       { nome: "Tubulação exaustão galvanizado", tipo: "maq", val: 220 },
       { nome: "1ª compra de químicos", tipo: "maq", val: 300 },
+      { nome: "Bombas dosadoras (2 × R$ 500 por máquina)", tipo: "maq", val: 1000 },
     ],
     fixo,
     op: { ciclos: 6, utilSec: 100, preco: 18, dias: 30, rampIni: 45, rampMeses: 12 },

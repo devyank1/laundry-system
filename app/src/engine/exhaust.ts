@@ -1,4 +1,4 @@
-import { CEILING_CLEARANCE_MM } from "./constants";
+import { CEILING_CLEARANCE_MM, machineBaseMm } from "./constants";
 import type { CatalogMachine } from "./types";
 
 // Exaustão das secadoras (manual Évora "Stack Elétrica" + resumo SSU/SSG +
@@ -82,7 +82,8 @@ export function computeExhaust(input: ExhaustInput): ExhaustLayout | null {
       catalogId: m.id,
       a,
       back: drywallAcrossMm - m.depthMm, // c das costas da máquina
-      portY: m.exhaustHeightMm ?? m.heightMm - PORT_BELOW_TOP_MM,
+      // saída medida da base da máquina; base/suporte embaixo sobe junto
+      portY: (m.exhaustHeightMm ?? m.heightMm - PORT_BELOW_TOP_MM) + machineBaseMm(m),
       diameterMm: m.exhaustDiameterMm ?? DEFAULT_EXHAUST_DIAMETER_MM,
     }));
   if (dryers.length === 0) return null;

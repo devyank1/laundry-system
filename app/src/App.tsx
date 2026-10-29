@@ -129,8 +129,40 @@ export function App() {
           Conectividade
         </button>
       </nav>
-      {layout && tab === "3d" && (
+      {layout && tab === "2d" && (
         <div className="export-actions tabs-actions">
+          <button
+            type="button"
+            title="Baixar PNG"
+            disabled={!canExport || !svgEl}
+            onClick={() => svgEl && exportFloorPlanPNG(svgEl, `planta-${sheet}.png`)}
+          >
+            <IconDownload />
+            Baixar PNG
+          </button>
+          <button
+            type="button"
+            title="Baixar PDF"
+            disabled={!canExport || !svgEl}
+            onClick={() =>
+              svgEl &&
+              exportFloorPlanPDF(
+                svgEl,
+                {
+                  projectName: "Minha Lavanderia",
+                  areaM2: (layout.roomWidthMm / 1000) * (layout.roomDepthMm / 1000),
+                },
+                `planta-${sheet}.pdf`
+              )
+            }
+          >
+            <IconDownload />
+            Baixar PDF
+          </button>
+        </div>
+      )}
+      {layout && tab === "3d" && (
+        <div className="export-actions tabs-actions tabs-actions-many">
           <button
             type="button"
             disabled={!canExport || !canvasEl}
@@ -205,34 +237,6 @@ export function App() {
           <div className="plan-viewport" style={{ "--plan-zoom": planZoom } as CSSProperties}>
             <FloorPlan ref={setSvgEl} layout={layout} sheet={sheet} />
           </div>
-          </div>
-          <div className="export-actions">
-            <button
-              type="button"
-              disabled={!canExport || !svgEl}
-              onClick={() => svgEl && exportFloorPlanPNG(svgEl, `planta-${sheet}.png`)}
-            >
-              <IconDownload />
-              Baixar PNG
-            </button>
-            <button
-              type="button"
-              disabled={!canExport || !svgEl}
-              onClick={() =>
-                svgEl &&
-                exportFloorPlanPDF(
-                  svgEl,
-                  {
-                    projectName: "Minha Lavanderia",
-                    areaM2: (layout.roomWidthMm / 1000) * (layout.roomDepthMm / 1000),
-                  },
-                  `planta-${sheet}.pdf`
-                )
-              }
-            >
-              <IconDownload />
-              Baixar PDF
-            </button>
           </div>
         </>
       )}

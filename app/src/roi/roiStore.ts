@@ -3,6 +3,37 @@ import { defaultRoiState, num, sumFixo, type RoiState } from "./model";
 
 const STORAGE_KEY = "lavanderia.roi.v1";
 
+// Nomes antigos das linhas → título novo da lista padrão; o preço só muda se
+// ainda era o padrão antigo (não um valor digitado).
+const RENAMED: Record<string, { nome: string; from?: number; preco?: number }> = {
+  "Chassi pequeno 2 × 10 kg": { nome: "Chassi pequeno" },
+  "Chassi grande 30, 2 × 13,6 kg": { nome: "Chassi grande 30", from: 72616, preco: 71500 },
+  "Speed Queen 14kg": { nome: "Chassi grande 30" },
+  "Chassi grande 50, 2 × 22,7 kg": { nome: "Chassi grande 50" },
+  "Lavadora-extratora 20 kg + secadora": { nome: "Lavadora 20kg e Secadora 25kg" },
+  "Lavadora-extratora 20 kg": { nome: "Lavadora 20kg e Secadora 25kg" },
+  "LG Giant C 2 × 10 kg": { nome: "LG Giant C", from: 37234, preco: 29000 },
+  "LG Titan 17 kg + 13,6 kg": { nome: "LG Titan" },
+};
+
+// Descrições padrão de versões anteriores: trocam pela atual.
+const OLD_DESC = ["Lavadora-extratora 20 kg + secadora · 2 máquinas · 1 boca cada · 3 cesto(s) por boca"];
+
+function migrateEquip(equip: RoiState["equip"], base: RoiState["equip"]): RoiState["equip"] {
+  return equip.map((e) => {
+    const r = RENAMED[e.nome];
+    const out = r ? { ...e, nome: r.nome, preco: r.from !== undefined && e.preco === r.from ? r.preco! : e.preco } : e;
+    // descrição em texto menor vem da lista padrão
+    const ref = base.find((b) => b.nome === out.nome);
+    if (!ref) return out;
+    return {
+      ...out,
+      modelo: r || out.modelo === undefined ? ref.modelo : out.modelo,
+      ...((out.descricao === undefined || OLD_DESC.includes(out.descricao)) && ref.descricao ? { descricao: ref.descricao } : {}),
+    };
+  });
+}
+
 function load(): RoiState {
   const base = defaultRoiState();
   try {
@@ -10,9 +41,15 @@ function load(): RoiState {
     if (!raw) return base;
     const p = JSON.parse(raw) as Partial<RoiState>;
     // Mescla com os valores iniciais: salvo de versão antiga não quebra a tela.
+    const equip = Array.isArray(p.equip) && p.equip.length ? migrateEquip(p.equip, base.equip) : base.equip;
+    const infra = Array.isArray(p.infra) ? p.infra : base.infra;
     return {
-      equip: Array.isArray(p.equip) && p.equip.length ? p.equip : base.equip,
-      infra: Array.isArray(p.infra) ? p.infra : base.infra,
+      // equipamentos novos da lista padrão (ex.: LG) entram no fim do salvo antigo
+      equip: [...equip, ...base.equip.filter((b) => !equip.some((e) => e.nome === b.nome))],
+      // bombas dosadoras entraram depois na infra padrão
+      infra: infra.some((i) => i.nome.startsWith("Bombas dosadoras"))
+        ? infra
+        : [...infra, ...base.infra.filter((i) => i.nome.startsWith("Bombas dosadoras"))],
       fixo: Array.isArray(p.fixo) ? p.fixo : base.fixo,
       op: { ...base.op, ...p.op },
       cost: { ...base.cost, ...p.cost },

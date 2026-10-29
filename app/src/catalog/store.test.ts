@@ -15,6 +15,14 @@ beforeEach(() => {
 });
 
 describe("catalog store", () => {
+  it("catálogo salvo antigo ganha as LG uma vez; excluída não volta", () => {
+    localStorage.setItem("lavanderia.catalog.v1", JSON.stringify(CATALOG_SEED.slice(0, 3)));
+    expect(getCatalog().map((m) => m.id)).toEqual(["sq-stack", "mamute-smart10", "mamute-smart17", "lg-giant-c", "lg-titan", "sq-ssu030", "sq-syc180", "sq-st055"]);
+    deleteMachine("lg-titan");
+    expect(getCatalog().map((m) => m.id)).not.toContain("lg-titan");
+    expect(getCatalog().map((m) => m.id)).toContain("lg-giant-c");
+  });
+
   it("retorna o catálogo seed quando não há nada salvo", () => {
     expect(getCatalog()).toEqual(CATALOG_SEED);
   });

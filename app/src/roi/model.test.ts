@@ -3,14 +3,36 @@ import { computeRoi, defaultRoiState, sumFixo, type RoiState } from "./model";
 
 const r = Math.round;
 
-function withState(patch: (s: RoiState) => void): RoiState {
+// Entradas da calculadora de referência: a lista padrão de hoje mudou o preço
+// do Chassi grande 30 (71.500) e ganhou as bombas dosadoras; aqui volta ao
+// original pra conferir que a conta continua idêntica à de lá.
+function referenceState(): RoiState {
   const s = defaultRoiState();
+  s.equip[1].preco = 72616;
+  s.infra = s.infra.filter((i) => !i.nome.startsWith("Bombas dosadoras"));
+  return s;
+}
+
+function withState(patch: (s: RoiState) => void): RoiState {
+  const s = referenceState();
   patch(s);
   return s;
 }
 
-describe("modelo de ROI — valores iniciais (iguais aos da calculadora de referência)", () => {
+describe("modelo de ROI — lista padrão atual", () => {
   const m = computeRoi(defaultRoiState());
+
+  it("Chassi grande 30 (SSG30/SSU30) a R$ 71.500 + 2 bombas dosadoras (R$ 500) por máquina", () => {
+    expect(defaultRoiState().equip[1]).toMatchObject({ nome: "Chassi grande 30", preco: 71500 });
+    expect(m.infra).toBe(43480 + 5 * 1000);
+    expect(m.inv).toBe(303182);
+    expect(r(m.roi)).toBe(97);
+    expect(r(m.lucro)).toBe(1055735);
+  });
+});
+
+describe("modelo de ROI — valores iniciais (iguais aos da calculadora de referência)", () => {
+  const m = computeRoi(referenceState());
 
   it("investimento", () => {
     expect(m.inv).toBe(300414);

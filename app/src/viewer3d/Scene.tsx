@@ -17,6 +17,10 @@ import { PLAN_COLORS } from "../viewer2d/planTheme";
 import { Chair } from "./models/Chair";
 import { FitBox } from "./models/FitBox";
 import { machineModelFor } from "./models/machineModel";
+import { LgStack } from "./models/LgStack";
+import { SpeedQueenSsu } from "./models/SpeedQueenSsu";
+import { SpeedQueenSyc } from "./models/SpeedQueenSyc";
+import { SpeedQueenSt } from "./models/SpeedQueenSt";
 import { PaymentTotem } from "./models/PaymentTotem";
 import { SpeedQueenStack } from "./models/SpeedQueenStack";
 import { SplitAC } from "./models/SplitAC";
@@ -99,8 +103,11 @@ function MachineMesh({
   depthMm,
   heightMm,
   baseMm,
+  baseDrywall,
   yaw,
-}: PlacedMachine & { yaw: number }) {
+  drywallColor,
+}: PlacedMachine & { yaw: number; drywallColor: string }) {
+  const drywallBase = baseDrywall === true;
   const w = M(widthMm);
   const d = M(depthMm);
   const h = M(heightMm);
@@ -118,15 +125,34 @@ function MachineMesh({
     <group ref={groupRef} position={targetPosition} userData={{ noBatch: true }}>
       <StaticBatch>
       {/* Máquina pesada: base de concreto de 2 cm embaixo (um pouco maior que ela) */}
-      {base > 0 && (
+      {base > 0 && !drywallBase && (
         <mesh position={[0, base / 2, 0]} castShadow receiveShadow>
           <boxGeometry args={[w + CONCRETE_BASE_MARGIN * 2, base, d + CONCRETE_BASE_MARGIN * 2]} />
           <StdMat color="#a8a29e" roughness={0.95} />
         </mesh>
       )}
+      {/* Máquina em nicho: pedestal de drywall com a cor da parede */}
+      {base > 0 && drywallBase && (
+        <mesh position={[0, base / 2, 0]} castShadow receiveShadow>
+          <boxGeometry args={[w, base, d]} />
+          <StdMat color={drywallColor} roughness={0.9} />
+        </mesh>
+      )}
       <group position={[0, base, 0]} rotation={[0, yaw, 0]}>
         <FitBox size={fitSize(w, h, d, yaw)}>
-          {model.kind === "speedQueen" ? <SpeedQueenStack /> : <TowerMachine finish={model.finish} />}
+          {model.kind === "speedQueen" ? (
+            <SpeedQueenStack />
+          ) : model.kind === "speedQueenSsu" ? (
+            <SpeedQueenSsu />
+          ) : model.kind === "speedQueenSyc" ? (
+            <SpeedQueenSyc />
+          ) : model.kind === "speedQueenSt" ? (
+            <SpeedQueenSt />
+          ) : model.kind === "lg" ? (
+            <LgStack />
+          ) : (
+            <TowerMachine finish={model.finish} />
+          )}
         </FitBox>
       </group>
       </StaticBatch>
@@ -501,6 +527,7 @@ export function Scene({
             key={`${machine.catalogId}-${machine.instanceIndex}`}
             {...machine}
             yaw={frame.yaw}
+            drywallColor={drywallColor}
           />
         ))}
         </group>

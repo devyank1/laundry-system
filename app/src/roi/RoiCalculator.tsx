@@ -1,5 +1,5 @@
 import { useMemo, useState, type PointerEvent } from "react";
-import { computeRoi, type RoiResult } from "./model";
+import { computeRoi, type RoiEquip, type RoiResult } from "./model";
 import { useRoiStore } from "./roiStore";
 import { PlantLink } from "./PlantLink";
 import { applyPlantToRoi, roiMatchesPlant, usePlant } from "../plantLink";
@@ -8,6 +8,15 @@ import "./roi.css";
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const int = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
 const money = (v: number) => brl.format(Math.round(v));
+
+/** "Chassi grande 30, 2 × 13,6 kg (SSG30/SSU30) · 2 bocas (lavagem + secagem) · 2 cesto(s) por boca" */
+function equipDesc(e: RoiEquip): string {
+  if (e.descricao) return e.descricao;
+  const bocas = e.wl + e.ws;
+  const tipo = e.wl > 0 && e.ws > 0 ? "lavagem + secagem" : e.wl > 0 ? "lavagem" : "secagem";
+  const partes = [e.modelo, `${bocas} ${bocas === 1 ? "boca" : "bocas"} (${tipo})`, `${e.cb} cesto(s) por boca`];
+  return partes.filter(Boolean).join(" · ");
+}
 const months = (v: number | null) => (v === null ? "—" : `${Math.round(v)} meses`);
 
 /** Campo numérico que aceita vírgula e deixa apagar o conteúdo enquanto se digita. */
@@ -284,7 +293,10 @@ export function RoiCalculator() {
         <h3>Equipamentos</h3>
         {s.equip.map((e, i) => (
           <div className="roi-row" key={i}>
-            <span className="roi-name">{e.nome}</span>
+            <span className="roi-name">
+              {e.nome}
+              <small className="roi-name-desc">{equipDesc(e)}</small>
+            </span>
             <NumInput label={`Preço — ${e.nome}`} shortLabel="Preço unitário" value={e.preco} min={0} suffix="R$" onChange={(v) => s.setEquip(i, { preco: v })} />
             <NumInput label={`Quantidade — ${e.nome}`} shortLabel="Quantidade" value={e.qtd} min={0} onChange={(v) => s.setEquip(i, { qtd: v })} />
             <span className="roi-sub">{money(m.equipRows[i] ?? 0)}</span>

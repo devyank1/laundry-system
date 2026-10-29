@@ -57,3 +57,8 @@ export const CONCRETE_BASE_MM = 20;
 export function concreteBaseMm(weightKg: number | undefined): number {
   return (weightKg ?? 0) >= HEAVY_MACHINE_KG ? CONCRETE_BASE_MM : 0;
 }
+
+/** Altura em que a máquina fica: base/suporte do catálogo, senão a regra do peso. */
+export function machineBaseMm(m: { concreteBaseMm?: number; weightKg?: number }): number {
+  return m.concreteBaseMm ?? concreteBaseMm(m.weightKg);
+}

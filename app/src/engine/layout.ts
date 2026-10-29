@@ -31,7 +31,7 @@ import {
   TECH_DOOR_WIDTH_MM,
   TOTEM_SIZE_MM,
   TOTEM_WALL_MM,
-  concreteBaseMm,
+  machineBaseMm,
 } from "./constants";
 import type {
   CatalogMachine,
@@ -131,6 +131,7 @@ export function computeLayout(state: ProjectState, catalog: CatalogMachine[]): L
     // widthMm/depthMm aqui são SEMPRE "extensão em X" / "extensão em Y"
     // pros viewers — então trocam de eixo igual width/height de um rect.
     const r = orientedRect(state, alongPos, drywallAcross - m.depthMm, m.widthMm, m.depthMm);
+    const baseMm = machineBaseMm(m);
     placed.push({
       catalogId: m.id,
       instanceIndex: i,
@@ -139,9 +140,11 @@ export function computeLayout(state: ProjectState, catalog: CatalogMachine[]): L
       widthMm: r.width,
       depthMm: r.height,
       heightMm: m.heightMm,
-      baseMm: concreteBaseMm(m.weightKg),
+      baseMm,
+      ...(m.baseDrywall ? { baseDrywall: true } : {}),
     });
-    openings.push(orientedMarkerRect(state, alongPos, drywallAcross, m.widthMm, m.heightMm));
+    // vão do drywall até o topo da máquina, contando a base de concreto
+    openings.push(orientedMarkerRect(state, alongPos, drywallAcross, m.widthMm, m.heightMm + baseMm));
     cursorAlong += m.widthMm + MACHINE_GAP_MM;
   });
 

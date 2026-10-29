@@ -8,6 +8,7 @@ import {
   FURNITURE_BLOCK_WIDTH_MM,
   TECH_DOOR_WIDTH_MM,
   TOTEM_WALL_MM,
+  machineBaseMm,
 } from "./constants";
 import type { CatalogMachine, MachineSelection, ProjectState, Violation } from "./types";
 
@@ -52,7 +53,8 @@ export function computeMinDepthMm(list: CatalogMachine[]): number {
 
 export function computeMinCeilingMm(list: CatalogMachine[]): number {
   if (list.length === 0) return 0;
-  const maxHeight = Math.max(...list.map((m) => m.heightMm));
+  // topo da máquina conta a base de concreto embaixo dela
+  const maxHeight = Math.max(...list.map((m) => m.heightMm + machineBaseMm(m)));
   return maxHeight + CEILING_CLEARANCE_MM;
 }
 

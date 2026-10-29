@@ -17,6 +17,9 @@ import { useProjectStore } from "./state/projectStore";
 
 export interface PlantMachine {
   label: string;
+  brand: string;
+  model: string;
+  type: CatalogMachine["type"];
   qty: number;
   kg: number;
   /** bocas por máquina: stack = lavadora + secadora */
@@ -37,7 +40,7 @@ export function plantMachines(selection: MachineSelection[], catalog: CatalogMac
     .flatMap((s) => {
       const m = catalog.find((c) => c.id === s.catalogId);
       if (!m) return [];
-      return [{ label: `${m.brand} ${m.model}`, qty: s.qty, kg: machineKg(m), bocas: m.type === "stack" ? 2 : 1 }];
+      return [{ label: `${m.brand} ${m.model}`, brand: m.brand, model: m.model, type: m.type, qty: s.qty, kg: machineKg(m), bocas: m.type === "stack" ? 2 : 1 }];
     });
 }
 
@@ -51,19 +54,56 @@ export function tierOf(kg: number): TierId {
 
 const TIER_ORDER = TIERS.map((t) => t.id);
 
-/** Maior capacidade escrita no nome do equipamento do ROI ("2 × 13,6 kg" → 13,6). */
-function equipKg(nome: string): number | null {
+/** Maior capacidade escrita no título/descrição do equipamento do ROI ("2 × 13,6 kg" → 13,6). */
+function equipKg(e: RoiEquip): number | null {
+  const nome = `${e.nome} ${e.modelo ?? ""}`;
   const all = [...nome.matchAll(/(\d+(?:,\d+)?)\s*kg/gi)].map((m) => parseFloat(m[1].replace(",", ".")));
   return all.length ? Math.max(...all) : null;
 }
 
-/** Linha do ROI pra cada máquina: a da mesma faixa de tamanho (ou a mais próxima). */
-function equipIndexFor(equip: RoiEquip[], kg: number): number {
-  const want = TIER_ORDER.indexOf(tierOf(kg));
+// Linhas do ROI de uma marca específica ("LG Titan ..."): só recebem máquinas
+// dessa marca e modelo; as genéricas ("Chassi pequeno ...") vão por tamanho.
+const BRAND_ROWS = ["LG", "Mamute"];
+
+const isBrandRow = (nome: string) => BRAND_ROWS.some((b) => nome.toUpperCase().startsWith(`${b.toUpperCase()} `));
+
+/** Linha da marca e modelo da máquina ("LG Titan Stack" → "LG Titan"); com
+ *  várias do mesmo modelo ("Mamute Smart 10/17"), a de mesma capacidade. */
+function brandRowFor(equip: RoiEquip[], m: Pick<PlantMachine, "brand" | "model" | "kg">): number {
+  const first = m.model.trim().split(/\s+/)[0]?.toLowerCase();
+  if (!first) return -1;
+  const rows = equip
+    .map((e, i) => ({ e, i }))
+    .filter(({ e }) => {
+      const nome = e.nome.toLowerCase();
+      return isBrandRow(e.nome) && nome.startsWith(`${m.brand.toLowerCase()} `) && nome.includes(first);
+    });
+  if (rows.length === 0) return -1;
+  return (rows.find(({ e }) => equipKg(e) === m.kg) ?? rows[0]).i;
+}
+
+/** Linha que cita o código do modelo ("Lavadora SYC180" → linha "SYC180 + ST055"). */
+function codeRowFor(equip: RoiEquip[], m: Pick<PlantMachine, "model">): number {
+  const codes = m.model.toUpperCase().match(/[A-Z]{2,}\d{2,}/g) ?? [];
+  if (codes.length === 0) return -1;
+  return equip.findIndex((e) => {
+    const words = `${e.nome} ${e.modelo ?? ""}`.toUpperCase().split(/[^A-Z0-9]+/);
+    return codes.some((c) => words.includes(c));
+  });
+}
+
+/** Linha do ROI pra cada máquina: a do código do modelo, a da marca/modelo, senão a da mesma faixa de tamanho (ou a mais próxima). */
+function equipIndexFor(equip: RoiEquip[], m: Pick<PlantMachine, "brand" | "model" | "kg">): number {
+  const code = codeRowFor(equip, m);
+  if (code >= 0) return code;
+  const own = brandRowFor(equip, m);
+  if (own >= 0) return own;
+  const want = TIER_ORDER.indexOf(tierOf(m.kg));
   let best = 0;
   let bestDist = Infinity;
   equip.forEach((e, i) => {
-    const ek = equipKg(e.nome);
+    if (isBrandRow(e.nome)) return;
+    const ek = equipKg(e);
     if (ek === null) return;
     const dist = Math.abs(TIER_ORDER.indexOf(tierOf(ek)) - want);
     if (dist < bestDist) {
@@ -75,10 +115,19 @@ function equipIndexFor(equip: RoiEquip[], kg: number): number {
 }
 
 /** Quantidade de cada linha de equipamento do ROI pra ficar igual à planta. */
+// Cada equipamento do ROI é lavagem + secagem: stack conta 1; lavadora e
+// secadora avulsas formam pares (2 lavadoras + 2 secadoras = 2 equipamentos).
 export function roiQtyFromPlant(equip: RoiEquip[], plant: PlantMachine[]): number[] {
-  const qty = equip.map(() => 0);
-  for (const m of plant) qty[equipIndexFor(equip, m.kg)] += m.qty;
-  return qty;
+  const stacks = equip.map(() => 0);
+  const washers = equip.map(() => 0);
+  const dryers = equip.map(() => 0);
+  for (const m of plant) {
+    const i = equipIndexFor(equip, m);
+    if (m.type === "lavadora") washers[i] += m.qty;
+    else if (m.type === "secadora") dryers[i] += m.qty;
+    else stacks[i] += m.qty;
+  }
+  return stacks.map((s, i) => s + Math.max(washers[i], dryers[i]));
 }
 
 /** Bocas por faixa de tamanho pra Conectividade. */
@@ -158,7 +207,7 @@ export function usePlantSync(): void {
   }, [sig]);
 }
 
-/** Texto curto: "3× Speed Queen Stack Elétrica (SSU/SSG)". */
+/** Texto curto: "3× Speed Queen Stack 10". */
 export function plantSummary(plant: PlantMachine[]): string {
   if (plant.length === 0) return "nenhuma máquina";
   return plant.map((m) => `${m.qty}× ${m.label}`).join(" + ");

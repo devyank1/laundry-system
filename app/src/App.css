@@ -412,7 +412,7 @@
 /* Sem espaço pra abas + ações na mesma linha: ações só com ícone (o nome
    segue acessível e aparece no title) */
 @container (max-width: 1010px) {
-  .app .tabs-actions button {
+  .app .tabs-actions-many button {
     width: 32px;
     padding: 0;
     gap: 0;

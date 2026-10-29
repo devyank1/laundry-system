@@ -13,13 +13,14 @@ beforeEach(() => {
 const text = (label: string) => screen.getByText(label).closest(".roi-stat") as HTMLElement;
 
 describe("RoiCalculator", () => {
-  it("mostra com os valores iniciais os mesmos números da calculadora de referência", () => {
+  // (conta igual à da referência conferida em model.test; aqui a lista padrão atual)
+  it("mostra os números dos valores iniciais", () => {
     render(<RoiCalculator />);
-    expect(text("Investimento total").textContent).toMatch(/300\.414/);
+    expect(text("Investimento total").textContent).toMatch(/303\.182/);
     expect(text("Margem mensal (plena)").textContent).toMatch(/24\.432/);
     expect(text("Payback (com rampa)").textContent).toMatch(/17 meses/);
-    expect(text("ROI anual").textContent).toMatch(/98%/);
-    expect(text("Caixa em 5 anos").textContent).toMatch(/1\.058\.503/);
+    expect(text("ROI anual").textContent).toMatch(/97%/);
+    expect(text("Caixa em 5 anos").textContent).toMatch(/1\.055\.735/);
   });
 
   it("recalcula ao digitar (aceita vírgula) e persiste", async () => {
@@ -39,7 +40,7 @@ describe("RoiCalculator", () => {
     const user = userEvent.setup();
     render(<RoiCalculator />);
     await user.clear(screen.getByLabelText("Preço por cesto"));
-    expect(text("Investimento total").textContent).toMatch(/300\.414/);
+    expect(text("Investimento total").textContent).toMatch(/303\.182/);
     expect(screen.queryByText(/NaN/)).toBeNull();
   });
 
