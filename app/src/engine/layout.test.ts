@@ -1,6 +1,7 @@
 import { CATALOG_SEED } from "../catalog/seed";
 import { describe, expect, it } from "vitest";
 import { computeLayout } from "./layout";
+import { computeMinCeilingMm } from "./constraints";
 import type { CatalogMachine, ProjectState } from "./types";
 
 const catalog: CatalogMachine[] = [
@@ -290,12 +291,22 @@ describe("base de concreto da máquina pesada", () => {
 
   it("SYC180 e ST055 em nicho de drywall com o topo nivelado", () => {
     const layout = computeLayout(
-      { ...validState, roomWidthMm: 7000, roomDepthMm: 6000, ceilingHeightMm: 2800, machines: [{ catalogId: "sq-syc180", qty: 1 }, { catalogId: "sq-st055", qty: 1 }] },
+      { ...validState, roomWidthMm: 7000, roomDepthMm: 6000, machines: [{ catalogId: "sq-syc180", qty: 1 }, { catalogId: "sq-st055", qty: 1 }], ceilingHeightMm: 2900 },
       CATALOG_SEED
     ).layout!;
     const tops = layout.machines.map((m) => m.baseMm + m.heightMm);
     expect(tops).toEqual([1780, 1780]);
     expect(layout.machines.every((m) => m.baseDrywall)).toBe(true);
+  });
+
+  it("SYC180 pede 1,10 m livre acima: pé-direito mínimo 1,78 + 1,10 = 2,88 m", () => {
+    const syc = CATALOG_SEED.find((m) => m.id === "sq-syc180")!;
+    expect(computeMinCeilingMm([syc])).toBe(2880);
+    const r = computeLayout(
+      { ...validState, roomWidthMm: 7000, roomDepthMm: 6000, ceilingHeightMm: 2800, machines: [{ catalogId: "sq-syc180", qty: 1 }] },
+      CATALOG_SEED
+    );
+    expect(r.layout).toBeNull();
   });
 
   it("SSU/SSG: base de 20 cm do fabricante e vão do drywall até o topo dela", () => {

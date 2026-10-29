@@ -1,4 +1,5 @@
 import type { CatalogMachine, FurnitureLayout, Rect, WallSide } from "./types";
+import { machineBaseMm } from "./constants";
 
 // Elétrica das máquinas (Ebook Évora "Stack Elétrica" + fichas Mamute).
 // Referencial LOCAL da fileira, em mm: a = ao longo da parede das máquinas,
@@ -13,6 +14,9 @@ import type { CatalogMachine, FurnitureLayout, Rect, WallSide } from "./types";
 // (embaixo) e as 2 bombas dosadoras. Cabos pretos saem da máquina até a
 // tomada da lavadora e, com um plugue Steck macho, até a Steck da secadora.
 // Tomadas 127 V dos clientes ENTRE as cadeiras (caixa dupla, vertical).
+// Máquinas trifásicas com `plug` (resumos SYC180/ST055): sem cabo próprio,
+// ligam numa tomada + plugue Steck 3P+T no ponto atrás delas (1,50 m), com
+// disjuntor tripolar próprio; a SYC180 ainda tem as 2 tomadas das dosadoras.
 
 export const PROFILE_SIZE_MM = 50; // perfilado de alumínio, seção quadrada
 export const PROFILE_BOTTOM_Y_MM = 1000; // ponta de baixo do perfilado
@@ -41,6 +45,7 @@ const WASHER_CORD_A_MM = 0; // saída do cabo na traseira: entre as bombas dosad
 const DRYER_CORD_A_MM = -230;
 const WASHER_CORD_Y_MM = 850; // lavadora: embaixo do stack
 const DRYER_CORD_Y_MM = 1650; // secadora: em cima
+const PLUG_CORD_BELOW_TOP_MM = 250; // máquina com plugue: entrada de força no alto da traseira
 
 export interface ElectricalPoint {
   a: number;
@@ -54,7 +59,8 @@ export interface MachineElectrical {
   // Perfilado de alumínio descendo da eletrocalha.
   profile: { a: number; c: number; topY: number; bottomY: number; sizeMm: number };
   // Tomada Steck da secadora, no meio do perfilado.
-  dryerSocket: { a: number; c: number; y: number; type: string; amperage: number | null };
+  // (máquina com `plug`: a tomada Steck é da própria máquina, lavadora ou secadora)
+  dryerSocket: { a: number; c: number; y: number; type: string; amperage: number | null; use: "secadora" | "lavadora" };
   // Conduíte curto, rente ao perfilado, até a caixa vertical das 3 tomadas 220 V.
   conduit: ElectricalPoint[];
   sockets220: { a: number; c: number; y: number; use: Socket220Use }[];
@@ -167,7 +173,13 @@ export function computeElectrical(input: ElectricalInput): ElectricalLayout | nu
     const midY = Math.round((topY + PROFILE_BOTTOM_Y_MM) / 2);
     const boxY = SOCKET_BOX_Y_MM;
     // Caixa vertical: lavadora embaixo (o cabo dela desce livre), dosadoras em cima.
-    const uses: Socket220Use[] = ["lavadora", "dosadora-detergente", "dosadora-amaciante"];
+    const plugged = !!m.plug;
+    const dosingUses: Socket220Use[] = ["dosadora-detergente", "dosadora-amaciante"];
+    const uses: Socket220Use[] = !plugged
+      ? ["lavadora", ...dosingUses]
+      : m.type === "secadora"
+        ? []
+        : dosingUses;
     const sockets220 = uses.map((use, k) => ({
       a: pa,
       c: cProfile,
@@ -182,15 +194,19 @@ export function computeElectrical(input: ElectricalInput): ElectricalLayout | nu
     ];
     const hasDryer = m.type !== "lavadora";
     const hasWasher = m.type !== "secadora";
+    const steckY = plugged ? (m.utilityPointHeightMm ?? midY) : midY;
     const cords: MachineElectrical["cords"] = [];
-    if (hasWasher) {
+    if (plugged) {
+      const machineY = machineBaseMm(m) + m.heightMm - PLUG_CORD_BELOW_TOP_MM;
+      cords.push({ kind: "steck", points: cord(STECK_PLUG_END_MM, steckY, DRYER_CORD_A_MM, machineY) });
+    } else if (hasWasher) {
       cords.push({
         kind: "220",
         use: "lavadora",
         points: cord(PLUG_220_END_MM, sockets220[0].y, WASHER_CORD_A_MM, WASHER_CORD_Y_MM),
       });
     }
-    if (hasDryer) {
+    if (hasDryer && !plugged) {
       cords.push({ kind: "steck", points: cord(STECK_PLUG_END_MM, midY, DRYER_CORD_A_MM, DRYER_CORD_Y_MM) });
     }
     return {
@@ -200,9 +216,14 @@ export function computeElectrical(input: ElectricalInput): ElectricalLayout | nu
       dryerSocket: {
         a: pa,
         c: cProfile,
-        y: midY,
-        type: DRYER_PLUG,
-        amperage: m.type === "lavadora" ? null : (m.breakerSecadoraA ?? DEFAULT_DRYER_BREAKER_A),
+        y: steckY,
+        type: m.plug ?? DRYER_PLUG,
+        amperage: plugged
+          ? (m.plugAmperage ?? (hasDryer ? m.breakerSecadoraA : m.breakerLavadoraA) ?? null)
+          : m.type === "lavadora"
+            ? null
+            : (m.breakerSecadoraA ?? DEFAULT_DRYER_BREAKER_A),
+        use: plugged && !hasDryer ? "lavadora" : "secadora",
       },
       conduit: [
         { a: pa, c: cProfile - CONDUIT_FACE_OFFSET_MM, y: CONDUIT_START_Y_MM },
@@ -237,7 +258,7 @@ export function computeElectrical(input: ElectricalInput): ElectricalLayout | nu
     summary: {
       machines: perMachine.length,
       dryerSockets: perMachine.filter((p) => p.dryerSocket.amperage !== null).length,
-      sockets220: perMachine.length * SOCKETS_220_PER_MACHINE,
+      sockets220: perMachine.reduce((s, p) => s + p.sockets220.length, 0),
       customerOutlets: customerOutlets.reduce((n, o) => n + o.sockets, 0),
     },
   };

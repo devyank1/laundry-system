@@ -315,16 +315,26 @@ export function computeElectricalPlan(layout: Omit<Layout, "electricalPlan">): E
     electrical.machines.forEach((m, i) => {
       const p = toPlan(m.profile.a, m.profile.c);
       const hasWasher = m.cords.some((cord) => cord.kind === "220");
+      const dosingOnly = !hasWasher && m.sockets220.length > 0;
       if (hasWasher) {
         const breaker = m.washerBreakerA ? ` (${m.washerBreakerA}A)` : "";
         const id = next(`T${i + 1}: lavadora + 2 dosadoras${breaker}`, 220);
         const lav = toPlan(m.profile.a - SOCKET_SHIFT_MM, m.profile.c);
         devices.push({ ...lav, kind: "tomada220", circuit: id, wall: backWall, label: "LAV" });
         devices.push({ ...p, kind: "tomada220", circuit: id, wall: backWall, label: "DOS" });
+      } else if (dosingOnly) {
+        const id = next(`T${i + 1}: 2 dosadoras`, 220);
+        const dos = toPlan(m.profile.a - SOCKET_SHIFT_MM, m.profile.c);
+        devices.push({ ...dos, kind: "tomada220", circuit: id, wall: backWall, label: "DOS" });
       }
       if (m.dryerSocket.amperage !== null) {
-        const id = next(`T${i + 1}: secadora, Steck 2P+T ${m.dryerSocket.amperage}A`, 220);
-        const sp = toPlan(m.profile.a + (hasWasher ? SOCKET_SHIFT_MM : 0), m.profile.c);
+        const breaker =
+          m.dryerSocket.use === "lavadora" && m.washerBreakerA ? `, disjuntor ${m.washerBreakerA}A` : "";
+        const id = next(
+          `T${i + 1}: ${m.dryerSocket.use}, ${m.dryerSocket.type} ${m.dryerSocket.amperage}A${breaker}`,
+          220
+        );
+        const sp = toPlan(m.profile.a + (hasWasher || dosingOnly ? SOCKET_SHIFT_MM : 0), m.profile.c);
         devices.push({ ...sp, kind: "steck", circuit: id, wall: backWall, label: `${m.dryerSocket.amperage}A` });
       }
     });

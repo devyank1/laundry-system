@@ -29,6 +29,25 @@ export interface CatalogMachine {
   baseDrywall?: boolean;
   // Capacidade de lavagem (kg): liga a máquina às faixas do ROI/Conectividade.
   capacityKg?: number;
+  /** stack com secadora de outro tamanho (LG Titan: 13,6 kg); padrão = capacityKg */
+  dryerCapacityKg?: number;
+  // --- Resumo de instalação do fabricante (pasta maq) ---
+  /** tomada industrial da própria máquina (ex. "Steck 3P+T"); sem ela, padrão Stack */
+  plug?: string;
+  plugAmperage?: number;
+  /** pontos elétrico e de água atrás da máquina, do piso (mm) */
+  utilityPointHeightMm?: number;
+  /** entradas de água na traseira, da base da máquina (mm) */
+  waterInletHeightMm?: number;
+  /** dreno direto: tubo rígido da saída traseira até o esgoto, sem mangueira no ladrão */
+  directDrain?: boolean;
+  /** saída de drenagem traseira, da base da máquina (mm) */
+  drainHeightMm?: number;
+  /** espaço livre mínimo acima da máquina (mm); padrão CEILING_CLEARANCE_MM */
+  topClearanceMm?: number;
+  /** duto de exaustão cresce 2" a cada tantos mm de trajeto */
+  exhaustStepUpEveryMm?: number;
+  powerKw?: number;
 }
 
 export interface MachineSelection {

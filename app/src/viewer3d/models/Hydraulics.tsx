@@ -202,7 +202,12 @@ export function Hydraulics({ layout, hydraulics: h }: { layout: Layout; hydrauli
             ))}
 
             {/* Dreno: mangueira com laço → desce dentro do tubo vertical */}
-            <Duct points={w.hose.map(v)} radius={0.012} cornerRadius={0.1} {...HOSE} />
+            <Duct
+              points={w.hose.map(v)}
+              radius={w.hoseDiameterMm ? M(w.hoseDiameterMm) / 2 : 0.012}
+              cornerRadius={w.directDrain ? 0.02 : 0.1}
+              {...(w.directDrain ? SEWER : HOSE)}
+            />
             {/* Tubo individual RETO: do tubo central baixo até a boca aberta a 70 cm */}
             <Duct
               points={[L(w.standpipe.a, w.standpipe.c, w.standpipe.baseY), L(w.standpipe.a, w.standpipe.c, w.standpipe.topY)].map(v)}

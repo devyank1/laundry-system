@@ -293,9 +293,9 @@ export function ControlPanel({ show3dOptions = true }: { show3dOptions?: boolean
           {layout?.electrical && (
             <p data-electrical-info>
               Elétrica suspensa: {layout.electrical.summary.machines} perfilado(s) de alumínio, com{" "}
-              {layout.electrical.summary.dryerSockets} tomada(s) Steck de secadora (
+              {layout.electrical.summary.dryerSockets} tomada(s) Steck (
               {layout.electrical.machines[0].dryerSocket.amperage ?? "?"} A no 1º maquinário),{" "}
-              {layout.electrical.summary.sockets220} tomadas 220 V (lavadora + 2 dosadoras, caixa vertical) e{" "}
+              {layout.electrical.summary.sockets220} tomadas 220 V (lavadora e dosadoras, caixa vertical) e{" "}
               {layout.electrical.summary.customerOutlets} tomadas 127 V para clientes, entre as cadeiras.
             </p>
           )}

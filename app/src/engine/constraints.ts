@@ -54,8 +54,8 @@ export function computeMinDepthMm(list: CatalogMachine[]): number {
 export function computeMinCeilingMm(list: CatalogMachine[]): number {
   if (list.length === 0) return 0;
   // topo da máquina conta a base de concreto embaixo dela
-  const maxHeight = Math.max(...list.map((m) => m.heightMm + machineBaseMm(m)));
-  return maxHeight + CEILING_CLEARANCE_MM;
+  // e o espaço livre acima que o fabricante pede (SYC180: 1,10 m)
+  return Math.max(...list.map((m) => m.heightMm + machineBaseMm(m) + (m.topClearanceMm ?? CEILING_CLEARANCE_MM)));
 }
 
 export function countDryers(resolved: { machine: CatalogMachine; qty: number }[]): number {

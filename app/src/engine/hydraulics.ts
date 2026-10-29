@@ -1,5 +1,6 @@
 import type { CatalogMachine } from "./types";
 import { WALL_THICKNESS_MM } from "./exhaust";
+import { machineBaseMm } from "./constants";
 
 // Hidráulica e esgoto das lavadoras (Ebook Évora "Stack Elétrica" + resumo
 // SSU/SSG). Tudo em mm no referencial LOCAL da fileira (a = ao longo da
@@ -76,6 +77,9 @@ const SEWER_INWARD_MM = 150; // esgoto sai um pouco pra dentro da saída da exau
 const VENT_CEILING_GAP_MM = 200;
 const DRAIN_PORT_Y_MM = 250; // saída de drenagem traseira da lavadora
 const HOSE_LOOP_Y_MM = 850; // laço da mangueira: 61 a 91 cm
+// Dreno direto (resumo SYC180): tubo de 3" da saída traseira até um T no
+// esgoto, com ventilação subindo do T pra não dar efeito sifão.
+const DIRECT_DRAIN_VENT_MM = 300;
 
 export interface HydraulicPoint {
   a: number;
@@ -97,6 +101,9 @@ export interface WasherHydraulics {
     hoses: HydraulicPoint[][]; // cotovelo → entrada
   };
   waterPointHeightMm: number;
+  // Dreno direto: `hose` vira tubo rígido do diâmetro do dreno.
+  directDrain: boolean;
+  hoseDiameterMm: number | null;
   // Tubo individual da máquina: RETO, sobe do tubo de esgoto central (baixo)
   // até a boca aberta a 70 cm do piso, onde entra a mangueira do dreno.
   standpipe: { a: number; c: number; diameterMm: number; topY: number; baseY: number };
@@ -224,13 +231,18 @@ export function computeHydraulics(input: HydraulicsInput): HydraulicsLayout | nu
   const perWasher: WasherHydraulics[] = ordered.map((w) => {
     const aDrain = w.a + STANDPIPE_OFFSET_MM;
     const aRiser = w.a + RISER_A_MM;
-    const teeY = WATER_POINT_HEIGHT_MM;
+    // Pontos de água na altura do resumo do fabricante (SYC180: 1,50 m)
+    const teeY = w.m.utilityPointHeightMm ?? WATER_POINT_HEIGHT_MM;
+    const base = machineBaseMm(w.m);
+    const direct = !!w.m.directDrain;
+    const portY = direct ? base + (w.m.drainHeightMm ?? 0) : DRAIN_PORT_Y_MM;
+    const washerDrainDia = drainDiameterMm(w.m);
     const tee = [-1, 1].map((k) => ({ a: aRiser + k * WATER_TEE_ARM_MM, c: cManifold, y: teeY }));
     const elbows = tee.map((t) => ({ ...t, c: t.c + WATER_ELBOW_MM }));
     const inlets = [-1, 1].map((k) => ({
       a: w.a + WATER_INLET_A_MM + (k * WATER_INLETS_GAP_MM) / 2,
       c: w.back,
-      y: DOSING_PUMP_Y_MM - WATER_INLET_BELOW_PUMPS_MM,
+      y: w.m.waterInletHeightMm !== undefined ? base + w.m.waterInletHeightMm : DOSING_PUMP_Y_MM - WATER_INLET_BELOW_PUMPS_MM,
     }));
     // Galões entre o esgoto e a máquina quando cabem; senão, atrás do barramento.
     const jugFront = w.back - DOSING_JUG_BEHIND_MACHINE_MM;
@@ -239,7 +251,9 @@ export function computeHydraulics(input: HydraulicsInput): HydraulicsLayout | nu
     return {
       catalogId: w.m.id,
       a: w.a,
-      waterPointHeightMm: WATER_POINT_HEIGHT_MM,
+      waterPointHeightMm: teeY,
+      directDrain: direct,
+      hoseDiameterMm: direct ? washerDrainDia : null,
       water: {
         riser: [
           { a: aRiser, c: cManifold, y: manifoldY },
@@ -260,13 +274,18 @@ export function computeHydraulics(input: HydraulicsInput): HydraulicsLayout | nu
       standpipe: {
         a: aDrain,
         c: cDrain,
-        diameterMm: Math.max(STANDPIPE_DIAMETER_MM, drainDiameterMm(w.m)),
-        topY: STANDPIPE_HEIGHT_MM,
+        diameterMm: Math.max(STANDPIPE_DIAMETER_MM, washerDrainDia),
+        // dreno direto: o tubo vertical é o T + ventilação acima da saída
+        topY: direct ? portY + DIRECT_DRAIN_VENT_MM : STANDPIPE_HEIGHT_MM,
         baseY: DRAIN_LINE_Y_MM,
       },
       // Sai da traseira, sobe (afastada das bombas) ao laço de 61-91 cm e
-      // desce reto pra dentro da boca do tubo de dreno.
-      hose: [
+      // desce reto pra dentro da boca do tubo de dreno. Dreno direto: reto
+      // da saída até o T, levemente caído.
+      hose: direct ? [
+        { a: aDrain, c: w.back, y: portY },
+        { a: aDrain, c: cDrain, y: portY - 10 },
+      ] : [
         { a: aDrain, c: w.back, y: DRAIN_PORT_Y_MM },
         { a: aDrain, c: w.back - 40, y: DRAIN_PORT_Y_MM + 50 },
         { a: aDrain, c: w.back - 40, y: HOSE_LOOP_Y_MM },
@@ -353,7 +372,10 @@ export function computeHydraulics(input: HydraulicsInput): HydraulicsLayout | nu
     summary: {
       washers: washers.length,
       supplyFlowLpm: washers.length * WATER_FLOW_PER_WASHER_LPM,
-      drainFlowLpm: washers.length * DRAIN_FLOW_PER_WASHER_LPM,
+      drainFlowLpm: washers.reduce(
+        (s, w) => s + (w.m.directDrain && w.m.drainLpm ? w.m.drainLpm : DRAIN_FLOW_PER_WASHER_LPM),
+        0
+      ),
       mainDiameterMm: mainDia,
       drainDiameterMm: Math.round(drainDia * 10) / 10,
       dosingPumps: washers.length * DOSING_PUMPS_PER_WASHER,

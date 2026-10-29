@@ -12,8 +12,14 @@ const RENAMED: Record<string, { nome: string; from?: number; preco?: number }> =
   "Chassi grande 50, 2 × 22,7 kg": { nome: "Chassi grande 50" },
   "Lavadora-extratora 20 kg + secadora": { nome: "Lavadora 20kg e Secadora 25kg" },
   "Lavadora-extratora 20 kg": { nome: "Lavadora 20kg e Secadora 25kg" },
-  "LG Giant C 2 × 10 kg": { nome: "LG Giant C", from: 37234, preco: 29000 },
+  "LG Giant C 2 × 10 kg": { nome: "LG Giant C" },
   "LG Titan 17 kg + 13,6 kg": { nome: "LG Titan" },
+};
+
+// Preços padrão antigos (depois do nome novo) → preço atual; valor digitado fica.
+const REPRICED: Record<string, { from: number[]; preco: number }> = {
+  "LG Giant C": { from: [37234, 29000], preco: 29900 },
+  "LG Titan": { from: [72616], preco: 49900 },
 };
 
 // Descrições padrão de versões anteriores: trocam pela atual.
@@ -22,7 +28,9 @@ const OLD_DESC = ["Lavadora-extratora 20 kg + secadora · 2 máquinas · 1 boca 
 function migrateEquip(equip: RoiState["equip"], base: RoiState["equip"]): RoiState["equip"] {
   return equip.map((e) => {
     const r = RENAMED[e.nome];
-    const out = r ? { ...e, nome: r.nome, preco: r.from !== undefined && e.preco === r.from ? r.preco! : e.preco } : e;
+    const renamed = r ? { ...e, nome: r.nome, preco: r.from !== undefined && e.preco === r.from ? r.preco! : e.preco } : e;
+    const rp = REPRICED[renamed.nome];
+    const out = rp && rp.from.includes(renamed.preco) ? { ...renamed, preco: rp.preco } : renamed;
     // descrição em texto menor vem da lista padrão
     const ref = base.find((b) => b.nome === out.nome);
     if (!ref) return out;

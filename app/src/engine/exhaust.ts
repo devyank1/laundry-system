@@ -85,6 +85,7 @@ export function computeExhaust(input: ExhaustInput): ExhaustLayout | null {
       // saída medida da base da máquina; base/suporte embaixo sobe junto
       portY: (m.exhaustHeightMm ?? m.heightMm - PORT_BELOW_TOP_MM) + machineBaseMm(m),
       diameterMm: m.exhaustDiameterMm ?? DEFAULT_EXHAUST_DIAMETER_MM,
+      stepUpEveryMm: m.exhaustStepUpEveryMm,
     }));
   if (dryers.length === 0) return null;
 
@@ -107,35 +108,42 @@ export function computeExhaust(input: ExhaustInput): ExhaustLayout | null {
       COLLECTOR_STATIONS_MM[Math.min(k, COLLECTOR_STATIONS_MM.length) - 1],
       Math.max(...ordered.slice(0, k).map((d) => d.diameterMm))
     );
-  const outletDiameterMm = stationDia(ordered.length);
+  const collectorDiameterMm = stationDia(ordered.length);
+  // Saída baixa (ST055: na base traseira) ainda tem que deixar o bocal a 91 cm
+  // do piso do lado de fora: o coletor sobe o bastante pra isso.
   const yCollector = Math.min(
-    Math.max(...dryers.map((d) => d.portY)) + COLLECTOR_RISE_MM,
-    ceilingMm - CEILING_GAP_MM - outletDiameterMm / 2
+    Math.max(
+      Math.max(...dryers.map((d) => d.portY)) + COLLECTOR_RISE_MM,
+      MIN_TERMINATION_CLEARANCE_MM + DROP_MM + collectorDiameterMm / 2
+    ),
+    ceilingMm - CEILING_GAP_MM - collectorDiameterMm / 2
   );
 
   // Todos os ramais chegam a 45° (em planta) no mesmo eixo do coletor.
-  const ramp = (d: (typeof dryers)[number]) => Math.max(RAMP_MIN_MM, yCollector - d.portY);
-  const cCollector = Math.max(
-    outletDiameterMm / 2 + WALL_DUCT_CLEARANCE_MM,
-    Math.min(...dryers.map((d) => d.back - STUB_MIN_MM - ramp(d)))
-  );
+  // Saída baixa demais pro espaço atrás da máquina: sobe reto e só o fim vai a 45°.
+  const cMin = collectorDiameterMm / 2 + WALL_DUCT_CLEARANCE_MM;
+  const ramp = (d: (typeof dryers)[number]) =>
+    Math.max(RAMP_MIN_MM, Math.min(yCollector - d.portY, d.back - STUB_MIN_MM - cMin));
+  const cCollector = Math.max(cMin, Math.min(...dryers.map((d) => d.back - STUB_MIN_MM - ramp(d))));
 
   const branches = ordered.map((d) => {
     const r = ramp(d);
     const turn = cCollector + r;
+    const riseTo = yCollector - r; // > portY só quando o ramal precisa subir reto antes
     return {
       catalogId: d.catalogId,
       diameterMm: d.diameterMm,
       points: [
         { a: d.a, c: d.back, y: d.portY },
         { a: d.a, c: turn, y: d.portY }, // reto, curva longa de 90° atrás da máquina
+        ...(riseTo > d.portY + 1 ? [{ a: d.a, c: turn, y: riseTo }] : []), // sobe reto (curvas de 45°)
         { a: d.a + flow * r, c: cCollector, y: yCollector }, // 45° até o coletor, a favor do fluxo
       ],
     };
   });
 
   // Coletor: da ponta fechada até o canto, trocando de diâmetro a cada ramal.
-  const junctions = branches.map((b) => b.points[2].a);
+  const junctions = branches.map((b) => b.points[b.points.length - 1].a);
   const collectorStart: ExhaustPoint = { a: ordered[0].a, c: cCollector, y: yCollector };
   const corner: ExhaustPoint = { a: exitA, c: cCollector, y: yCollector };
   const stops = [collectorStart.a, ...junctions.slice(1), corner.a];
@@ -155,6 +163,13 @@ export function computeExhaust(input: ExhaustInput): ExhaustLayout | null {
     }
     from = to;
   }
+
+  // ST055: a cada 3,5 m de trajeto o duto cresce 2" sobre a saída de origem.
+  const stepEvery = Math.min(...ordered.map((d) => d.stepUpEveryMm ?? Infinity));
+  const reach = pathLength(branches[0].points) + Math.abs(exitA - collectorStart.a) + WALL_THICKNESS_MM + OUTSIDE_RUN_MM + DROP_MM;
+  const outletDiameterMm = Number.isFinite(stepEvery)
+    ? Math.round(collectorDiameterMm + 50.8 * Math.floor(reach / stepEvery))
+    : collectorDiameterMm;
 
   const yEnd = yCollector - DROP_MM;
   const exit: ExhaustDuct = {

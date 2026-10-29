@@ -269,3 +269,29 @@ describe("hidráulica e esgoto das lavadoras", () => {
     expect(layout.hydraulics).toBeNull();
   });
 });
+
+describe("SYC180 (resumo de instalação, pasta maq)", () => {
+  const syc = { machines: [{ catalogId: "sq-syc180", qty: 2 }], ceilingHeightMm: 3000, roomWidthMm: 7000 };
+
+  it("2 pontos de água 3/4\" atrás da máquina a 1,50 m, entradas no alto da traseira", () => {
+    const h = hydFor(syc);
+    for (const w of h.washers) {
+      expect(w.waterPointHeightMm).toBe(1500);
+      expect(w.water.tee.every((p) => p.y === 1500)).toBe(true);
+      expect(w.water.inlets.every((p) => p.y === 350 + 1260)).toBe(true);
+    }
+  });
+
+  it("dreno direto de 3\" saindo da traseira, acima do esgoto, com ventilação acima do T", () => {
+    const h = hydFor(syc);
+    for (const w of h.washers) {
+      expect(w.directDrain).toBe(true);
+      expect(w.hoseDiameterMm).toBeCloseTo(76.2);
+      expect(w.hose).toHaveLength(2);
+      expect(w.hose[0].y).toBe(350 + 75); // saída 75 mm acima da base (nicho a 35 cm)
+      expect(w.hose[1].y).toBeLessThan(w.hose[0].y); // caindo rumo ao esgoto
+      expect(w.standpipe.topY).toBeGreaterThan(w.hose[0].y); // respiro do T
+    }
+    expect(h.summary.drainFlowLpm).toBe(2 * 210);
+  });
+});

@@ -164,9 +164,8 @@ export function defaultRoiState(): RoiState {
         preco: 90014,
         qtd: 0,
       },
-      { nome: "LG Giant C", modelo: "LG Giant C, 2 × 10 kg (Stack)", wl: 1, ws: 1, cb: 1, preco: 29000, qtd: 0 },
-      // Titan: a pasta LG não traz preço; parte do chassi equivalente (ajustar com a cotação NEXLAV)
-      { nome: "LG Titan", modelo: "LG Titan, 17 kg + 13,6 kg (Stack)", wl: 1, ws: 1, cb: 2, preco: 72616, qtd: 0 },
+      { nome: "LG Giant C", modelo: "LG Giant C, 2 × 10 kg (Stack)", wl: 1, ws: 1, cb: 1, preco: 29900, qtd: 0 },
+      { nome: "LG Titan", modelo: "LG Titan, 17 kg + 13,6 kg (Stack)", wl: 1, ws: 1, cb: 2, preco: 49900, qtd: 0 },
       { nome: "Mamute Smart 10", modelo: "Mamute Smart 10, 2 × 10 kg (Stack)", wl: 1, ws: 1, cb: 1, preco: 39900, qtd: 0 },
       { nome: "Mamute Smart 17", modelo: "Mamute Smart 17, 2 × 17 kg (Stack) · com dosadores", wl: 1, ws: 1, cb: 2, preco: 67000, qtd: 0 },
     ],

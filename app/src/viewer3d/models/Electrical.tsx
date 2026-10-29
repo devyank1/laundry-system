@@ -139,7 +139,8 @@ export function Electrical({ layout, electrical: e }: { layout: Layout; electric
         const center = v({ a: p.a, c: p.c, y: (p.topY + p.bottomY) / 2 });
         const half = M(p.sizeMm) / 2;
         const box = m.sockets220;
-        const boxY = (box[0].y + box[box.length - 1].y) / 2;
+        const boxY = box.length ? (box[0].y + box[box.length - 1].y) / 2 : 0;
+        const threePhase = m.dryerSocket.type.includes("3P");
         const boxPos = v({ a: p.a, c: p.c, y: boxY });
         const dryer = v({ a: p.a, c: p.c, y: m.dryerSocket.y });
         const boxH = M(SOCKET_BOX_HALF_HEIGHT_MM * 2);
@@ -159,7 +160,7 @@ export function Electrical({ layout, electrical: e }: { layout: Layout; electric
               </mesh>
             </group>
 
-            {/* Tomada industrial Steck 2P+T da secadora, no meio do perfilado */}
+            {/* Tomada Steck: 2P+T da secadora no meio do perfilado, ou 3P+T da máquina trifásica a 1,50 m */}
             <group position={dryer} rotation={[0, towardWall, 0]}>
               <mesh position={[0, 0, half + 0.017]} rotation={[Math.PI / 2, 0, 0]} castShadow>
                 <cylinderGeometry args={[0.032, 0.036, 0.034, 20]} />
@@ -169,7 +170,7 @@ export function Electrical({ layout, electrical: e }: { layout: Layout; electric
                 <cylinderGeometry args={[0.024, 0.024, 0.002, 20]} />
                 <StdMat color="#e5e7eb" roughness={0.4} />
               </mesh>
-              {[-0.01, 0.01].map((dx) => (
+              {(threePhase ? [-0.012, 0, 0.012] : [-0.01, 0.01]).map((dx) => (
                 <mesh key={dx} position={[dx, 0.005, half + 0.0365]}>
                   <boxGeometry args={[0.004, 0.012, 0.002]} />
                   <StdMat color="#111827" />
@@ -188,8 +189,8 @@ export function Electrical({ layout, electrical: e }: { layout: Layout; electric
             </group>
 
             {/* Conduíte curto, rente ao perfilado, até a caixa vertical das 3 tomadas 220 V */}
-            <Duct points={m.conduit.map(v)} radius={0.011} cornerRadius={0.03} tubular={12} {...CONDUIT} />
-            <group position={boxPos} rotation={[0, towardWall, 0]}>
+            {box.length > 0 && <Duct points={m.conduit.map(v)} radius={0.011} cornerRadius={0.03} tubular={12} {...CONDUIT} />}
+            {box.length > 0 && <group position={boxPos} rotation={[0, towardWall, 0]}>
               <mesh position={[0, 0, half + 0.015]} castShadow>
                 <boxGeometry args={[0.075, boxH, 0.03]} />
                 <StdMat color="#e5e7eb" roughness={0.5} />
@@ -207,7 +208,7 @@ export function Electrical({ layout, electrical: e }: { layout: Layout; electric
                   </group>
                 ))}
               </group>
-            </group>
+            </group>}
 
             {/* Cabos de força pretos, soltos e com folga (laço), como na foto da traseira */}
             {m.cords.map((cd) => (

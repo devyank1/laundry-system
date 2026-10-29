@@ -24,6 +24,8 @@ export interface PlantMachine {
   kg: number;
   /** bocas por máquina: stack = lavadora + secadora */
   bocas: number;
+  /** capacidade de cada boca (kg): stack = [lavadora, secadora] */
+  bocasKg: number[];
 }
 
 /** Capacidade da máquina em kg: campo do catálogo, senão o número do modelo ("Smart 17"), senão 10. */
@@ -40,7 +42,9 @@ export function plantMachines(selection: MachineSelection[], catalog: CatalogMac
     .flatMap((s) => {
       const m = catalog.find((c) => c.id === s.catalogId);
       if (!m) return [];
-      return [{ label: `${m.brand} ${m.model}`, brand: m.brand, model: m.model, type: m.type, qty: s.qty, kg: machineKg(m), bocas: m.type === "stack" ? 2 : 1 }];
+      const kg = machineKg(m);
+      const bocasKg = m.type === "stack" ? [kg, m.dryerCapacityKg ?? kg] : [kg];
+      return [{ label: `${m.brand} ${m.model}`, brand: m.brand, model: m.model, type: m.type, qty: s.qty, kg, bocas: bocasKg.length, bocasKg }];
     });
 }
 
@@ -130,11 +134,27 @@ export function roiQtyFromPlant(equip: RoiEquip[], plant: PlantMachine[]): numbe
   return stacks.map((s, i) => s + Math.max(washers[i], dryers[i]));
 }
 
-/** Bocas por faixa de tamanho pra Conectividade. */
+/** Bocas por faixa de tamanho pra Conectividade: cada boca na faixa do seu kg. */
 export function fleetFromPlant(plant: PlantMachine[]): Record<TierId, number> {
   const fleet: Record<TierId, number> = { p: 0, m: 0, g: 0, x: 0 };
-  for (const m of plant) fleet[tierOf(m.kg)] += m.qty * m.bocas;
+  for (const m of plant) for (const kg of m.bocasKg) fleet[tierOf(kg)] += m.qty;
   return fleet;
+}
+
+const kgLabel = (kg: number) => `${kg.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kg`;
+
+/** Quais máquinas da planta caem em cada faixa: "2× LG Titan Stack (lavadora 17 kg + secadora 13,6 kg)". */
+export function fleetDetailFromPlant(plant: PlantMachine[]): Record<TierId, string[]> {
+  const out: Record<TierId, string[]> = { p: [], m: [], g: [], x: [] };
+  for (const m of plant) {
+    const parts: Record<TierId, string[]> = { p: [], m: [], g: [], x: [] };
+    m.bocasKg.forEach((kg, k) => {
+      const what = m.type === "stack" ? (k === 0 ? "lavadora" : "secadora") : m.type;
+      parts[tierOf(kg)].push(`${what} ${kgLabel(kg)}`);
+    });
+    for (const t of TIER_ORDER) if (parts[t].length) out[t].push(`${m.qty}× ${m.label} (${parts[t].join(" + ")})`);
+  }
+  return out;
 }
 
 const parseInt0 = (s: string) => {
@@ -197,7 +217,7 @@ function writeSync(v: { roi?: string; insights?: string }): void {
 /** Faz ROI e Conectividade seguirem a planta sempre que ela muda. */
 export function usePlantSync(): void {
   const plant = usePlant();
-  const sig = plant.map((m) => `${m.label}:${m.qty}:${m.kg}:${m.bocas}`).join("|");
+  const sig = plant.map((m) => `${m.label}:${m.qty}:${m.bocasKg.join("/")}`).join("|");
   useEffect(() => {
     const last = readSync();
     if (last.roi !== sig) applyPlantToRoi(plant);

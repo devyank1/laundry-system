@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { TIERS, computeInsights, formatBRL0, mesesLabel, verdictText, type InsightsInputs } from "./model";
 import { useInsightsStore } from "./insightsStore";
 import { PlantLink } from "../roi/PlantLink";
-import { applyPlantToInsights, insightsMatchesPlant, usePlant } from "../plantLink";
+import { applyPlantToInsights, fleetDetailFromPlant, insightsMatchesPlant, usePlant } from "../plantLink";
 import "../roi/roi.css";
 
 function Text({
@@ -52,6 +52,7 @@ export function InsightsCalculator() {
   const r = useMemo(() => computeInsights(inputs), [inputs]);
   const ok = r.verdict.kind === "ok";
   const plant = usePlant();
+  const detail = useMemo(() => fleetDetailFromPlant(plant), [plant]);
   const neg = (n: number | null) => n !== null && n < 0;
 
   return (
@@ -106,7 +107,10 @@ export function InsightsCalculator() {
           <tbody>
             {TIERS.map((t) => (
               <tr key={t.id}>
-                <td>{t.label}</td>
+                <td className="roi-name">
+                  {t.label}
+                  {detail[t.id].length > 0 && <small className="roi-name-desc">{detail[t.id].join(" · ")}</small>}
+                </td>
                 <td>{formatBRL0(t.rate)}</td>
                 <td>
                   <input className="roi-name-input" type="text" inputMode="numeric" aria-label={`Nº de bocas — ${t.label}`} value={s.fleet[t.id]} onChange={(e) => s.setFleet(t.id, e.target.value)} />

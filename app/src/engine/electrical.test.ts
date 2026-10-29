@@ -153,3 +153,33 @@ describe("elétrica suspensa", () => {
     expect(e.summary.customerOutlets).toBe(4); // 2 vãos entre 3 cadeiras, caixa dupla
   });
 });
+
+describe("SYC180 e ST055: ponto Steck 3P+T a 1,50 m (pasta maq)", () => {
+  const e = () =>
+    layoutFor({
+      machines: [{ catalogId: "sq-syc180", qty: 1 }, { catalogId: "sq-st055", qty: 1 }],
+      ceilingHeightMm: 3000,
+      roomWidthMm: 7000,
+    }).electrical!;
+
+  it("cada máquina liga num Steck 3P+T 63 A a 1,50 m, sem tomada 220 V própria", () => {
+    for (const m of e().machines) {
+      expect(m.dryerSocket.type).toBe("Steck 3P+T");
+      expect(m.dryerSocket.amperage).toBe(63);
+      expect(m.dryerSocket.y).toBe(1500);
+      expect(m.sockets220.some((s) => s.use === "lavadora")).toBe(false);
+      expect(m.cords.map((c) => c.kind)).toEqual(["steck"]);
+    }
+  });
+
+  it("lavadora mantém as 2 tomadas das dosadoras; secadora não tem tomada 220 V", () => {
+    const lav = e().machines.find((m) => m.catalogId === "sq-syc180")!;
+    const sec = e().machines.find((m) => m.catalogId === "sq-st055")!;
+    expect(lav.dryerSocket.use).toBe("lavadora");
+    expect(lav.washerBreakerA).toBe(63);
+    expect(lav.sockets220.map((s) => s.use)).toEqual(["dosadora-detergente", "dosadora-amaciante"]);
+    expect(sec.dryerSocket.use).toBe("secadora");
+    expect(sec.sockets220).toHaveLength(0);
+    expect(e().summary.sockets220).toBe(2);
+  });
+});

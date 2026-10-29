@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { CATALOG_SEED } from "./catalog/seed";
 import { defaultRoiState } from "./roi/model";
 import {
+  fleetDetailFromPlant,
   fleetFromPlant,
   insightsMatchesPlant,
   machineKg,
@@ -88,5 +89,23 @@ describe("plantLink", () => {
     expect(roiMatchesPlant(synced, plant)).toBe(true);
     expect(insightsMatchesPlant({ p: "6", m: "0", g: "0", x: "0" }, plant)).toBe(true);
     expect(insightsMatchesPlant({ p: "4", m: "2", g: "0", x: "0" }, plant)).toBe(false);
+  });
+});
+
+describe("Conectividade: tamanho de cada boca", () => {
+  it("LG Giant C + LG Titan: 2 bocas pequenas (10 kg) e 2 médias (17 kg + 13,6 kg)", () => {
+    const plant = plantMachines(
+      [
+        { catalogId: "sq-stack", qty: 0 },
+        { catalogId: "lg-giant-c", qty: 1 },
+        { catalogId: "lg-titan", qty: 1 },
+      ],
+      CATALOG_SEED
+    );
+    expect(fleetFromPlant(plant)).toEqual({ p: 2, m: 2, g: 0, x: 0 });
+    const d = fleetDetailFromPlant(plant);
+    expect(d.p).toEqual(["1× LG Giant C Stack (lavadora 10 kg + secadora 10 kg)"]);
+    expect(d.m).toEqual(["1× LG Titan Stack (lavadora 17 kg + secadora 13,6 kg)"]);
+    expect(d.g).toEqual([]);
   });
 });

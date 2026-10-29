@@ -34,6 +34,19 @@ function renamed(saved: CatalogMachine[]): CatalogMachine[] {
       m.id in LEVEL && (m.concreteBaseMm === 1400 || m.concreteBaseMm === 700) ? { ...m, concreteBaseMm: LEVEL[m.id], baseDrywall: true } : m,
     );
   }
+  // SYC180/ST055 salvas antes do resumo de instalação (pasta maq) ganham os
+  // dados novos; o que a pessoa já editou fica.
+  if (list.some((m) => (m.id === "sq-syc180" || m.id === "sq-st055") && m.utilityPointHeightMm === undefined)) {
+    list = list.map((m) => {
+      const seed = CATALOG_SEED.find((s) => s.id === m.id);
+      if (!seed || (m.id !== "sq-syc180" && m.id !== "sq-st055") || m.utilityPointHeightMm !== undefined) return m;
+      return { ...seed, ...m, ...(m.id === "sq-st055" && m.weightKg === 210 ? { weightKg: 200 } : {}) };
+    });
+  }
+  // Secadora da Titan (13,6 kg) é menor que a lavadora (17 kg)
+  if (list.some((m) => m.id === "lg-titan" && m.dryerCapacityKg === undefined && m.capacityKg === 17)) {
+    list = list.map((m) => (m.id === "lg-titan" && m.dryerCapacityKg === undefined && m.capacityKg === 17 ? { ...m, dryerCapacityKg: 13.6 } : m));
+  }
   return list.some((m) => m.id === "sq-stack" && m.model === "Stack Elétrica (SSU/SSG)")
     ? list.map((m) => (m.id === "sq-stack" && m.model === "Stack Elétrica (SSU/SSG)" ? { ...m, model: "Stack 10" } : m))
     : list;

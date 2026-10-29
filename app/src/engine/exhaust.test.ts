@@ -112,3 +112,25 @@ describe("exaustão das secadoras", () => {
     expect(layout.exhaust).toBeNull();
   });
 });
+
+describe("ST055 (resumo de instalação, pasta maq)", () => {
+  const st = () => exhaustFor({ machines: [{ catalogId: "sq-st055", qty: 1 }], ceilingHeightMm: 3000, roomWidthMm: 7000 });
+
+  it("saída traseira Ø200 a 145 mm da base (nicho a 8 cm), subindo reto antes do 45°", () => {
+    const b = st().branches[0];
+    expect(b.diameterMm).toBe(200);
+    expect(b.points[0].y).toBe(80 + 145);
+    expect(b.points.length).toBe(4);
+    const [, turn, rise, join] = b.points;
+    expect(rise.c).toBe(turn.c);
+    expect(rise.y).toBeGreaterThan(turn.y);
+    expect(Math.abs(join.a - rise.a)).toBeCloseTo(Math.abs(join.c - rise.c)); // 45°
+  });
+
+  it("bocal virado pra baixo a ≥ 91 cm do piso e duto +2\" a cada 3,5 m", () => {
+    const ex = st();
+    expect(ex.terminationClearanceMm).toBeGreaterThanOrEqual(MIN_TERMINATION_CLEARANCE_MM);
+    expect(ex.outletDiameterMm).toBeGreaterThanOrEqual(200);
+    expect((ex.outletDiameterMm - 200) % 51).toBeLessThanOrEqual(1);
+  });
+});
