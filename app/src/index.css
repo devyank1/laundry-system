@@ -15,7 +15,23 @@
   --primary-bg: rgba(31, 207, 119, 0.12);
   --accent: #d7ff5c;
   --accent-bg: rgba(215, 255, 92, 0.12);
+  --on-primary: #06130a; /* texto em cima da cor primária */
+  --on-accent: #0b100d;
+  --accent-ink: #d7ff5c; /* destaque usado como texto */
+  --highlight: #d7ff5c; /* número em destaque (payback) */
+  --tint: rgba(255, 255, 255, 0.04); /* hover discreto em listas */
   --focus-ring: 0 0 0 3px rgba(31, 207, 119, 0.35);
+
+  /* gráficos (validados no fundo escuro) */
+  --chart-1: #d7ff5c;
+  --chart-2: #4fd1e0;
+  --chart-3: #17a860;
+  --chart-4: #b79cff;
+  --chart-track: rgba(255, 255, 255, 0.05);
+  --line-main: #d7ff5c;
+  --line-main-from: #17a860;
+  --line-opt: #6fe3a0;
+  --line-cons: #2e8f5a;
 
   --danger: #ff6f6f;
   --danger-bg: rgba(255, 111, 111, 0.12);
@@ -41,6 +57,61 @@
 
 html {
   color-scheme: dark;
+}
+
+/* ---------- Tema claro: azul e branco de lavanderia, rosa de complemento ---------- */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #eaf0fd;
+  --surface: #ffffff;
+  --surface-muted: #f3f7ff;
+  --border: rgba(24, 52, 120, 0.09);
+  --border-strong: rgba(24, 52, 120, 0.18);
+  --text: #0f1b3d;
+  --text-muted: #5b6889;
+  --text-subtle: #98a3bf;
+
+  --primary: #3375ff;
+  --primary-hover: #1f5fe8;
+  --primary-soft: rgba(51, 117, 255, 0.4);
+  --primary-bg: rgba(51, 117, 255, 0.1);
+  --accent: #e8b8f5;
+  --accent-bg: rgba(232, 184, 245, 0.3);
+  --on-primary: #ffffff;
+  --on-accent: #4a1a5c;
+  --accent-ink: #9b3fb8;
+  --highlight: #c25e00; /* laranja escurecido p/ texto legível */
+  --orange: #f67803;
+  --orange-hover: #e06a00;
+  --orange-bg: rgba(246, 120, 3, 0.1);
+  --tint: rgba(51, 117, 255, 0.05);
+  --focus-ring: 0 0 0 3px rgba(51, 117, 255, 0.3);
+
+  --danger: #e5484d;
+  --danger-bg: rgba(229, 72, 77, 0.08);
+  --danger-border: rgba(229, 72, 77, 0.3);
+
+  --shadow-sm: 0 1px 2px rgba(15, 27, 61, 0.06);
+  --shadow: 0 2px 8px rgba(15, 27, 61, 0.07), 0 1px 2px rgba(15, 27, 61, 0.05);
+  --shadow-lg: 0 20px 40px -12px rgba(15, 27, 61, 0.18), 0 4px 12px rgba(15, 27, 61, 0.08);
+
+  /* gráficos (validados no fundo branco) */
+  --chart-1: #3375ff;
+  --chart-2: #00909c;
+  --chart-3: #f67803;
+  --chart-4: #2f4fb0;
+  --chart-track: rgba(24, 52, 120, 0.07);
+  --line-main: #3375ff;
+  --line-main-from: #9cc0ff;
+  --line-opt: #00909c;
+  --line-cons: #f67803;
+}
+
+/* troca de tema sem piscar: só cor de fundo/borda/texto anima */
+:root.theme-anim *,
+:root.theme-anim *::before,
+:root.theme-anim *::after {
+  transition: background-color 250ms ease, border-color 250ms ease, color 250ms ease, fill 250ms ease, stroke 250ms ease !important;
 }
 
 body {

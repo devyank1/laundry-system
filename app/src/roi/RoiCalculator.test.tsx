@@ -10,14 +10,14 @@ beforeEach(() => {
   useRoiStore.setState(defaultRoiState());
 });
 
-const text = (label: string) => screen.getByText(label).closest(".roi-stat") as HTMLElement;
+const text = (label: string) => screen.getByText(label).closest(".roi-card") as HTMLElement;
 
 describe("RoiCalculator", () => {
   // (conta igual à da referência conferida em model.test; aqui a lista padrão atual)
   it("mostra os números dos valores iniciais", () => {
     render(<RoiCalculator />);
     expect(text("Investimento total").textContent).toMatch(/303\.182/);
-    expect(text("Margem mensal (plena)").textContent).toMatch(/24\.432/);
+    expect(text("Receita do mês (plena)").textContent).toMatch(/24\.432/);
     expect(text("Payback (com rampa)").textContent).toMatch(/17 meses/);
     expect(text("ROI anual").textContent).toMatch(/97%/);
     expect(text("Caixa em 5 anos").textContent).toMatch(/1\.055\.735/);
@@ -29,11 +29,11 @@ describe("RoiCalculator", () => {
     const preco = screen.getByLabelText("Preço por cesto");
     await user.clear(preco);
     await user.type(preco, "22");
-    expect(text("Margem mensal (plena)").textContent).not.toMatch(/24\.432/);
+    expect(text("Receita do mês (plena)").textContent).not.toMatch(/24\.432/);
     expect(JSON.parse(localStorage.getItem("lavanderia.roi.v1") ?? "{}").op.preco).toBe(22);
     await user.clear(preco);
     await user.type(preco, "18,0");
-    expect(text("Margem mensal (plena)").textContent).toMatch(/24\.432/);
+    expect(text("Receita do mês (plena)").textContent).toMatch(/24\.432/);
   });
 
   it("campo vazio vira zero sem quebrar a tela", async () => {
@@ -70,6 +70,6 @@ describe("RoiCalculator", () => {
     await user.clear(preco);
     await user.type(preco, "30");
     await user.click(screen.getByRole("button", { name: "Restaurar valores iniciais" }));
-    expect(text("Margem mensal (plena)").textContent).toMatch(/24\.432/);
+    expect(text("Receita do mês (plena)").textContent).toMatch(/24\.432/);
   });
 });

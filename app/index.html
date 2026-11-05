@@ -20,6 +20,16 @@
       />
     </noscript>
     <title>Configurador de Lavanderia</title>
+    <script>
+      // Tema antes da 1ª pintura (sem piscar): escolha salva ou o do sistema.
+      try {
+        var t = localStorage.getItem("lavanderia.tema");
+        if (t !== "light" && t !== "dark") t = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+        document.documentElement.dataset.theme = t;
+      } catch (e) {
+        document.documentElement.dataset.theme = "dark";
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

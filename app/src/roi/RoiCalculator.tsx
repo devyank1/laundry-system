@@ -1,13 +1,13 @@
-import { useMemo, useState, type PointerEvent } from "react";
+import { useMemo, useState } from "react";
 import { computeRoi, type RoiEquip, type RoiResult } from "./model";
 import { useRoiStore } from "./roiStore";
 import { PlantLink } from "./PlantLink";
 import { applyPlantToRoi, roiMatchesPlant, usePlant } from "../plantLink";
+import { Donut, LineChart } from "./charts";
+import { LINE, PIE, brlShort, money, type Slice } from "./chartFormat";
 import "./roi.css";
 
-const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
-const int = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
-const money = (v: number) => brl.format(Math.round(v));
+
 
 /** "Chassi grande 30, 2 × 13,6 kg (SSG30/SSU30) · 2 bocas (lavagem + secagem) · 2 cesto(s) por boca" */
 function equipDesc(e: RoiEquip): string {
@@ -65,145 +65,19 @@ function NumInput({
   );
 }
 
-function Stat({ label, value, hint, featured }: { label: string; value: string; hint?: string; featured?: boolean }) {
-  return (
-    <div className={featured ? "roi-stat roi-stat-featured" : "roi-stat"}>
-      <span>{label}</span>
-      <strong>{value}</strong>
-      {hint && <small>{hint}</small>}
-    </div>
-  );
-}
-
-// Cenários ordenados (pior → melhor): o realista (o principal) usa o
-// verde-limão de destaque da marca. Tracejado no conservador pra não
-// depender só da cor.
-const SCEN_STYLE = [
-  { color: "#7a8a7e", width: 1.75, dash: "5 4" },
-  { color: "#d7ff5c", width: 2.5, dash: undefined },
-  { color: "#1fcf77", width: 1.75, dash: undefined },
-];
-const scenStyle = (i: number) => SCEN_STYLE[i] ?? SCEN_STYLE[1];
-
-// Até ~5 marcas "redondas" no eixo y (50 mil, 100 mil, 250 mil...).
-function niceTicks(lo: number, hi: number, count = 5): number[] {
-  const raw = (hi - lo || 1) / count;
-  const mag = 10 ** Math.floor(Math.log10(raw));
-  const step = [1, 2, 2.5, 5, 10].map((k) => k * mag).find((k) => k >= raw) ?? raw;
-  const out: number[] = [];
-  for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(v);
-  return out;
-}
-
-const thousands = (v: number) => (Math.abs(v) < 1 ? "0" : `${int.format(Math.round(v / 1000))} mil`);
-
+/** Caixa acumulado por cenário (realista = linha principal). */
 function CashChart({ m }: { m: RoiResult }) {
-  const [hover, setHover] = useState<number | null>(null);
-  const W = 720;
-  const H = 300;
-  const pad = { l: 64, r: 92, t: 16, b: 30 };
-  const all = m.scen.flatMap((sc) => sc.series);
-  if (all.length < 2) return null;
-  const ticks = niceTicks(Math.min(0, ...all), Math.max(0, ...all));
-  const lo = Math.min(ticks[0], ...all);
-  const hi = Math.max(ticks[ticks.length - 1], ...all);
-  const n = m.scen[0].series.length - 1;
-  const x = (i: number) => pad.l + (i / Math.max(1, n)) * (W - pad.l - pad.r);
-  const y = (v: number) => pad.t + (1 - (v - lo) / (hi - lo || 1)) * (H - pad.t - pad.b);
-  const path = (sr: number[]) => sr.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
+  const styles = [LINE.cons, LINE.main, LINE.opt];
+  const n = m.scen[0]?.series.length ? m.scen[0].series.length - 1 : 0;
   const years = Array.from({ length: Math.floor(n / 12) + 1 }, (_, k) => k * 12);
-  // Rótulos diretos no fim de cada linha, afastados pra não encostar.
-  const ends = m.scen.map((sc, i) => ({ i, y: y(sc.series[n]) })).sort((a, b) => a.y - b.y);
-  for (let k = 1; k < ends.length; k++) ends[k].y = Math.max(ends[k].y, ends[k - 1].y + 14);
-
-  function onMove(e: PointerEvent<SVGSVGElement>) {
-    const box = e.currentTarget.getBoundingClientRect();
-    const px = ((e.clientX - box.left) / box.width) * W;
-    const i = Math.round(((px - pad.l) / (W - pad.l - pad.r)) * n);
-    setHover(i < 0 || i > n ? null : i);
-  }
-
-  const tipX = hover === null ? 0 : x(hover);
-  const tipLeft = tipX > W - pad.r - 170;
-
   return (
-    <div className="roi-chart-wrap">
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        className="roi-chart"
-        role="img"
-        aria-label="Caixa acumulado ao longo do tempo"
-        onPointerMove={onMove}
-        onPointerLeave={() => setHover(null)}
-      >
-        {ticks.map((t) => (
-          <g key={t}>
-            <line x1={pad.l} x2={W - pad.r} y1={y(t)} y2={y(t)} className={Math.abs(t) < 1 ? "roi-axis-zero" : "roi-grid-line"} />
-            <text x={pad.l - 8} y={y(t) + 4} textAnchor="end" className="roi-tick">{thousands(t)}</text>
-          </g>
-        ))}
-        {years.map((mo) => (
-          <text key={mo} x={x(mo)} y={H - 8} textAnchor="middle" className="roi-tick">
-            {mo === 0 ? "início" : `ano ${mo / 12}`}
-          </text>
-        ))}
-        {m.scen.map((sc, i) => {
-          const st = scenStyle(i);
-          return (
-            <path key={sc.label} d={path(sc.series)} fill="none" stroke={st.color} strokeWidth={st.width}
-              strokeDasharray={st.dash} strokeLinejoin="round" strokeLinecap="round" />
-          );
-        })}
-        {ends.map(({ i, y: ly }) => (
-          <text key={i} x={W - pad.r + 8} y={ly + 4} className="roi-end-label">{m.scen[i].label}</text>
-        ))}
-        {m.pb !== null && m.pb <= n && (
-          <g>
-            <circle cx={x(m.pb)} cy={y(0)} r="5" fill={SCEN_STYLE[1].color} stroke="var(--surface)" strokeWidth="2" />
-            <text x={x(m.pb)} y={y(0) - 12} textAnchor="middle" className="roi-pb-label">
-              payback {Math.round(m.pb)} meses
-            </text>
-          </g>
-        )}
-        {hover !== null && (
-          <g pointerEvents="none">
-            <line x1={tipX} x2={tipX} y1={pad.t} y2={H - pad.b} className="roi-crosshair" />
-            {m.scen.map((sc, i) => (
-              <circle key={sc.label} cx={tipX} cy={y(sc.series[hover])} r="4" fill={scenStyle(i).color}
-                stroke="var(--surface)" strokeWidth="2" />
-            ))}
-          </g>
-        )}
-      </svg>
-      {hover !== null && (
-        <div
-          className="roi-tooltip"
-          style={{ left: `${(tipX / W) * 100}%`, transform: tipLeft ? "translateX(calc(-100% - 12px))" : "translateX(12px)" }}
-        >
-          <b>{hover === 0 ? "Início" : `Mês ${hover}`}</b>
-          {m.scen.map((sc, i) => (
-            <span key={sc.label}>
-              <i style={{ background: scenStyle(i).color }} />
-              {sc.label}
-              <em className={sc.series[hover] < 0 ? "roi-neg" : undefined}>{money(sc.series[hover])}</em>
-            </span>
-          ))}
-        </div>
-      )}
-      <ul className="roi-legend">
-        {m.scen.map((sc, i) => {
-          const st = scenStyle(i);
-          return (
-            <li key={sc.label}>
-              <svg width="22" height="8" aria-hidden="true">
-                <line x1="1" x2="21" y1="4" y2="4" stroke={st.color} strokeWidth={st.width} strokeDasharray={st.dash} strokeLinecap="round" />
-              </svg>
-              {sc.label}
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+    <LineChart
+      ariaLabel="Caixa acumulado ao longo do tempo"
+      series={m.scen.map((sc, i) => ({ label: sc.label, values: sc.series, style: styles[i] ?? LINE.main, main: i === 1 }))}
+      xTicks={years.map((mo) => ({ i: mo, label: mo === 0 ? "início" : `${mo / 12}º ano` }))}
+      marker={m.pb !== null ? { x: m.pb, y: 0, label: `payback ${Math.round(m.pb)} meses` } : null}
+      tipTitle={(i) => (i === 0 ? "Início" : `Mês ${i}`)}
+    />
   );
 }
 
@@ -224,6 +98,37 @@ export function RoiCalculator() {
   );
   const m = useMemo(() => computeRoi(state), [state]);
   const plant = usePlant();
+  const fixoMes = m.custoOp - m.full.varMes;
+  const invSlices: Slice[] = [
+    { label: "Equipamentos", value: m.equip, color: PIE.c1, hint: `${m.units} máquina(s)` },
+    { label: "Infraestrutura", value: m.infra, color: PIE.c2 },
+    ...(m.plan.mode === "fin" && m.plan.juros > 0
+      ? [{ label: "Juros do financiamento", value: m.plan.juros, color: PIE.c4, hint: `${m.plan.n} parcelas` }]
+      : []),
+  ];
+  const invTotal = invSlices.reduce((a, s) => a + s.value, 0);
+  const recSlices: Slice[] = [
+    { label: "Margem (lucro)", value: Math.max(0, m.full.margem), color: PIE.c1 },
+    { label: "Custo variável", value: m.full.varMes, color: PIE.c2, hint: "química, água, energia" },
+    { label: "Custo fixo", value: fixoMes, color: PIE.c3, hint: "aluguel, pessoal…" },
+    { label: "Impostos", value: m.full.imp, color: PIE.c4 },
+  ];
+  // ROI anual: quanto do investimento a margem de 12 meses (plena) devolve
+  const margemAno = m.full.margem * 12;
+  const volta = Math.max(0, margemAno);
+  const roiSlices: Slice[] = [
+    { label: "Volta em 12 meses", value: Math.min(volta, m.inv), color: PIE.c1, hint: "margem do ano, operação plena" },
+    { label: "Falta recuperar", value: Math.max(0, m.inv - volta), color: PIE.c2 },
+  ];
+  // Caixa no horizonte: o que a operação gera = investimento de volta + lucro
+  const caixaSlices: Slice[] = [
+    { label: "Lucro no caixa", value: Math.max(0, m.lucro), color: PIE.c1, hint: "cenário realista" },
+    { label: "Paga o investimento", value: m.inv, color: PIE.c2 },
+    ...(m.plan.mode === "fin" && m.plan.juros > 0
+      ? [{ label: "Paga os juros", value: m.plan.juros, color: PIE.c4 }]
+      : []),
+  ];
+  const caixaTotal = caixaSlices.reduce((a, x) => a + x.value, 0);
 
   return (
     <section className="roi" aria-label="Calculadora de retorno">
@@ -244,27 +149,71 @@ export function RoiCalculator() {
         detail={`${m.units} equipamento(s) no cálculo`}
       />
 
-      <div className="roi-results">
-        <Stat featured label="Payback (com rampa)" value={months(m.pb)} hint={m.pbSimples === null ? undefined : `simples: ${months(m.pbSimples)}`} />
-        <Stat label="Investimento total" value={money(m.inv)} hint={`equipamentos ${money(m.equip)} + infra ${money(m.infra)}`} />
-        <Stat label="Margem mensal (plena)" value={money(m.full.margem)} hint={`receita ${money(m.full.recMes)}`} />
-        <Stat label="ROI anual" value={`${Math.round(m.roi)}%`} hint="margem do ano ÷ investimento" />
-        <Stat label={`Caixa em ${m.anos} anos`} value={money(m.lucro)} hint="cenário realista" />
-      </div>
-
-      <div className="roi-main">
-        <div className="roi-card">
+      <div className="roi-dash">
+        <div className="roi-card roi-dash-chart">
           <div className="roi-card-head">
             <h3>Caixa acumulado</h3>
-            <span>por cenário de uso das máquinas</span>
+            <span>por cenário de uso</span>
           </div>
           <CashChart m={m} />
+          <div className="roi-payback">
+            <div className="roi-payback-main">
+              <span>Payback (com rampa)</span>
+              <strong>{months(m.pb)}</strong>
+            </div>
+            <div className="roi-payback-sub">
+              <span>simples</span>
+              <strong>{months(m.pbSimples)}</strong>
+            </div>
+          </div>
         </div>
 
-        <div className="roi-card">
+        <div className="roi-dash-pies">
+          <div className="roi-card">
+            <div className="roi-card-head">
+              <h3>Investimento total</h3>
+              <span className="roi-card-total">{money(invTotal)}</span>
+            </div>
+            <Donut slices={invSlices} total={invTotal} leadLabel="em equipamentos"
+              caption={m.plan.mode === "fin" ? "Investimento total com juros, por parte" : "Investimento total, por parte"} />
+          </div>
+
+          <div className="roi-card">
+            <div className="roi-card-head">
+              <h3>Receita do mês (plena)</h3>
+              <span className="roi-card-total">{money(m.full.recMes)}</span>
+            </div>
+            <Donut slices={recSlices} total={m.full.recMes} leadLabel={m.full.margem > 0 ? "vira lucro" : "sem lucro"}
+              caption="Receita mensal: lucro, custos e impostos" />
+            {m.full.margem < 0 && <p className="roi-note roi-neg">Prejuízo de {money(-m.full.margem)}/mês: custos maiores que a receita.</p>}
+          </div>
+
+          <div className="roi-card">
+            <div className="roi-card-head">
+              <h3>ROI anual</h3>
+              <span className="roi-card-total">{money(margemAno)}/ano</span>
+            </div>
+            <Donut slices={roiSlices} total={m.inv} leadLabel="ao ano"
+              center={{ value: `${Math.round(m.roi)}%`, color: m.roi > 0 ? PIE.c1 : "var(--danger)" }}
+              caption="ROI anual: parte do investimento que volta em 12 meses" />
+          </div>
+
+          <div className="roi-card">
+            <div className="roi-card-head">
+              <h3>Caixa em {m.anos} anos</h3>
+              <span className="roi-card-total">{money(m.lucro)}</span>
+            </div>
+            <Donut slices={caixaSlices} total={caixaTotal} leadLabel={m.lucro > 0 ? "de lucro" : "ainda no vermelho"}
+              center={{ value: brlShort.format(m.lucro), small: true, color: m.lucro > 0 ? PIE.c1 : "var(--danger)" }}
+              caption={`Caixa em ${m.anos} anos: lucro e investimento pago`} />
+          </div>
+        </div>
+
+        <div className="roi-card roi-dash-wide">
           <div className="roi-card-head">
             <h3>Resumo</h3>
           </div>
+          <div className="roi-dash-summary">
           <div>
             <Line label={`Receita no mês 1 (${Math.round(m.util1 * 100)}% de ocupação)`} value={money(m.rev1)} />
             <Line label="Receita do 1º ano" value={money(m.revY1)} />
@@ -283,6 +232,7 @@ export function RoiCalculator() {
               ))}
             </tbody>
           </table>
+          </div>
           <p className="roi-note">Ciclos por boca por dia em cada cenário.</p>
         </div>
       </div>

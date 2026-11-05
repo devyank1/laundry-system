@@ -1,8 +1,10 @@
 import { useMemo } from "react";
-import { TIERS, computeInsights, formatBRL0, mesesLabel, verdictText, type InsightsInputs } from "./model";
+import { TIERS, computeInsights, formatBRL0, mesesLabel, parseBR, verdictText, type InsightsInputs } from "./model";
 import { useInsightsStore } from "./insightsStore";
 import { PlantLink } from "../roi/PlantLink";
 import { applyPlantToInsights, fleetDetailFromPlant, insightsMatchesPlant, usePlant } from "../plantLink";
+import { Donut, LineChart } from "../roi/charts";
+import { LINE, PIE, brlShort, type Slice } from "../roi/chartFormat";
 import "../roi/roi.css";
 
 function Text({
@@ -55,6 +57,43 @@ export function InsightsCalculator() {
   const detail = useMemo(() => fleetDetailFromPlant(plant), [plant]);
   const neg = (n: number | null) => n !== null && n < 0;
 
+  // --- Payback do hardware: resultado acumulado mês a mês (A = só hardware, B = + plano Completo)
+  const capex = r.capex;
+  const perMonth = r.annualRaw / 12;
+  const pbX = capex !== null && perMonth > 0 ? capex / perMonth : null;
+  const horizon = Math.min(120, Math.max(36, pbX ? Math.ceil((pbX * 1.25) / 12) * 12 : 36));
+  const months = Array.from({ length: horizon + 1 }, (_, m) => m);
+  const paySeries =
+    capex !== null && r.bocas > 0
+      ? [
+          { label: "Só hardware (Gratuito)", values: months.map((m) => -capex + perMonth * m), style: LINE.main, main: true },
+          ...(r.planA !== null
+            ? [{ label: "Hardware + plano Completo", values: months.map((m) => -capex + ((r.annualRaw - (r.planA ?? 0)) / 12) * m), style: LINE.cons }]
+            : []),
+        ]
+      : null;
+
+  // --- Faturamento anual conforme os ciclos/dia de cada boca (hoje marcado)
+  const weighted = TIERS.reduce((a, t) => a + (parseBR(s.fleet[t.id]) || 0) * t.rate, 0);
+  const cyclesNow = parseBR(s.cycles) || 0;
+  const maxC = Math.max(12, Math.ceil(cyclesNow * 1.5));
+  const revSeries = weighted > 0 ? [{ label: "Faturamento anual", values: Array.from({ length: maxC + 1 }, (_, c) => c * weighted * 365), style: LINE.main, main: true }] : null;
+  const cStep = maxC <= 12 ? 3 : maxC <= 24 ? 6 : 10;
+
+  // --- Economia por ano (plano Gratuito) e bocas por tamanho
+  const ecoSlices: Slice[] = [
+    { label: "Visitas técnicas evitadas", value: r.visitSav ?? 0, color: PIE.c1, hint: "problemas resolvidos remotamente" },
+    { label: "Receita recuperada", value: r.downRec ?? 0, color: PIE.c2, hint: "menos dias de máquina parada" },
+  ];
+  const tierColors = [PIE.c1, PIE.c2, PIE.c3, PIE.c4];
+  const bocaSlices: Slice[] = TIERS.map((t, i) => ({
+    label: t.label,
+    value: parseBR(s.fleet[t.id]) || 0,
+    color: tierColors[i] ?? PIE.c4,
+    hint: `${formatBRL0(t.rate)} por ciclo`,
+  }));
+  const bocasFmt = (n: number) => `${n} ${n === 1 ? "boca" : "bocas"}`;
+
   return (
     <section className="roi" aria-label="Calculadora de conectividade">
       <header className="roi-head">
@@ -74,24 +113,65 @@ export function InsightsCalculator() {
         detail={`${r.bocas} boca(s) no cálculo · cada stack conta 2 (lavadora + secadora)`}
       />
 
-      <div className="roi-results">
-        <div className="roi-stat roi-stat-featured roi-stat-wide" data-testid="verdict">
-          <span>Payback do hardware</span>
-          <strong>{ok && r.verdict.kind === "ok" ? mesesLabel(r.verdict.months) : "—"}</strong>
-          <small>{verdictText(r.verdict)}</small>
+      <div className="ins-dash">
+        <div className="roi-card" data-testid="verdict">
+          <div className="roi-card-head">
+            <h3>Payback do hardware</h3>
+            <span className="roi-card-total">{ok && r.verdict.kind === "ok" ? mesesLabel(r.verdict.months) : "—"}</span>
+          </div>
+          {paySeries ? (
+            <LineChart
+              W={760}
+              H={230}
+              ariaLabel="Resultado acumulado do hardware mês a mês"
+              series={paySeries}
+              xTicks={months.filter((m) => m % 12 === 0).map((m) => ({ i: m, label: m === 0 ? "início" : `${m / 12}º ano` }))}
+              marker={pbX !== null && r.verdict.kind === "ok" ? { x: pbX, y: 0, label: `payback ${mesesLabel(r.verdict.months)}` } : null}
+              tipTitle={(i) => (i === 0 ? "Início" : `Mês ${i}`)}
+            />
+          ) : null}
+          <p className="roi-note">{verdictText(r.verdict)}</p>
         </div>
-        <div className="roi-stat">
-          <span>Economia por ano</span>
-          <strong>{formatBRL0(r.annual)}</strong>
-          <small>plano Gratuito</small>
+
+        <div className="roi-card">
+          <div className="roi-card-head">
+            <h3>Economia por ano</h3>
+            <span className="roi-card-total">{formatBRL0(r.annual)}</span>
+          </div>
+          <Donut slices={ecoSlices} total={r.annualRaw} leadLabel="plano Gratuito"
+            center={{ value: r.annualRaw > 0 ? brlShort.format(r.annualRaw) : "—", small: true }}
+            caption="Economia por ano: visitas evitadas e receita recuperada" />
         </div>
-        <div className="roi-stat">
-          <span>Total de bocas</span>
-          <strong>{r.bocas || "—"}</strong>
+
+        <div className="roi-card">
+          <div className="roi-card-head">
+            <h3>Faturamento anual (ref.)</h3>
+            <span className="roi-card-total">{formatBRL0(r.annualRev)}</span>
+          </div>
+          {revSeries ? (
+            <LineChart
+              W={760}
+              H={230}
+              ariaLabel="Faturamento anual conforme os ciclos por dia de cada boca"
+              series={revSeries}
+              xTicks={Array.from({ length: Math.floor(maxC / cStep) + 1 }, (_, k) => ({ i: k * cStep, label: `${k * cStep}/dia` }))}
+              marker={cyclesNow > 0 ? { x: Math.min(cyclesNow, maxC), y: r.annualRev ?? 0, label: `hoje: ${cyclesNow} ciclos/dia` } : null}
+              tipTitle={(i) => `${i} ciclo(s)/dia por boca`}
+            />
+          ) : (
+            <p className="roi-note">Preencha a frota para ver o faturamento.</p>
+          )}
+          <p className="roi-note">Quanto a loja fatura por ano conforme os ciclos por dia de cada boca.</p>
         </div>
-        <div className="roi-stat">
-          <span>Faturamento anual (ref.)</span>
-          <strong>{formatBRL0(r.annualRev)}</strong>
+
+        <div className="roi-card">
+          <div className="roi-card-head">
+            <h3>Total de bocas</h3>
+            <span className="roi-card-total">{r.bocas || "—"}</span>
+          </div>
+          <Donut slices={bocaSlices} total={r.bocas} leadLabel={r.bocas === 1 ? "boca" : "bocas"} fmt={bocasFmt}
+            center={{ value: String(r.bocas || "—") }}
+            caption="Bocas por tamanho" />
         </div>
       </div>
 
@@ -185,13 +265,6 @@ export function InsightsCalculator() {
       </div>
       </div>
 
-      <details className="roi-card roi-assumptions">
-        <summary>Premissas do cálculo</summary>
-        <p className="roi-note">Receita: ciclos/dia × R$/ciclo por boca, somado em todas as bocas, × 365 dias.</p>
-        <p className="roi-note">Economia anual: (problemas/ano × % resolvível × custo por visita) + (problemas resolvíveis × dias de parada × faturamento por boca/dia). Só problemas resolvidos remotamente contam como parada evitada.</p>
-        <p className="roi-note">Payback: investimento em hardware ÷ economia mensal, arredondado para cima em meses inteiros.</p>
-        <p className="roi-note">Estimativa de apoio à decisão: os valores dependem dos dados informados e não garantem resultado.</p>
-      </details>
     </section>
   );
 }

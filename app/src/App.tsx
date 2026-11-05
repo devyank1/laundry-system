@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useState, type CSSProperties } from "react";
 import { ControlPanel } from "./ui/ControlPanel";
 import { ViolationsPanel } from "./ui/ViolationsPanel";
 import { CatalogManager } from "./ui/CatalogManager";
+import { NotificationsButton, ThemeToggle, UserMenu, type Notice } from "./ui/UserArea";
 import { RoiCalculator } from "./roi/RoiCalculator";
 import { InsightsCalculator } from "./insights/InsightsCalculator";
 import {
@@ -68,6 +69,26 @@ export function App() {
 
   // Inauguração mostra a loja de verdade: a fachada (e o teto) entram junto.
   const facadeOn = facadeVisible || inauguracao;
+  const notices: Notice[] = [
+    ...(violations.length > 0
+      ? [{
+          id: `ajustes-${violations.length}`,
+          title: `${violations.length} ajuste(s) pendente(s) na planta`,
+          body: "Os downloads liberam quando a planta não tiver avisos.",
+          tone: "warn" as const,
+        }]
+      : []),
+    {
+      id: "catalogo-2026-11",
+      title: "Catálogo atualizado",
+      body: "LG Giant C, LG Titan e Speed Queen SYC180 + ST055 com as medidas de instalação.",
+    },
+    {
+      id: "roi-planta",
+      title: "ROI e Conectividade seguem a planta",
+      body: "Mudou as máquinas? Os cálculos acompanham.",
+    },
+  ];
   const canExport = layout !== null && violations.length === 0;
 
   return (
@@ -86,6 +107,10 @@ export function App() {
             <IconSettings />
             Gerenciar máquinas
           </button>
+          <span className="topbar-sep" aria-hidden="true" />
+          <ThemeToggle />
+          <NotificationsButton notices={notices} />
+          <UserMenu />
         </div>
       </header>
 

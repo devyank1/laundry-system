@@ -5,6 +5,8 @@ import { useLayout } from "../state/useLayout";
 import { AC_SIZES_BTU } from "../engine/constants";
 import { LogoUpload } from "./LogoUpload";
 import { FacadeControls } from "./FacadeControls";
+import { SectionTitle } from "./SectionTitle";
+import { IconInfo, IconRuler, IconSofa, IconWasher } from "./icons";
 import { isPremium } from "../engine/layout";
 import type { LayoutOrientation, SideSlot, TechAccessSide } from "../engine/types";
 
@@ -66,13 +68,18 @@ export function ControlPanel({ show3dOptions = true }: { show3dOptions?: boolean
   }
 
   const hasTechInfo = Boolean(layout?.exhaust || layout?.electrical || layout?.hydraulics);
+  const areaM2 = Math.round((state.roomWidthMm * state.roomDepthMm) / 10_000) / 100;
+  const totalMachines = state.machines.reduce((n, m) => n + m.qty, 0);
+  const m2 = (v: number) => v.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
 
   // Cada assunto num bloco próprio (fieldset com título), na ordem em que a
   // loja é montada: ambiente → máquinas → mobiliário → identidade visual.
   return (
     <section aria-label="Parâmetros da lavanderia">
       <fieldset>
-        <legend>Ambiente</legend>
+        <SectionTitle icon={<IconRuler />} chip={`${m2(areaM2)} m²`}>
+          Ambiente
+        </SectionTitle>
         <label>
           Orientação
           <select
@@ -84,73 +91,110 @@ export function ControlPanel({ show3dOptions = true }: { show3dOptions?: boolean
           </select>
         </label>
 
-        <label>
-          Área Total (m²)
-          <input
-            type="number"
-            step={0.5}
-            min={0}
-            disabled={state.roomWidthMm <= 0}
-            value={Math.round((state.roomWidthMm * state.roomDepthMm) / 10_000) / 100}
-            onChange={(e) => state.setRoomAreaM2(Number(e.target.value))}
-          />
-        </label>
+        {/* Medidas em grade 2 × 2, cada uma com a unidade dentro do campo */}
+        <div className="dim-grid">
+          <label className="dim">
+            <span className="dim-label">Largura</span>
+            <span className="dim-field">
+              <input
+                type="number"
+                step={0.1}
+                min={0.1}
+                value={state.roomWidthMm / 1000}
+                onChange={(e) => state.setRoomWidthMm(Number(e.target.value) * 1000)}
+              />
+              <i aria-hidden="true">m</i>
+            </span>
+          </label>
 
-        <label>
-          Largura (m)
-          <input
-            type="number"
-            step={0.1}
-            min={0.1}
-            value={state.roomWidthMm / 1000}
-            onChange={(e) => state.setRoomWidthMm(Number(e.target.value) * 1000)}
-          />
-        </label>
+          <label className="dim">
+            <span className="dim-label">Comprimento</span>
+            <span className="dim-field">
+              <input
+                type="number"
+                step={0.1}
+                min={0.1}
+                value={state.roomDepthMm / 1000}
+                onChange={(e) => state.setRoomDepthMm(Number(e.target.value) * 1000)}
+              />
+              <i aria-hidden="true">m</i>
+            </span>
+          </label>
 
-        <label>
-          Comprimento (m)
-          <input
-            type="number"
-            step={0.1}
-            min={0.1}
-            value={state.roomDepthMm / 1000}
-            onChange={(e) => state.setRoomDepthMm(Number(e.target.value) * 1000)}
-          />
-        </label>
+          <label className="dim">
+            <span className="dim-label">Área Total</span>
+            <span className="dim-field">
+              <input
+                type="number"
+                step={0.5}
+                min={0}
+                disabled={state.roomWidthMm <= 0}
+                value={areaM2}
+                onChange={(e) => state.setRoomAreaM2(Number(e.target.value))}
+              />
+              <i aria-hidden="true">m²</i>
+            </span>
+          </label>
 
-        <label>
-          Pé-direito (m)
-          <input
-            type="number"
-            step={0.1}
-            min={0.1}
-            value={state.ceilingHeightMm / 1000}
-            onChange={(e) => state.setCeilingHeightMm(Number(e.target.value) * 1000)}
-          />
-        </label>
+          <label className="dim">
+            <span className="dim-label">Pé-direito</span>
+            <span className="dim-field">
+              <input
+                type="number"
+                step={0.1}
+                min={0.1}
+                value={state.ceilingHeightMm / 1000}
+                onChange={(e) => state.setCeilingHeightMm(Number(e.target.value) * 1000)}
+              />
+              <i aria-hidden="true">m</i>
+            </span>
+          </label>
+        </div>
 
-        <label>
-          <input type="checkbox" checked={state.doorEnabled} onChange={state.toggleDoor} />
+        <label className="switch-row">
+          <input type="checkbox" role="switch" checked={state.doorEnabled} onChange={state.toggleDoor} />
           Porta frontal
         </label>
       </fieldset>
 
       <fieldset>
-        <legend>Máquinas</legend>
-        {catalog.map((machine) => {
-          const selection = state.machines.find((m) => m.catalogId === machine.id);
-          return (
-            <label key={machine.id}>
-              {machine.brand} {machine.model}
-              <input
-                type="number"
-                min={0}
-                value={selection?.qty ?? 0}
-                onChange={(e) => state.setMachineQty(machine.id, Number(e.target.value))}
-              />
-            </label>
-          );
-        })}
+        <SectionTitle icon={<IconWasher />} chip={totalMachines > 0 ? `${totalMachines} na loja` : "nenhuma"}>
+          Máquinas
+        </SectionTitle>
+        {/* Cada máquina numa linha com − / +; as que estão na loja ficam destacadas */}
+        <div className="mach-list">
+          {catalog.map((machine) => {
+            const qty = state.machines.find((m) => m.catalogId === machine.id)?.qty ?? 0;
+            const name = `${machine.brand} ${machine.model}`;
+            return (
+              <div key={machine.id} className={qty > 0 ? "mach-row is-on" : "mach-row"}>
+                <span className="mach-name">
+                  <small>
+                    {machine.brand} · {Math.round(machine.widthMm / 10)}×{Math.round(machine.depthMm / 10)} cm
+                  </small>
+                  {machine.model}
+                </span>
+                <span className="stepper">
+                  <button type="button" title="Tirar uma" aria-label="Diminuir" disabled={qty <= 0}
+                    onClick={() => state.setMachineQty(machine.id, Math.max(0, qty - 1))}>
+                    −
+                  </button>
+                  <input
+                    type="number"
+                    min={0}
+                    aria-label={name}
+                    value={qty}
+                    onChange={(e) => state.setMachineQty(machine.id, Number(e.target.value))}
+                  />
+                  <button type="button" title="Pôr mais uma" aria-label="Aumentar"
+                    onClick={() => state.setMachineQty(machine.id, qty + 1)}>
+                    +
+                  </button>
+                </span>
+              </div>
+            );
+          })}
+        </div>
 
         {isSide && (
           <label>
@@ -179,15 +223,17 @@ export function ControlPanel({ show3dOptions = true }: { show3dOptions?: boolean
       </fieldset>
 
       <fieldset>
-        <legend>Mobiliário</legend>
-        <label>
-          <input type="checkbox" checked={state.furnitureEnabled} onChange={state.toggleFurniture} />
+        <SectionTitle icon={<IconSofa />} chip={state.furnitureEnabled ? "incluído" : "sem móveis"}>
+          Mobiliário
+        </SectionTitle>
+        <label className="switch-row">
+          <input type="checkbox" role="switch" checked={state.furnitureEnabled} onChange={state.toggleFurniture} />
           Incluir mesa, cadeiras, totem e ar-condicionado{premium ? " (+ balcão premium)" : ""}
         </label>
       </fieldset>
 
       {state.furnitureEnabled && (
-        <>
+        <div className="sub-group">
           <fieldset>
             <legend>Totem de pagamento</legend>
             <label>
@@ -267,7 +313,7 @@ export function ControlPanel({ show3dOptions = true }: { show3dOptions?: boolean
                 : sideSelect("Lado do balcão", state.counterSide, state.setCounterSide)}
             </fieldset>
           )}
-        </>
+        </div>
       )}
 
       {show3dOptions && (
@@ -279,7 +325,7 @@ export function ControlPanel({ show3dOptions = true }: { show3dOptions?: boolean
 
       {hasTechInfo && (
         <fieldset>
-          <legend>Informações técnicas</legend>
+          <SectionTitle icon={<IconInfo />}>Informações técnicas</SectionTitle>
           {layout?.exhaust && (
             <p data-exhaust-info role={layout.exhaust.withinLimit ? undefined : "alert"}>
               Exaustão das secadoras: duto Ø{layout.exhaust.outletDiameterMm} mm,{" "}

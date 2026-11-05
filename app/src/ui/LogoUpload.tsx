@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { SectionTitle } from "./SectionTitle";
+import { IconImage } from "./icons";
 import { useProjectStore, type LogoSideColor, type LogoStyle } from "../state/projectStore";
 import { NotPngError, readPngAsDataUrl } from "./logoFile";
 
@@ -27,7 +29,9 @@ export function LogoUpload() {
 
   return (
     <fieldset>
-      <legend>Logo do local</legend>
+      <SectionTitle icon={<IconImage />} chip="3D">
+        Logo do local
+      </SectionTitle>
       <label>
         Enviar logo (PNG)
         <input

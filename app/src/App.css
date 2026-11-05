@@ -73,6 +73,268 @@
   gap: 8px;
 }
 
+/* Notificações + área do cliente */
+.app .topbar-sep {
+  width: 1px;
+  height: 24px;
+  margin: 0 4px;
+  background: var(--border-strong);
+}
+
+.app .topbar-pop {
+  position: relative;
+}
+
+.app .topbar-icon-btn {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.app .topbar-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+  color: var(--on-accent);
+  background: var(--accent);
+  border: 2px solid var(--surface);
+  border-radius: 9px;
+  box-sizing: content-box;
+}
+
+.app .topbar-user {
+  height: 40px;
+  gap: 10px;
+  padding: 0 10px 0 4px;
+  border-radius: 999px;
+}
+
+.app .avatar {
+  display: block;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--primary-soft);
+}
+
+.app .avatar-initials {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--on-primary);
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+}
+
+.app .topbar-user-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
+  max-width: 140px;
+}
+
+.app .topbar-user-text b {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.app .topbar-user-text small {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.app .topbar-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  padding: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  animation: fade-in 120ms ease;
+}
+
+.app .topbar-menu-head {
+  padding: 6px 8px 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.app .topbar-notices ul {
+  max-height: none;
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app .topbar-menu.topbar-notices li {
+  display: grid;
+  grid-template-columns: 3px minmax(0, 1fr);
+  align-items: stretch;
+  gap: 10px;
+  padding: 8px;
+  background: transparent;
+  border-radius: var(--radius-sm);
+}
+
+.app .topbar-menu.topbar-notices li:hover {
+  background: var(--tint);
+}
+
+.app .topbar-notices li i {
+  display: block;
+  border-radius: 2px;
+  background: var(--primary);
+}
+
+.app .topbar-notices li.is-warn i {
+  background: var(--danger);
+}
+
+.app .topbar-notices li div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12.5px;
+}
+
+.app .topbar-notices li span {
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.app .topbar-empty {
+  margin: 0;
+  padding: 8px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.app .topbar-user-menu {
+  width: 260px;
+}
+
+.app .topbar-user-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 8px 12px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.app .topbar-photo {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.app .topbar-photo .topbar-photo-hint {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 2px 0 4px;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.app .topbar-photo:hover .topbar-photo-hint,
+.app .topbar-photo:focus-visible .topbar-photo-hint {
+  opacity: 1;
+}
+
+.app .topbar-name {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.app .topbar-name small {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.app .topbar-name input {
+  width: 100%;
+  height: 30px;
+  padding: 0 8px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface-muted);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+
+.app .topbar-menu-item {
+  justify-content: space-between;
+  width: 100%;
+  height: 34px;
+  padding: 0 8px;
+  font-weight: 500;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.app .topbar-menu-item:hover:not(:disabled) {
+  background: var(--tint);
+}
+
+.app .topbar-menu-item:disabled {
+  background: none;
+  color: var(--text-muted);
+}
+
+.app .topbar-menu-item em {
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--accent-ink);
+  padding: 2px 6px;
+  background: var(--accent-bg);
+  border-radius: 999px;
+}
+
+.app .topbar-menu-sep {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--border);
+}
+
 /* ---------- Painel lateral ---------- */
 
 .app > .sidebar {
@@ -270,6 +532,289 @@
   font-weight: 500;
 }
 
+/* ---------- Painel lateral: títulos, medidas, máquinas, chaves ---------- */
+
+.app fieldset legend.sec-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 4px;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text);
+}
+
+.app .sec-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  color: var(--primary);
+  background: var(--primary-bg);
+  border-radius: 8px;
+}
+
+.app .sec-ic .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.app .sec-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.app .sec-chip {
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  padding: 2px 8px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Medidas em grade 2 × 2 com unidade dentro do campo */
+.app .dim-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.app fieldset label.dim {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+}
+
+.app .dim-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.app .dim-field {
+  position: relative;
+  display: block;
+}
+
+.app fieldset label.dim input[type="number"] {
+  width: 100%;
+  padding-right: 34px;
+  text-align: left;
+  font-weight: 600;
+}
+
+.app .dim-field i {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-style: normal;
+  font-size: 12px;
+  color: var(--text-subtle);
+  pointer-events: none;
+}
+
+/* Chave liga/desliga no lugar do checkbox */
+.app fieldset label.switch-row {
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  font-weight: 500;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.app label.switch-row input[type="checkbox"] {
+  order: 2;
+  appearance: none;
+  position: relative;
+  width: 34px;
+  height: 20px;
+  margin: 0;
+  background: var(--border-strong);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.app label.switch-row input[type="checkbox"]::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform var(--transition);
+}
+
+.app label.switch-row input[type="checkbox"]:checked {
+  background: var(--primary);
+}
+
+.app label.switch-row input[type="checkbox"]:checked::before {
+  transform: translateX(14px);
+}
+
+.app label.switch-row input[type="checkbox"]:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Máquinas: uma linha por modelo, com − / + */
+.app .mach-list {
+  display: grid;
+  gap: 6px;
+}
+
+.app .mach-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 8px 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.app .mach-row.is-on {
+  background: var(--primary-bg);
+  border-color: var(--primary-soft);
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
+.app .mach-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text);
+}
+
+.app .mach-name small {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.app .stepper {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 30px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.app .stepper button {
+  width: 26px;
+  height: 28px;
+  padding: 0;
+  font-size: 16px;
+  font-weight: 500;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-muted);
+}
+
+.app .stepper button:hover:not(:disabled) {
+  color: var(--primary);
+  background: var(--primary-bg);
+}
+
+.app .stepper button:disabled {
+  background: transparent;
+  color: var(--text-subtle);
+  opacity: 0.5;
+}
+
+.app section .stepper input[type="number"] {
+  width: 34px;
+  height: 28px;
+  padding: 0;
+  text-align: center;
+  font-weight: 600;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  -moz-appearance: textfield;
+}
+
+.app .stepper input[type="number"]::-webkit-inner-spin-button,
+.app .stepper input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.app section .stepper input[type="number"]:focus {
+  box-shadow: none;
+  background: var(--primary-bg);
+}
+
+/* Itens do mobiliário agrupados num cartão logo abaixo da chave */
+.app .sub-group {
+  margin: -6px 20px 14px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.app .sub-group > fieldset {
+  padding: 12px 14px;
+  gap: 8px;
+}
+
+.app .sub-group > fieldset:first-child {
+  border-top: 0;
+}
+
+.app .sub-group > fieldset > legend {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Informações técnicas: um cartão por sistema */
+.app fieldset > p[data-exhaust-info],
+.app fieldset > p[data-electrical-info],
+.app fieldset > p[data-hydraulics-info] {
+  padding: 10px 12px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: var(--radius-sm);
+}
+
+.app fieldset > p[data-exhaust-info][role="alert"] {
+  border-left-color: var(--danger);
+}
+
 /* ---------- Botões ---------- */
 
 .app button {
@@ -390,6 +935,7 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px 16px;
+  padding-bottom: 14px; /* linha não encosta nas abas */
   border-bottom: 1px solid var(--border);
 }
 
@@ -430,7 +976,7 @@
   color: var(--text-muted);
 }
 
-.app .tabs button:hover:not(:disabled) {
+.app .tabs button:hover:not(:disabled):not([aria-pressed="true"]) {
   background: var(--surface-muted);
   color: var(--text);
 }
@@ -438,12 +984,12 @@
 .app .tabs button[aria-pressed="true"] {
   background: linear-gradient(135deg, var(--primary), var(--primary-hover));
   border-color: transparent;
-  color: #06130a;
+  color: var(--on-primary);
   font-weight: 600;
 }
 
 .app .tabs button[aria-pressed="true"] .icon {
-  color: #06130a;
+  color: var(--on-primary);
 }
 
 /* ---------- Conteúdo ---------- */
@@ -924,7 +1470,16 @@
 
 /* Celular: botão da barra só com o ícone (o nome continua no aria-label) */
 @media (max-width: 520px) {
-  .app .topbar-actions button {
+  .app .topbar-user-text,
+  .app .topbar-sep {
+    display: none;
+  }
+
+  .app .topbar-user {
+    padding: 0 6px 0 2px;
+  }
+
+  .app .topbar-actions > button {
     width: 34px;
     padding: 0;
     font-size: 0;
@@ -963,4 +1518,182 @@
   box-shadow: var(--shadow);
   color: var(--text-muted);
   font-weight: 600;
+}
+
+/* ---------- Tema claro: azul em pontos-chave (fundo continua claro) ---------- */
+/* Barra do topo azul da marca; faixa da planta, títulos de seção e valores em azul. */
+
+:root[data-theme="light"] {
+  --topbar-bg: #3375ff;
+  --on-blue: #ffffff;
+  --on-blue-muted: rgba(255, 255, 255, 0.78);
+  --on-blue-line: rgba(255, 255, 255, 0.28);
+  --glass: rgba(255, 255, 255, 0.14);
+  --glass-hover: rgba(255, 255, 255, 0.24);
+}
+
+/* Topo azul */
+:root[data-theme="light"] .app > .topbar {
+  background: var(--topbar-bg);
+  border-bottom-color: transparent;
+  box-shadow: 0 6px 20px -12px rgba(31, 95, 232, 0.7);
+}
+
+:root[data-theme="light"] .app .brand h1 {
+  color: var(--on-blue);
+}
+
+:root[data-theme="light"] .app .brand p {
+  color: var(--on-blue-muted);
+}
+
+/* logo: quadrado branco com o tambor azul */
+:root[data-theme="light"] .app .brand .logo-mark {
+  color: #ffffff;
+  --logo-ink: #3375ff;
+}
+
+:root[data-theme="light"] .app .topbar-actions > button,
+:root[data-theme="light"] .app .topbar-actions .topbar-pop > button {
+  color: var(--on-blue);
+  background: var(--glass);
+  border-color: var(--on-blue-line);
+  box-shadow: none;
+}
+
+:root[data-theme="light"] .app .topbar-actions > button .icon,
+:root[data-theme="light"] .app .topbar-actions .topbar-pop > button .icon {
+  color: var(--on-blue);
+}
+
+:root[data-theme="light"] .app .topbar-actions > button:hover:not(:disabled),
+:root[data-theme="light"] .app .topbar-actions .topbar-pop > button:hover:not(:disabled) {
+  background: var(--glass-hover);
+  border-color: var(--on-blue-line);
+}
+
+:root[data-theme="light"] .app .topbar-user-text small {
+  color: var(--on-blue-muted);
+}
+
+:root[data-theme="light"] .app .topbar-sep {
+  background: var(--on-blue-line);
+}
+
+:root[data-theme="light"] .app .topbar-badge {
+  border-color: var(--topbar-bg);
+}
+
+:root[data-theme="light"] .app .avatar {
+  box-shadow: 0 0 0 2px var(--topbar-bg), 0 0 0 3px rgba(255, 255, 255, 0.6);
+}
+
+/* Títulos de seção do painel lateral em azul */
+:root[data-theme="light"] .app .roi-section-title {
+  color: var(--primary);
+}
+
+/* Faixa "Planta: …" em azul sólido */
+:root[data-theme="light"] .app .roi-plant:not(.roi-plant-diff) {
+  background: linear-gradient(135deg, #3375ff, #1f5fe8);
+  border-color: transparent;
+  color: var(--on-blue);
+}
+
+:root[data-theme="light"] .app .roi-plant:not(.roi-plant-diff) span {
+  color: var(--on-blue-muted);
+}
+
+:root[data-theme="light"] .app .roi-plant:not(.roi-plant-diff) button {
+  color: var(--primary);
+  background: #ffffff;
+  border-color: #ffffff;
+}
+
+:root[data-theme="light"] .app .roi-plant:not(.roi-plant-diff) button:disabled {
+  color: var(--on-blue-muted);
+  background: var(--glass);
+  border-color: var(--on-blue-line);
+}
+
+/* Totais dos cartões em azul */
+:root[data-theme="light"] .app .roi-card-head .roi-card-total {
+  color: var(--primary);
+}
+
+/* destaque da Conectividade (Payback do hardware): lilás da marca */
+:root[data-theme="light"] .app .roi-stat-featured {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+:root[data-theme="light"] .app .roi-stat-featured strong {
+  color: var(--on-accent);
+}
+
+:root[data-theme="light"] .app .roi-stat-featured span,
+:root[data-theme="light"] .app .roi-stat-featured small {
+  color: rgba(74, 26, 92, 0.75);
+}
+
+/* ---------- Tema claro: laranja = atenção e ação ---------- */
+/* Azul é a marca, rosa é superfície de complemento, laranja chama o olho. */
+
+:root[data-theme="light"] .app .topbar-badge {
+  color: #ffffff;
+  background: var(--orange);
+}
+
+/* botão principal de download (2D e 3D) */
+:root[data-theme="light"] .app .export-actions button:first-child:not(:disabled) {
+  color: #ffffff;
+  font-weight: 600;
+  background: var(--orange);
+  border-color: var(--orange);
+}
+
+:root[data-theme="light"] .app .export-actions button:first-child:not(:disabled) .icon {
+  color: #ffffff;
+}
+
+:root[data-theme="light"] .app .export-actions button:first-child:hover:not(:disabled) {
+  background: var(--orange-hover);
+  border-color: var(--orange-hover);
+}
+
+/* etiqueta do payback no gráfico */
+:root[data-theme="light"] .app .roi-pb-pill {
+  fill: var(--orange-bg);
+  stroke: var(--orange);
+}
+
+:root[data-theme="light"] .app .roi-pb-label {
+  fill: var(--highlight);
+}
+
+:root[data-theme="light"] .app .roi-pb-guide {
+  stroke: var(--orange);
+}
+
+/* planta diferente do cálculo: aviso em laranja, botão de ajustar em laranja */
+:root[data-theme="light"] .app .roi-plant-diff {
+  border-color: rgba(246, 120, 3, 0.25);
+  border-left-color: var(--orange);
+  background: #fff4e9;
+}
+
+:root[data-theme="light"] .app .roi-plant-diff span {
+  color: var(--highlight);
+}
+
+:root[data-theme="light"] .app .roi-plant-diff button:not(:disabled) {
+  color: #ffffff;
+  font-weight: 600;
+  background: var(--orange);
+  border-color: var(--orange);
+}
+
+:root[data-theme="light"] .app .roi-plant-diff button:hover:not(:disabled) {
+  background: var(--orange-hover);
+  border-color: var(--orange-hover);
 }

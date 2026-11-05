@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { SectionTitle } from "./SectionTitle";
+import { IconBulb, IconStore } from "./icons";
 import { useProjectStore } from "../state/projectStore";
 import type { SceneLighting } from "../viewer3d/lighting";
 import { normalizeHex } from "./hexColor";
@@ -65,9 +67,11 @@ export function FacadeControls() {
   return (
     <>
       <fieldset>
-        <legend>Fachada (3D)</legend>
-        <label>
-          <input type="checkbox" checked={visible} onChange={toggle} />
+        <SectionTitle icon={<IconStore />} chip="3D">
+          Fachada
+        </SectionTitle>
+        <label className="switch-row">
+          <input type="checkbox" role="switch" checked={visible} onChange={toggle} />
           Mostrar fachada
         </label>
         {visible && (
@@ -75,8 +79,8 @@ export function FacadeControls() {
             <HexColorField label="Cor da fachada" value={color} onChange={setColor} />
             <HexColorField label="Cor do painel do letreiro" value={signColor} onChange={setSignColor} />
             {/* Sem fachada o teto sai junto (loja aberta pra ver de cima). */}
-            <label>
-              <input type="checkbox" checked={roofVisible} onChange={toggleRoof} />
+            <label className="switch-row">
+              <input type="checkbox" role="switch" checked={roofVisible} onChange={toggleRoof} />
               Mostrar teto por fora
             </label>
           </>
@@ -84,7 +88,9 @@ export function FacadeControls() {
       </fieldset>
 
       <fieldset>
-        <legend>Iluminação (3D)</legend>
+        <SectionTitle icon={<IconBulb />} chip="3D">
+          Iluminação
+        </SectionTitle>
         <label>
           Iluminação
           <select value={lighting} onChange={(e) => setLighting(e.target.value as SceneLighting)}>
