@@ -56,6 +56,83 @@ e export em JSON para portar entre navegadores/lojas.
 - **Dreno**: 14 L/min por máquina — informativo (aparece na ficha técnica
   exportada, não afeta geometria).
 
+### 2.2.1 Exaustão das secadoras (implementada em `engine/exhaust.ts`)
+
+Fonte: Ebook Évora (Stack Elétrica), resumo SSU/SSG e fichas Mamute.
+
+- Ramal por secadora, Ø do encaixe: Speed Queen 102 mm (4"), Smart 10 100 mm,
+  Smart 17 150 mm. Só curvas de 45° (90° apenas longa, atrás da máquina); o
+  ramal entra no coletor a 45° a favor do fluxo, nunca em T de 90°.
+- Coletor compartilhado cresce a cada secadora (estações A→K, a partir da
+  ponta fechada): 102 / 203 / 229 / 254 / 279 / 305 / 326 / 356 / 381 / 381 /
+  406 mm. Tampa removível de limpeza na ponta fechada.
+- Comprimento máximo: 9,1 m (coletor compartilhado) ou 4,3 m (instalação
+  simples). Passa como aviso no painel, não bloqueia a exportação.
+- Saída pela parede de trás da área técnica (a "parte de cima" da planta; na
+  fileira lateral, a parede atrás das máquinas), no lado oposto à porta
+  técnica, dentro da faixa lateral de 50 cm. Bocal virado pra baixo, sem
+  tampa nem tela, a ≥ 910 mm do piso. Manga na parede com folga de 50 mm.
+- Duto semirrígido (aluminizado flexível é proibido).
+- Altura da saída traseira: Speed Queen 1.695 mm (dimensão B do manual
+  SSU/SSG); Mamute, sem dado no manual, assume topo da máquina − 300 mm
+  (`exhaustHeightMm` no catálogo permite corrigir).
+
+### 2.2.2 Hidráulica e esgoto das lavadoras (implementada em `engine/hydraulics.ts`)
+
+Fonte: Ebook Évora (Stack Elétrica, "Hidráulica da lavadora"), resumo SSU/SSG
+(Hidráulica, Escoamento) e planilha de links (pressurizador).
+
+- **Água**: por lavadora 1 "T" com 2 pontos de 3/4" (registro de esfera),
+  a 60-100 cm do piso (usa 80 cm). Pressão 200-570 kPa (30-85 psi); abaixo
+  disso a lavagem não é garantida, então a loja leva **pressurizador**
+  (Komeco TP825 G3 bivolt, modelo 3D em `html-3d/gemini-code-*.html`).
+  Vazão máxima de entrada: 40 L/min por máquina. Mangueiras de entrada
+  novas (nunca conexão rígida).
+- **Barramento**: dimensionado pela vazão (40 L/min x lavadoras, vel. máx.
+  2,5 m/s — critério de projeto, não consta do manual): 25/32/40/50 mm...
+- **Dreno**: mangueira com laço a 61-91 cm → tubo vertical de PVC aberto
+  (ladrão) de 4-5 cm (usa 50 mm; casa com o dreno da máquina quando maior),
+  altura recomendada 70 cm.
+- **Esgoto suspenso, sem ralo nem canal no piso** (decisão do projeto): tubo
+  de esgoto em suportes (pedestal + abraçadeira a cada 80 cm), com o eixo a
+  15 cm do piso, **abaixo das saídas de dreno** das máquinas (que ficam a
+  25 cm), nunca reduzindo o diâmetro do dreno; capacidade pra 14 L/min por
+  máquina; o diâmetro cresce 25% do diâmetro A (3") a cada máquina no ramal
+  (3" / 3,75" / 4,5"...). Um tubo central baixo recebe um tubo individual
+  por lavadora, que sobe até a ligação em T a 70 cm do piso, onde entra a
+  mangueira do dreno (braço oposto do T = respiro). Sai pela parede de trás.
+- **Respiro**: um a cada 20 m de tubulação (mín. 1, na ponta fechada do
+  canal), subindo até perto do teto.
+- **Dosagem química**: por lavadora, **um par de bombas dosadoras**
+  (peristálticas, `html-3d/Bomba dosadora.html`) coladas na traseira da
+  máquina, **acima da entrada de água** (centro a 1,10 m; os pontos de água
+  ficam a 85 cm), e **um par de galões** de 5 L no chão atrás dela
+  (detergente e amaciante, `html-3d/Galoes amaciante lavadora.html`), na área
+  técnica. Sucção: galão → bomba; recalque: bomba → entrada de dosagem da
+  máquina.
+- **Posição**: entrada de água, esgoto e exaustão saem pela parede de trás
+  da área técnica, no lado oposto à porta técnica; a bomba fica atrás da
+  1ª máquina a partir dessa ponta.
+
+### 2.2.3 Elétrica (implementada em `engine/electrical.ts`)
+
+Fonte: Ebook Évora (Stack Elétrica: lavadora 16 A bipolar, secadora 32 A com
+tomada industrial Steck 2P+T obrigatória, mesma amperagem do disjuntor) e
+fichas Mamute (Smart 10: secadora 40 A).
+
+- **Alimentação suspensa, vinda de cima**: eletrocalha de alumínio sob o
+  forro, atrás das máquinas (descida do forro na ponta da porta técnica);
+  dela desce **um perfilado de alumínio por maquinário**.
+- **No meio do perfilado**: tomada Steck 2P+T da secadora (amperagem do
+  disjuntor da máquina; sem dado, assume 32 A).
+- **No perfilado, perto da ponta de baixo**: conduíte curto terminando em
+  **2 tomadas 220 V** — lavadora e bombas dosadoras — a 1,10 m do piso.
+  Nada desce além da ponta do perfilado (ponta a 1,00 m).
+- **3 tomadas 127 V** pros clientes, uma atrás de cada cadeira, na parede em
+  que ela encosta, a 40 cm do piso.
+- O Ebook pede 1 tomada extra por stack se houver sistema de pagamento
+  automatizado (app) — não modelada.
+
 ### 2.3 Recomendação de BTU (ar-condicionado)
 
 Fórmula usada pelo motor:
