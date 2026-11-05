@@ -1,0 +1,81 @@
+22:45:12 [hook] session-start: PROJECT_DIR=/home/seidor/Documents/lavanderia PIPELINE_DIR=/home/seidor/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 REMEMBER_DIR=/home/seidor/Documents/lavanderia/.remember
+22:45:12 [start-cache] refused injecting /home/seidor/Documents/lavanderia/.remember/tmp/start-context.cache: git-tracked
+22:45:12 [memory-context] refused injecting /home/seidor/Documents/lavanderia/.remember/now.md: git-tracked
+22:45:12 [memory-context] refused injecting /home/seidor/Documents/lavanderia/.remember/recent.md: git-tracked
+22:45:13 [memory-context] refused injecting /home/seidor/Documents/lavanderia/.remember/archive.md: git-tracked
+22:45:13 [hook] session-start took 1s
+22:45:13 [hook] run-consolidation: PROJECT_DIR=/home/seidor/Documents/lavanderia PIPELINE_DIR=/home/seidor/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=/home/seidor/Documents/lavanderia/.remember
+22:45:13 [rotate] archived 3 logs -> logs-2026-10.tar.gz
+22:45:13 [consolidation] start
+22:45:29 [consolidation] tokens: 2+649cache->3314out ($0.002695)
+22:45:29 [consolidation] done: 2 files consolidated
+22:45:29 [memory-context] refused injecting /home/seidor/Documents/lavanderia/.remember/now.md: git-tracked
+22:45:29 [memory-context] refused injecting /home/seidor/Documents/lavanderia/.remember/recent.md: git-tracked
+22:45:29 [memory-context] refused injecting /home/seidor/Documents/lavanderia/.remember/archive.md: git-tracked
+22:57:10 [hook] save-session: PROJECT_DIR=/home/seidor/Documents/lavanderia PIPELINE_DIR=/home/seidor/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=/home/seidor/Documents/lavanderia/.remember
+22:57:10 [extract] session 7b7f7f8b-874f-4e1b-8c23-f9d3778da6c3
+22:57:10 [extract] 2 exchanges (1 human)
+22:57:10 [extract] 1 human msgs < 3, skip
+23:02:54 [hook] session-start: PROJECT_DIR=/home/seidor/Documents/lavanderia PIPELINE_DIR=/home/seidor/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 REMEMBER_DIR=/home/seidor/Documents/lavanderia/.remember
+23:02:54 [memory-context] refused injecting /home/seidor/Documents/lavanderia/.remember/now.md: git-tracked
+23:02:54 [memory-context] refused injecting /home/seidor/Documents/lavanderia/.remember/recent.md: git-tracked
+23:02:54 [memory-context] refused injecting /home/seidor/Documents/lavanderia/.remember/archive.md: git-tracked
+23:02:54 [hook] session-start took 0s
+23:28:45 [hook] save-session: PROJECT_DIR=/home/seidor/Documents/lavanderia PIPELINE_DIR=/home/seidor/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=/home/seidor/Documents/lavanderia/.remember
+23:28:45 [extract] session 7b7f7f8b-874f-4e1b-8c23-f9d3778da6c3
+23:28:45 [extract] 29 exchanges (14 human)
+23:28:45 [haiku] calling (branch: main)
+23:28:51 [tokens] tokens: 2+649cache->143out ($0.004247)
+23:28:51 [write] appended (provider: claude): ## 23:28 | main
+23:28:51 [write] position -> 4974
+23:28:51 [ndc] now.md -> today-2026-10-13.md
+23:28:51 [ndc] running (PID 118823)
+23:28:51 [memory-context] refused injecting /home/seidor/Documents/lavanderia/.remember/now.md: git-tracked
+23:28:51 [memory-context] refused injecting /home/seidor/Documents/lavanderia/.remember/recent.md: git-tracked
+23:28:51 [memory-context] refused injecting /home/seidor/Documents/lavanderia/.remember/archive.md: git-tracked
+23:28:55 [ndc] tokens: 2+2082cache->333out ($0.000596)
+23:28:55 [ndc] 865->737b (-14%)
+23:30:57 [hook] save-session: PROJECT_DIR=/home/seidor/Documents/lavanderia PIPELINE_DIR=/home/seidor/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=/home/seidor/Documents/lavanderia/.remember
+23:30:57 [extract] session 7b7f7f8b-874f-4e1b-8c23-f9d3778da6c3
+23:30:57 [extract] 9 exchanges (2 human)
+23:30:57 [extract] 2 human msgs < 3, skip
+23:33:34 [hook] save-session: PROJECT_DIR=/home/seidor/Documents/lavanderia PIPELINE_DIR=/home/seidor/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=/home/seidor/Documents/lavanderia/.remember
+23:33:34 [extract] session 7b7f7f8b-874f-4e1b-8c23-f9d3778da6c3
+23:33:34 [extract] 10 exchanges (2 human)
+23:33:34 [extract] 2 human msgs < 3, skip
+23:35:56 [hook] save-session: PROJECT_DIR=/home/seidor/Documents/lavanderia PIPELINE_DIR=/home/seidor/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=/home/seidor/Documents/lavanderia/.remember
+23:35:56 [extract] session 7b7f7f8b-874f-4e1b-8c23-f9d3778da6c3
+23:35:57 [extract] 15 exchanges (4 human)
+23:35:57 [haiku] calling (branch: main)
+23:36:00 [tokens] tokens: 2+2082cache->214out ($0.001120)
+23:36:00 [write] appended (provider: claude): ## 23:35 | main
+23:36:00 [write] position -> 5097
+23:36:00 [memory-context] refused injecting /home/seidor/Documents/lavanderia/.remember/now.md: git-tracked
+23:36:00 [memory-context] refused injecting /home/seidor/Documents/lavanderia/.remember/recent.md: git-tracked
+23:36:00 [memory-context] refused injecting /home/seidor/Documents/lavanderia/.remember/archive.md: git-tracked
+23:39:24 [hook] save-session: PROJECT_DIR=/home/seidor/Documents/lavanderia PIPELINE_DIR=/home/seidor/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=/home/seidor/Documents/lavanderia/.remember
+23:39:24 [extract] session 7b7f7f8b-874f-4e1b-8c23-f9d3778da6c3
+23:39:25 [extract] 9 exchanges (1 human)
+23:39:25 [extract] 1 human msgs < 3, skip
+23:42:21 [hook] save-session: PROJECT_DIR=/home/seidor/Documents/lavanderia PIPELINE_DIR=/home/seidor/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=/home/seidor/Documents/lavanderia/.remember
+23:42:21 [extract] session 7b7f7f8b-874f-4e1b-8c23-f9d3778da6c3
+23:42:21 [extract] 13 exchanges (2 human)
+23:42:21 [extract] 2 human msgs < 3, skip
+23:44:46 [hook] save-session: PROJECT_DIR=/home/seidor/Documents/lavanderia PIPELINE_DIR=/home/seidor/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=/home/seidor/Documents/lavanderia/.remember
+23:44:46 [extract] session 7b7f7f8b-874f-4e1b-8c23-f9d3778da6c3
+23:44:47 [extract] 16 exchanges (2 human)
+23:44:47 [extract] 2 human msgs < 3, skip
+23:48:09 [hook] save-session: PROJECT_DIR=/home/seidor/Documents/lavanderia PIPELINE_DIR=/home/seidor/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=/home/seidor/Documents/lavanderia/.remember
+23:48:09 [extract] session 7b7f7f8b-874f-4e1b-8c23-f9d3778da6c3
+23:48:09 [extract] 17 exchanges (2 human)
+23:48:09 [extract] 2 human msgs < 3, skip
+23:55:07 [hook] save-session: PROJECT_DIR=/home/seidor/Documents/lavanderia PIPELINE_DIR=/home/seidor/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=/home/seidor/Documents/lavanderia/.remember
+23:55:07 [extract] session 7b7f7f8b-874f-4e1b-8c23-f9d3778da6c3
+23:55:07 [extract] 21 exchanges (3 human)
+23:55:07 [haiku] calling (branch: main)
+23:55:10 [tokens] tokens: 2+2082cache->224out ($0.001032)
+23:55:10 [write] appended (provider: claude): ## 23:55 | main
+23:55:11 [write] position -> 5282
+23:55:11 [memory-context] refused injecting /home/seidor/Documents/lavanderia/.remember/now.md: git-tracked
+23:55:11 [memory-context] refused injecting /home/seidor/Documents/lavanderia/.remember/recent.md: git-tracked
+23:55:11 [memory-context] refused injecting /home/seidor/Documents/lavanderia/.remember/archive.md: git-tracked

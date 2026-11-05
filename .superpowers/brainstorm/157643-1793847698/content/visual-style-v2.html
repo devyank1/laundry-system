@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Visual novo v2 — réplica mais fiel</title>
+<style>
+  :root{
+    --bg:#0b100d;
+    --surface:#121914;
+    --surface-2:#161d17;
+    --border:rgba(255,255,255,.06);
+    --text:#f2f5f1;
+    --text-muted:#8d988f;
+    --text-subtle:#55615a;
+    --lime:#d7ff5c;
+    --green:#1fcf77;
+    --green-dim:#17a860;
+    --red:#ff6f6f;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    padding:24px; -webkit-font-smoothing:antialiased;
+  }
+  h2.title{font-size:19px; margin:0 0 4px;}
+  p.subtitle{color:var(--text-muted); margin:0 0 18px; font-size:13.5px;}
+  svg.icon{width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; display:block;}
+
+  .shell{
+    display:grid; grid-template-columns:232px 1fr; grid-template-rows:64px 1fr;
+    background:var(--bg); border:1px solid var(--border); border-radius:18px;
+    overflow:hidden; min-height:660px;
+  }
+  .topbar{
+    grid-column:1 / -1; display:flex; align-items:center; justify-content:space-between;
+    padding:0 22px; border-bottom:1px solid var(--border);
+  }
+  .brand{display:flex; align-items:center; gap:9px; font-weight:600; font-size:14.5px;}
+  .brand .mark{width:26px; height:26px; color:var(--lime);}
+  .search{
+    flex:0 1 380px; display:flex; align-items:center; gap:8px;
+    background:var(--surface); border:1px solid var(--border); border-radius:999px;
+    padding:9px 12px; color:var(--text-subtle); font-size:12.5px;
+  }
+  .search svg{width:15px;height:15px;color:var(--text-subtle);}
+  .search kbd{margin-left:auto; border:1px solid var(--border); border-radius:4px; padding:1px 6px; font-size:10.5px; color:var(--text-subtle);}
+  .topbar-actions{display:flex; align-items:center; gap:10px;}
+  .icon-btn{
+    width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+    background:var(--surface); border:1px solid var(--border); color:var(--text-muted); position:relative;
+  }
+  .icon-btn .dot{position:absolute; top:7px; right:7px; width:6px; height:6px; border-radius:50%; background:var(--green);}
+  .avatar{width:32px; height:32px; border-radius:9px; background:linear-gradient(135deg,#3a4a3d,#1b231d); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--text-muted); border:1px solid var(--border);}
+
+  .sidebar{padding:16px 14px; border-right:1px solid var(--border); display:flex; flex-direction:column;}
+  .nav-item{
+    display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:10px;
+    color:var(--text-muted); font-size:13px; margin-bottom:2px;
+  }
+  .nav-item svg{width:17px;height:17px;}
+  .nav-item.active{background:linear-gradient(135deg, var(--green), var(--green-dim)); color:#06130a; font-weight:600;}
+  .nav-item.active svg{stroke:#06130a;}
+  .nav-sep{height:1px; background:var(--border); margin:12px 0;}
+  .sidebar-foot{margin-top:auto; padding-top:10px;}
+
+  .main{padding:20px; overflow:auto;}
+  .hero-row{display:grid; grid-template-columns:1.5fr 1fr 1fr; gap:14px; margin-bottom:14px;}
+  .card{background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:16px; position:relative;}
+  .card .menu-dots{position:absolute; top:14px; right:14px; color:var(--text-subtle);}
+  .card h4{margin:0 0 2px; font-size:12.5px; font-weight:500; color:var(--text-muted);}
+
+  .hero-copy{font-size:14.5px; color:var(--text); line-height:1.4; max-width:220px; margin-bottom:10px;}
+  .hero-number{font-size:30px; font-weight:700; color:var(--lime); text-shadow:0 0 22px rgba(215,255,92,.3); line-height:1;}
+  .hero-number .cap{display:block; font-size:12px; font-weight:400; color:var(--text-muted); margin-top:4px; text-shadow:none;}
+  .spark-wrap{position:relative; height:78px; margin-top:12px;}
+  .spark-tooltip{
+    position:absolute; top:-2px; left:118px; background:var(--surface-2); border:1px solid var(--border);
+    border-radius:6px; padding:3px 7px; font-size:10.5px; color:var(--text);
+  }
+  .mini-stats{display:flex; gap:22px; margin-top:10px; padding-top:10px; border-top:1px solid var(--border);}
+  .mini-stats div span{display:block; font-size:11.5px; color:var(--text-subtle);}
+  .mini-stats div b{font-size:15px; font-weight:600;}
+
+  .ring-wrap{display:flex; flex-direction:column; align-items:center; margin-top:6px;}
+  .legend{width:100%; margin-top:12px; display:flex; flex-direction:column; gap:7px;}
+  .legend-row{display:flex; align-items:center; gap:7px; font-size:12px; color:var(--text-muted);}
+  .legend-row .sq{width:7px; height:7px; border-radius:2px;}
+  .legend-row b{margin-left:auto; color:var(--text); font-weight:600; font-size:12px;}
+
+  .stack-cards{display:flex; flex-direction:column; gap:14px;}
+  .stat-small .num{font-size:22px; font-weight:700; margin-top:6px;}
+  .stat-small .num.lime{color:var(--lime);}
+  .stat-small .num.red{color:var(--red);}
+  .stat-small .cap{font-size:11px; color:var(--text-subtle); margin-top:2px;}
+  .progress{height:6px; border-radius:4px; background:rgba(255,255,255,.06); margin-top:10px; position:relative; overflow:hidden;}
+  .progress i{position:absolute; inset:0; width:67%; background:var(--green); border-radius:4px;}
+  .progress-label{position:absolute; right:33%; top:-16px; font-size:10px; background:var(--surface-2); border:1px solid var(--border); padding:1px 5px; border-radius:4px; color:var(--text-muted);}
+
+  .bottom-row{display:grid; grid-template-columns:1.3fr 1fr; gap:14px;}
+  .eq{display:flex; align-items:flex-end; gap:10px; height:150px; margin-top:16px;}
+  .eq-col{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;}
+  .eq-bar{width:100%; border-radius:3px; background:repeating-linear-gradient(0deg, var(--green) 0 3px, transparent 3px 6px);}
+  .eq-bar.red{background:repeating-linear-gradient(0deg, var(--red) 0 3px, transparent 3px 6px);}
+  .eq-col .lab{margin-top:8px; font-size:11px; color:var(--text-subtle);}
+  .eq-col .val{font-size:12px; color:var(--text); font-weight:600;}
+
+  table.list{width:100%; border-collapse:collapse; margin-top:10px;}
+  table.list th{text-align:left; font-size:10.5px; color:var(--text-subtle); font-weight:500; padding:4px 6px; text-transform:uppercase; letter-spacing:.03em;}
+  table.list td{padding:7px 6px; font-size:12.5px; border-top:1px solid var(--border);}
+  .machine-row{display:flex; align-items:center; gap:8px;}
+  .machine-icon{width:26px; height:26px; border-radius:7px; background:var(--surface-2); display:flex; align-items:center; justify-content:center; color:var(--green);}
+  .ok{color:var(--green);} .warn{color:var(--red);}
+</style>
+</head>
+<body>
+
+<h2 class="title">v2 — réplica mais próxima (ícones de linha próprios, anel SVG, sparkline com tooltip, barras equalizer)</h2>
+<p class="subtitle">Mesma estrutura das suas imagens (card de destaque + anel + 2 cards empilhados + barras + lista), com os termos do nosso app.</p>
+
+<div class="shell">
+
+  <div class="topbar">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="12" cy="12" r="9"/>
+        <path d="M7 12c1.5 2 3.5 2 5 0s3.5-2 5 0" stroke-linecap="round"/>
+      </svg>
+      Configurador de Lavanderia
+    </div>
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3" stroke-linecap="round"/></svg>
+      Buscar máquina, ajuste, projeto…
+      <kbd>/</kbd>
+    </div>
+    <div class="topbar-actions">
+      <div class="icon-btn">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/></svg>
+      </div>
+      <div class="icon-btn">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1112 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M9.5 20a2.5 2.5 0 005 0"/></svg>
+        <div class="dot"></div>
+      </div>
+      <div class="avatar">AD</div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="nav-item active">
+      <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      Planta 2D
+    </div>
+    <div class="nav-item">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 3v18M4 7.5l8 4.5 8-4.5"/></svg>
+      Planta 3D
+    </div>
+    <div class="nav-item">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>
+      Retorno (ROI)
+    </div>
+    <div class="nav-item">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M5 13a11 11 0 0114 0M8.5 16.5a6 6 0 017 0"/><circle cx="12" cy="20" r="1" fill="currentColor" stroke="none"/></svg>
+      Conectividade
+    </div>
+    <div class="nav-sep"></div>
+    <div class="nav-item">
+      <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1h.1a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
+      Gerenciar máquinas
+    </div>
+    <div class="sidebar-foot nav-item">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+      Sair
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="hero-row">
+
+      <div class="card">
+        <div class="hero-copy">Nesse projeto, a loja desenhada rende por mês</div>
+        <div class="hero-number">R$ 9.600<span class="cap">Receita estimada</span></div>
+        <div class="spark-wrap">
+          <svg width="100%" height="100%" viewBox="0 0 260 78" preserveAspectRatio="none">
+            <polyline points="0,60 35,52 70,46 105,20 140,30 175,14 210,22 245,8" fill="none" stroke="var(--lime)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="140" y1="0" x2="140" y2="78" stroke="var(--border)" stroke-dasharray="3 3"/>
+            <circle cx="140" cy="30" r="3" fill="var(--lime)"/>
+            <circle cx="245" cy="8" r="3" fill="var(--lime)"/>
+          </svg>
+          <div class="spark-tooltip">R$ 9.200</div>
+        </div>
+        <div class="mini-stats">
+          <div><span>Payback</span><b>14 meses</b></div>
+          <div><span>Máquinas</span><b>10</b></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4>Ocupação da loja</h4>
+        <div class="ring-wrap">
+          <svg width="108" height="108" viewBox="0 0 108 108" style="filter:drop-shadow(0 0 10px rgba(215,255,92,.35))">
+            <circle cx="54" cy="54" r="44" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="9"/>
+            <circle cx="54" cy="54" r="44" fill="none" stroke="var(--lime)" stroke-width="9" stroke-linecap="round"
+              stroke-dasharray="276.5" stroke-dashoffset="163" transform="rotate(-90 54 54)"/>
+            <text x="54" y="50" text-anchor="middle" font-size="19" font-weight="700" fill="var(--text)">41%</text>
+            <text x="54" y="66" text-anchor="middle" font-size="9.5" fill="var(--text-subtle)">em uso</text>
+          </svg>
+        </div>
+        <div class="legend">
+          <div class="legend-row"><span class="sq" style="background:var(--lime)"></span>Lavadoras ativas<b>6</b></div>
+          <div class="legend-row"><span class="sq" style="background:var(--green)"></span>Secadoras ativas<b>3</b></div>
+          <div class="legend-row"><span class="sq" style="background:var(--text-subtle)"></span>Ociosas<b>1</b></div>
+        </div>
+      </div>
+
+      <div class="stack-cards">
+        <div class="card stat-small">
+          <svg class="icon menu-dots" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>
+          <h4>Receita hoje</h4>
+          <div class="num lime">R$ 412</div>
+          <div class="cap">32 ciclos rodados</div>
+        </div>
+        <div class="card stat-small">
+          <svg class="icon menu-dots" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>
+          <h4>Progresso do payback</h4>
+          <div class="num">67%</div>
+          <div class="progress"><div class="progress-label">67%</div><i></i></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-row">
+      <div class="card">
+        <h4>Ciclos por dia da semana</h4>
+        <div class="eq">
+          <div class="eq-col"><div class="eq-bar" style="height:35%"></div><div class="val">18</div><div class="lab">Seg</div></div>
+          <div class="eq-col"><div class="eq-bar" style="height:52%"></div><div class="val">26</div><div class="lab">Ter</div></div>
+          <div class="eq-col"><div class="eq-bar" style="height:70%"></div><div class="val">34</div><div class="lab">Qua</div></div>
+          <div class="eq-col"><div class="eq-bar" style="height:95%"></div><div class="val">41</div><div class="lab">Qui</div></div>
+          <div class="eq-col"><div class="eq-bar" style="height:78%"></div><div class="val">36</div><div class="lab">Sex</div></div>
+          <div class="eq-col"><div class="eq-bar red" style="height:22%"></div><div class="val">9</div><div class="lab">Sáb</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4>Máquinas no projeto</h4>
+        <table class="list">
+          <tr><th>Máquina</th><th>Uso</th><th>Status</th></tr>
+          <tr><td><div class="machine-row"><div class="machine-icon"><svg class="icon" style="width:14px;height:14px" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/></svg></div>SQ Stack 10 · #1</div></td><td>82%</td><td class="ok">Ativa</td></tr>
+          <tr><td><div class="machine-row"><div class="machine-icon"><svg class="icon" style="width:14px;height:14px" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/></svg></div>SQ Stack 10 · #2</div></td><td>74%</td><td class="ok">Ativa</td></tr>
+          <tr><td><div class="machine-row"><div class="machine-icon"><svg class="icon" style="width:14px;height:14px" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/></svg></div>SQ Stack 10 · #3</div></td><td>12%</td><td class="warn">Ociosa</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,4 @@
+{"type":"server-started","port":53044,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:53044/?key=29b1cf45cf95e011b842f473c14216c1cd87198443a5a5dc423c8528c70aa1a7","screen_dir":"/home/seidor/Documents/lavanderia/.superpowers/brainstorm/157643-1793847698/content","state_dir":"/home/seidor/Documents/lavanderia/.superpowers/brainstorm/157643-1793847698/state","idle_timeout_ms":14400000}
+{"type":"screen-added","file":"/home/seidor/Documents/lavanderia/.superpowers/brainstorm/157643-1793847698/content/visual-style.html"}
+{"type":"screen-added","file":"/home/seidor/Documents/lavanderia/.superpowers/brainstorm/157643-1793847698/content/visual-style-v2.html"}
+{"type":"screen-added","file":"/home/seidor/Documents/lavanderia/.superpowers/brainstorm/157643-1793847698/content/visual-style-v3.html"}

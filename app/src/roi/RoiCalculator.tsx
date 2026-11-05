@@ -75,13 +75,13 @@ function Stat({ label, value, hint, featured }: { label: string; value: string; 
   );
 }
 
-// Cenários ordenados (pior → melhor): um só tom, do claro ao escuro; o
-// realista (o principal) é o mais forte. Tracejado no conservador pra não
+// Cenários ordenados (pior → melhor): o realista (o principal) usa o
+// verde-limão de destaque da marca. Tracejado no conservador pra não
 // depender só da cor.
 const SCEN_STYLE = [
-  { color: "#7fa7c4", width: 1.75, dash: "5 4" },
-  { color: "#0b3d59", width: 2.5, dash: undefined },
-  { color: "#3f78a0", width: 1.75, dash: undefined },
+  { color: "#7a8a7e", width: 1.75, dash: "5 4" },
+  { color: "#d7ff5c", width: 2.5, dash: undefined },
+  { color: "#1fcf77", width: 1.75, dash: undefined },
 ];
 const scenStyle = (i: number) => SCEN_STYLE[i] ?? SCEN_STYLE[1];
 
