@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore, type ReactNode } from "react";
 import { useProjectStore } from "../state/projectStore";
 import { getCatalog, subscribeCatalog } from "../catalog/store";
 import { useLayout } from "../state/useLayout";
@@ -8,7 +8,7 @@ import { FacadeControls } from "./FacadeControls";
 import { SectionTitle } from "./SectionTitle";
 import { IconInfo, IconRuler, IconSofa, IconWasher } from "./icons";
 import { isPremium } from "../engine/layout";
-import type { LayoutOrientation, SideSlot, TechAccessSide } from "../engine/types";
+import type { FurnitureItem, LayoutOrientation, SideSlot, TechAccessSide } from "../engine/types";
 
 // Rótulos dos encaixes de mobiliário em orientation="side": dependem de qual
 // parede lateral da planta recebe as máquinas.
@@ -64,6 +64,27 @@ export function ControlPanel({ show3dOptions = true }: { show3dOptions?: boolean
           <option value="right">Direita</option>
         </select>
       </label>
+    );
+  }
+
+  // Cada móvel com a sua chave liga/desliga no título; desligado, as opções somem.
+  const off = state.furnitureOff ?? [];
+  const isOn = (item: FurnitureItem) => !off.includes(item);
+  const furnitureItems: FurnitureItem[] = ["totem", "table", "chairs", "ac", ...(premium ? (["counter", "pufs"] as const) : [])];
+  const onCount = furnitureItems.filter(isOn).length;
+  function item(id: FurnitureItem, name: string, children?: ReactNode) {
+    const on = isOn(id);
+    return (
+      <fieldset className={on ? "furn-item" : "furn-item is-off"}>
+        <legend className="furn-legend">
+          <label className="furn-toggle">
+            <span>{name}</span>
+            <input type="checkbox" role="switch" aria-label={`Mostrar ${name.toLowerCase()}`} checked={on}
+              onChange={() => state.toggleFurnitureItem(id)} />
+          </label>
+        </legend>
+        {on && children}
+      </fieldset>
     );
   }
 
@@ -223,19 +244,15 @@ export function ControlPanel({ show3dOptions = true }: { show3dOptions?: boolean
       </fieldset>
 
       <fieldset>
-        <SectionTitle icon={<IconSofa />} chip={state.furnitureEnabled ? "incluído" : "sem móveis"}>
+        <SectionTitle icon={<IconSofa />} chip={`${onCount} de ${furnitureItems.length}`}>
           Mobiliário
         </SectionTitle>
-        <label className="switch-row">
-          <input type="checkbox" role="switch" checked={state.furnitureEnabled} onChange={state.toggleFurniture} />
-          Incluir mesa, cadeiras, totem e ar-condicionado{premium ? " (+ balcão premium)" : ""}
-        </label>
+        <p className="furn-hint">Ligue ou desligue cada item da loja.</p>
       </fieldset>
 
       {state.furnitureEnabled && (
         <div className="sub-group">
-          <fieldset>
-            <legend>Totem de pagamento</legend>
+          {item("totem", "Totem de pagamento", (
             <label>
               Lado do totem
               {isSide ? (
@@ -260,24 +277,18 @@ export function ControlPanel({ show3dOptions = true }: { show3dOptions?: boolean
                 </select>
               )}
             </label>
-          </fieldset>
+          ))}
 
-          <fieldset>
-            <legend>Mesa</legend>
-            {isSide
-              ? slotSelect("Lado da mesa", state.tableSlot, state.setTableSlot)
-              : sideSelect("Lado da mesa", state.tableSide, state.setTableSide)}
-          </fieldset>
+          {item("table", "Mesa", isSide
+            ? slotSelect("Lado da mesa", state.tableSlot, state.setTableSlot)
+            : sideSelect("Lado da mesa", state.tableSide, state.setTableSide))}
 
-          <fieldset>
-            <legend>Cadeiras</legend>
-            {isSide
-              ? slotSelect("Lado das cadeiras", state.chairsSlot, state.setChairsSlot)
-              : sideSelect("Lado das cadeiras", state.chairsSide, state.setChairsSide)}
-          </fieldset>
+          {item("chairs", "Cadeiras", isSide
+            ? slotSelect("Lado das cadeiras", state.chairsSlot, state.setChairsSlot)
+            : sideSelect("Lado das cadeiras", state.chairsSide, state.setChairsSide))}
 
-          <fieldset>
-            <legend>Ar-condicionado</legend>
+          {item("ac", "Ar-condicionado", (
+            <>
             {isSide
               ? slotSelect("Lado do ar-condicionado", state.acSlot, state.setAcSlot)
               : sideSelect("Lado do ar-condicionado", state.acSide, state.setAcSide)}
@@ -303,16 +314,14 @@ export function ControlPanel({ show3dOptions = true }: { show3dOptions?: boolean
                 ))}
               </select>
             </label>
-          </fieldset>
+            </>
+          ))}
 
-          {premium && (
-            <fieldset>
-              <legend>Balcão premium</legend>
-              {isSide
-                ? slotSelect("Lado do balcão", state.counterSlot, state.setCounterSlot)
-                : sideSelect("Lado do balcão", state.counterSide, state.setCounterSide)}
-            </fieldset>
-          )}
+          {premium && item("counter", "Balcão premium", isSide
+            ? slotSelect("Lado do balcão", state.counterSlot, state.setCounterSlot)
+            : sideSelect("Lado do balcão", state.counterSide, state.setCounterSide))}
+
+          {premium && item("pufs", "Pufs")}
         </div>
       )}
 

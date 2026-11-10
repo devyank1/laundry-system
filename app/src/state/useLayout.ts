@@ -18,6 +18,7 @@ function engineState(s: ProjectState): ProjectState {
     doorEnabled: s.doorEnabled,
     techAccessSide: s.techAccessSide,
     furnitureEnabled: s.furnitureEnabled,
+    furnitureOff: s.furnitureOff,
     totemSide: s.totemSide,
     tableSide: s.tableSide,
     chairsSide: s.chairsSide,

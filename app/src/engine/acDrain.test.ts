@@ -33,7 +33,7 @@ describe("dreno do ar-condicionado", () => {
   it("sai do aparelho, passa pelo corredor técnico e sai pela parede de trás", () => {
     const layout = computeLayout(state, catalog).layout!;
     const d = layout.acDrain!;
-    const ac = layout.furniture!.ac;
+    const ac = layout.furniture!.ac!;
     const [start] = d.points;
     // começa encostado no aparelho
     expect(start.x).toBeGreaterThanOrEqual(ac.x);

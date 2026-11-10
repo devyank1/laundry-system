@@ -14,6 +14,7 @@ beforeEach(() => {
     doorEnabled: true,
     techAccessSide: "right",
     furnitureEnabled: true,
+    furnitureOff: [],
     totemSide: "left",
     tableSide: "left",
     chairsSide: "left",
@@ -184,5 +185,18 @@ describe("ControlPanel — elétrica", () => {
     expect(info!.textContent).toMatch(/3 tomada\(s\) Steck/);
     expect(info!.textContent).toMatch(/9 tomadas 220 V/);
     expect(info!.textContent).toMatch(/4 tomadas 127 V/);
+  });
+
+  it("cada móvel tem a sua chave; desligar some com as opções dele", async () => {
+    render(<ControlPanel />);
+    const mesa = screen.getByRole("switch", { name: /mostrar mesa/i });
+    expect(mesa).toBeChecked();
+    expect(screen.getByLabelText(/lado da mesa/i)).toBeInTheDocument();
+    await userEvent.click(mesa);
+    expect(useProjectStore.getState().furnitureOff).toEqual(["table"]);
+    expect(screen.queryByLabelText(/lado da mesa/i)).toBeNull();
+    // os outros continuam ligados
+    expect(screen.getByRole("switch", { name: /mostrar cadeiras/i })).toBeChecked();
+    expect(screen.getByLabelText(/lado das cadeiras/i)).toBeInTheDocument();
   });
 });

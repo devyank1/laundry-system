@@ -1,6 +1,8 @@
 import {
   countDryers,
   flattenSelection,
+  freeEndStripMm,
+  isFurnitureOn,
   machineRowWidthMm,
   resolveSelection,
   validate,
@@ -21,7 +23,6 @@ import {
   DRYWALL_THICKNESS_MM,
   FURNITURE_CIRCULATION_GAP_MM,
   FURNITURE_MARGIN_MM,
-  LATERAL_CLEARANCE_MM,
   MACHINE_GAP_MM,
   PREMIUM_MIN_AREA_MM2,
   PUFS_SIZE_MM,
@@ -36,6 +37,7 @@ import {
 import type {
   CatalogMachine,
   DrywallOpening,
+  FurnitureItem,
   FurnitureLayout,
   Layout,
   LayoutResult,
@@ -45,6 +47,8 @@ import type {
   Rect,
   WallSide,
 } from "./types";
+
+const FURNITURE_ITEMS: FurnitureItem[] = ["totem", "table", "chairs", "ac", "counter", "pufs"];
 
 // Todo o motor pensa em dois eixos abstratos:
 //   "along"  = eixo em que a fileira de máquinas corre (contra a parede dela)
@@ -113,10 +117,12 @@ export function computeLayout(state: ProjectState, catalog: CatalogMachine[]): L
   const list = flattenSelection(resolved);
 
   const rowWidth = machineRowWidthMm(list);
+  // Ponta livre: recuo de segurança (0 nas Mamute) ou o nicho do totem.
+  const freeEnd = freeEndStripMm(state, list);
   const startAlong =
     state.techAccessSide === "left"
-      ? alongLengthMm - LATERAL_CLEARANCE_MM - rowWidth
-      : LATERAL_CLEARANCE_MM;
+      ? alongLengthMm - freeEnd - rowWidth
+      : freeEnd;
 
   const maxDepthMm = Math.max(...list.map((m) => m.depthMm));
   const drywallAcross = TECH_AREA_DEFAULT_MM + maxDepthMm;
@@ -168,7 +174,7 @@ export function computeLayout(state: ProjectState, catalog: CatalogMachine[]): L
   const acSuggestedBTU = state.acOverrideBTU ?? suggestBTU(salonAreaM2, dryerCount);
 
   const frontDoor = state.doorEnabled ? frontDoorRect(state, drywallAcross) : null;
-  const furniture = state.furnitureEnabled
+  const furniture = state.furnitureEnabled && FURNITURE_ITEMS.some((it) => isFurnitureOn(state, it))
     ? placeFurniture(
         state,
         drywallAcross,
@@ -423,9 +429,10 @@ function placeFurniture(
   // Trechos do drywall já ocupados (fileira, totem, corredor técnico) — o
   // que sobra é parede livre pra encostar cadeiras em "side"/"near".
   const corridorAlong = state.techAccessSide === "left" ? 0 : alongLengthMm - TECH_DOOR_WIDTH_MM;
+  const on = (item: FurnitureItem) => isFurnitureOn(state, item);
   const drywallBusy = [
     { start: row.start, end: row.end },
-    { start: totemAlong, end: totemAlong + TOTEM_WALL_MM },
+    ...(on("totem") ? [{ start: totemAlong, end: totemAlong + TOTEM_WALL_MM }] : []),
     { start: corridorAlong, end: corridorAlong + TECH_DOOR_WIDTH_MM },
   ];
 
@@ -435,22 +442,31 @@ function placeFurniture(
       : placeBackFurniture(state, zone);
 
   const toRect = (r: LocalRect) => orientedRect(state, r.a, r.c, r.la, r.lc);
-  const table = toRect(placed.table);
-  const poufs = placed.chairs.map(toRect);
+  // Item desligado no painel: a posição dos outros não muda, ele só some
+  // (e deixa de ocupar espaço pro balcão premium).
+  const table = on("table") ? toRect(placed.table) : null;
+  const poufs = on("chairs") ? placed.chairs.map(toRect) : [];
+  const totemOn = on("totem") ? totem : null;
+  const premium =
+    isPremium(state) && (on("counter") || on("pufs"))
+      ? placePremium(state, zone, row, {
+          // O que o balcão não pode pisar (a folga de trânsito entra em fits()).
+          obstacles: [...(table ? [table] : []), ...poufs, ...(totemOn ? [totemOn] : []), room.techCorridor],
+          frontDoor: room.frontDoor,
+        })
+      : null;
   return {
     table,
     poufs,
     chairsWall: placed.chairsWall,
-    totem,
-    ac: toRect(placed.ac),
+    totem: totemOn,
+    ac: on("ac") ? toRect(placed.ac) : null,
     acWall: placed.acWall,
-    premium: isPremium(state)
-      ? placePremium(state, zone, row, {
-          // O que o balcão não pode pisar (a folga de trânsito entra em fits()).
-          obstacles: [table, ...poufs, totem, room.techCorridor],
-          frontDoor: room.frontDoor,
-        })
-      : null,
+    premium: premium && {
+      ...premium,
+      counter: on("counter") ? premium.counter : null,
+      pufs: on("pufs") ? premium.pufs : null,
+    },
   };
 }
 

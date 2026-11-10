@@ -79,10 +79,11 @@ export function dispenserSpot(layout: Layout): StoreFixtures["dispensers"] {
   const rowMid = (Math.min(...spans.map((s) => s.start)) + Math.max(...spans.map((s) => s.end))) / 2;
 
   const corridor = frame.spatialSpan(layout.techCorridor);
-  const reference = layout.furniture ? frame.spatialSpan(layout.furniture.totem) : corridor;
+  const totem = layout.furniture?.totem ?? null;
+  const reference = totem ? frame.spatialSpan(totem) : corridor;
   const referenceIsLow = (reference.start + reference.end) / 2 < rowMid;
 
-  const busy = [...spans, corridor, ...(layout.furniture ? [frame.spatialSpan(layout.furniture.totem)] : [])].sort(
+  const busy = [...spans, corridor, ...(totem ? [frame.spatialSpan(totem)] : [])].sort(
     (a, b) => a.start - b.start
   );
   const free: { from: number; to: number }[] = [];

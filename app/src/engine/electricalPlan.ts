@@ -280,7 +280,7 @@ export function computeElectricalPlan(layout: Omit<Layout, "electricalPlan">): E
 
   // Fita de LED no nicho do totem.
   let ledStrip: ElectricalPlan["lighting"]["ledStrip"] = null;
-  if (furniture) {
+  if (furniture?.totem) {
     const t = furniture.totem;
     const cLed = addCircuit("F", "Fita de LED (nicho do totem)", 127);
     const tc = center(t);
@@ -387,10 +387,13 @@ export function computeElectricalPlan(layout: Omit<Layout, "electricalPlan">): E
   }
 
   if (furniture) {
-    const id = next("Tomadas 127 V: totem e balcão", 127);
-    const pts: PlanXY[] = [center(furniture.totem)];
-    devices.push({ ...pts[0], kind: "tomada127media", circuit: id, wall: null, label: "TOTEM" });
     const counter = furniture.premium?.counter;
+    const id = furniture.totem || counter ? next("Tomadas 127 V: totem e balcão", 127) : "";
+    const pts: PlanXY[] = [];
+    if (furniture.totem) {
+      pts.push(center(furniture.totem));
+      devices.push({ ...pts[0], kind: "tomada127media", circuit: id, wall: null, label: "TOTEM" });
+    }
     if (counter) {
       // Uma tomada por banqueta, na parede atrás do balcão (banquetas a 1/4,
       // 2/4 e 3/4 do comprimento, como no desenho do balcão).
@@ -406,8 +409,10 @@ export function computeElectricalPlan(layout: Omit<Layout, "electricalPlan">): E
         devices.push({ ...cp, kind: "tomada127media", circuit: id, wall, label: k === 2 ? "BALCÃO" : undefined });
       }
     }
-    floorRoute(pts, id);
+    if (pts.length) floorRoute(pts, id);
+  }
 
+  if (furniture?.ac) {
     const acId = next(`Ar-condicionado split ${layout.acSuggestedBTU.toLocaleString("pt-BR")} BTUs`, 220);
     const ac = furniture.ac;
     const acP = wallPoint(ac, furniture.acWall);

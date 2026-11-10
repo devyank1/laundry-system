@@ -10,7 +10,7 @@ import {
   TOTEM_WALL_MM,
   machineBaseMm,
 } from "./constants";
-import type { CatalogMachine, MachineSelection, ProjectState, Violation } from "./types";
+import type { CatalogMachine, FurnitureItem, MachineSelection, ProjectState, Violation } from "./types";
 
 export function resolveSelection(
   selections: MachineSelection[],
@@ -39,10 +39,27 @@ export function machineRowWidthMm(list: CatalogMachine[]): number {
   return widths + (list.length - 1) * MACHINE_GAP_MM;
 }
 
-export function computeMinWidthMm(list: CatalogMachine[]): number {
-  // Recuo de 50cm do lado do totem (lado oposto à porta técnica) + fileira +
-  // porta técnica de 70cm (já cobre, com folga, os 50cm desse outro lado).
-  return LATERAL_CLEARANCE_MM + machineRowWidthMm(list) + TECH_DOOR_WIDTH_MM;
+// Recuo de segurança da fileira: o maior pedido entre as máquinas dela
+// (Mamute não pede; as outras, 50cm).
+export function rowClearanceMm(list: CatalogMachine[]): number {
+  return list.length ? Math.max(...list.map((m) => m.lateralClearanceMm ?? LATERAL_CLEARANCE_MM)) : LATERAL_CLEARANCE_MM;
+}
+
+export function isFurnitureOn(state: ProjectState, item: FurnitureItem): boolean {
+  return state.furnitureEnabled && !(state.furnitureOff ?? []).includes(item);
+}
+
+// Faixa na ponta livre da fileira (lado oposto à porta técnica): recuo de
+// segurança das máquinas ou o nicho de 50cm do totem, quando ele fica ali.
+export function freeEndStripMm(state: ProjectState, list: CatalogMachine[]): number {
+  const totemThere = isFurnitureOn(state, "totem") && state.totemSide !== state.techAccessSide;
+  return Math.max(rowClearanceMm(list), totemThere ? TOTEM_WALL_MM : 0);
+}
+
+export function computeMinWidthMm(list: CatalogMachine[], freeEndMm = rowClearanceMm(list)): number {
+  // Faixa da ponta livre + fileira + porta técnica de 70cm (já cobre, com
+  // folga, os 50cm desse outro lado).
+  return freeEndMm + machineRowWidthMm(list) + TECH_DOOR_WIDTH_MM;
 }
 
 export function computeMinDepthMm(list: CatalogMachine[]): number {
@@ -92,8 +109,8 @@ export function validate(state: ProjectState, catalog: CatalogMachine[]): Violat
 
   // Quando o totem cai do MESMO lado da porta técnica, ele precisa do seu
   // próprio trecho de 50cm além do vão da porta — largura extra.
-  const totemSharesDoorSide = state.furnitureEnabled && state.totemSide === state.techAccessSide;
-  const minAlong = computeMinWidthMm(list) + (totemSharesDoorSide ? TOTEM_WALL_MM : 0);
+  const totemSharesDoorSide = isFurnitureOn(state, "totem") && state.totemSide === state.techAccessSide;
+  const minAlong = computeMinWidthMm(list, freeEndStripMm(state, list)) + (totemSharesDoorSide ? TOTEM_WALL_MM : 0);
   if (alongLengthMm < minAlong) {
     violations.push({
       code: "WIDTH_TOO_SMALL",
@@ -105,7 +122,7 @@ export function validate(state: ProjectState, catalog: CatalogMachine[]): Violat
     });
   }
 
-  if (state.furnitureEnabled && alongLengthMm < FURNITURE_BLOCK_WIDTH_MM) {
+  if (isFurnitureOn(state, "table") && alongLengthMm < FURNITURE_BLOCK_WIDTH_MM) {
     violations.push({
       code: "FURNITURE_WIDTH_TOO_SMALL",
       message: `Espaço insuficiente ao longo da parede pra mesa encostada. Mínimo: ${(FURNITURE_BLOCK_WIDTH_MM / 1000).toFixed(2)}m.`,

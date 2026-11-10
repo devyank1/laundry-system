@@ -774,9 +774,73 @@
   background: var(--primary-bg);
 }
 
+/* Chave liga/desliga também no título de cada móvel */
+.app section input[type="checkbox"][role="switch"] {
+  appearance: none;
+  position: relative;
+  flex-shrink: 0;
+  width: 34px;
+  height: 20px;
+  margin: 0;
+  background: var(--border-strong);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.app section input[type="checkbox"][role="switch"]::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform var(--transition);
+}
+
+.app section input[type="checkbox"][role="switch"]:checked {
+  background: var(--primary);
+}
+
+.app section input[type="checkbox"][role="switch"]:checked::before {
+  transform: translateX(14px);
+}
+
+.app section input[type="checkbox"][role="switch"]:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.app .furn-hint {
+  margin: -4px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.app .sub-group > fieldset > legend.furn-legend {
+  width: 100%;
+}
+
+.app fieldset label.furn-toggle {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.app .sub-group > fieldset.furn-item.is-off label.furn-toggle span {
+  color: var(--text-subtle);
+}
+
 /* Itens do mobiliário agrupados num cartão logo abaixo da chave */
 .app .sub-group {
-  margin: -6px 20px 14px;
+  margin: -4px 20px 14px;
   background: var(--surface-muted);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -884,6 +948,53 @@
 /* Aba do 3D sem rolagem: margem de baixo menor */
 .app > .workspace:has(.scene3d, .scene3d-placeholder) {
   padding-bottom: 20px;
+}
+
+/* Aba 2D sem rolagem da página: área de trabalho do tamanho da janela e o
+   desenho ocupa o resto (a rolagem fica só dentro do desenho). */
+@media (min-width: 961px) {
+  .app > .workspace:has(.plan2d) {
+    height: calc(100vh - var(--topbar-h));
+    overflow: hidden;
+    padding-bottom: 20px;
+  }
+
+  .app .plan2d {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .app .plan2d .plan-viewport {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+  }
+}
+
+/* Aba 3D sem rolagem da página: mesma ideia, o 3D ocupa o resto da tela
+   (a altura fixa calculada falhava quando os botões quebram linha). */
+@media (min-width: 961px) {
+  .app > .workspace:has(.scene3d, .scene3d-placeholder) {
+    height: calc(100vh - var(--topbar-h));
+    overflow: hidden;
+  }
+
+  .app .scene3d,
+  .app .scene3d-placeholder {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .app .scene3d > div:has(> div > canvas) {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .app .scene3d canvas,
+  .app .scene3d-loading,
+  .app .scene3d-placeholder {
+    height: 100% !important;
+  }
 }
 
 /* ---------- Avisos ---------- */

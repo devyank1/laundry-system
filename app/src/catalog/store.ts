@@ -43,6 +43,10 @@ function renamed(saved: CatalogMachine[]): CatalogMachine[] {
       return { ...seed, ...m, ...(m.id === "sq-st055" && m.weightKg === 210 ? { weightKg: 200 } : {}) };
     });
   }
+  // Mamute não pede o recuo lateral de 50 cm (catálogos salvos antes disso)
+  if (list.some((m) => m.id.startsWith("mamute-") && m.lateralClearanceMm === undefined)) {
+    list = list.map((m) => (m.id.startsWith("mamute-") && m.lateralClearanceMm === undefined ? { ...m, lateralClearanceMm: 0 } : m));
+  }
   // Secadora da Titan (13,6 kg) é menor que a lavadora (17 kg)
   if (list.some((m) => m.id === "lg-titan" && m.dryerCapacityKg === undefined && m.capacityKg === 17)) {
     list = list.map((m) => (m.id === "lg-titan" && m.dryerCapacityKg === undefined && m.capacityKg === 17 ? { ...m, dryerCapacityKg: 13.6 } : m));

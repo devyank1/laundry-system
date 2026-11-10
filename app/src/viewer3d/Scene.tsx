@@ -543,6 +543,7 @@ export function Scene({
         {furniture && (
           <>
             {/* Totem embutido no drywall, centro da tela a 1,20m do chão, virado pro salão */}
+            {furniture.totem && (
             <group
               position={frame.pos(
                 (frame.spatialSpan(furniture.totem).start + frame.spatialSpan(furniture.totem).end) / 2,
@@ -561,7 +562,8 @@ export function Scene({
                 <PaymentTotem />
               </FitBox>
             </group>
-            {(() => {
+            )}
+            {furniture.table && (() => {
               // Mesa: 2m nativos em x. Em "side" o comprimento corre em z
               // (ao longo da parede lateral), então gira 90°.
               const t = furniture.table;
@@ -609,7 +611,7 @@ export function Scene({
                 </group>
               );
             })}
-            {(() => {
+            {furniture.ac && (() => {
               // Ar-condicionado na parede indicada pelo motor, virado pra dentro da loja.
               const ac = furniture.ac;
               const yaw = wallYaw(furniture.acWall);

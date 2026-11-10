@@ -93,7 +93,7 @@ describe.each([
       const along = layout.orientation === "side" ? d!.z : d!.x;
       const spans = layout.drywall.openings.map(frame.markerSpan);
       const rowMid = (Math.min(...spans.map((s) => s.start)) + Math.max(...spans.map((s) => s.end))) / 2;
-      const totem = frame.spatialSpan(layout.furniture!.totem);
+      const totem = frame.spatialSpan(layout.furniture!.totem!);
       const totemLow = (totem.start + totem.end) / 2 < rowMid;
       expect(along < rowMid).toBe(!totemLow);
       // fora das máquinas

@@ -800,28 +800,37 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout; sheet?: Pla
         {layout.furniture && (() => {
           const fur = layout.furniture;
           const R = (r: Rect) => ({ x: mm(r.x), y: mm(r.y), w: mm(r.width), h: mm(r.height) });
-          const totem = R(fur.totem);
-          const table = R(fur.table);
-          const ac = R(fur.ac);
+          // Item desligado no painel vem null: não desenha
+          const totem = fur.totem ? R(fur.totem) : null;
+          const table = fur.table ? R(fur.table) : null;
+          const ac = fur.ac ? R(fur.ac) : null;
           const counter = fur.premium?.counter ? R(fur.premium.counter) : null;
           const pufs = fur.premium?.pufs ? R(fur.premium.pufs) : null;
-          const acVertical = ac.h > ac.w;
+          const acVertical = ac ? ac.h > ac.w : false;
           return (
             <g fill="none" stroke={CAD.furniture} strokeWidth={0.6} opacity={sheet === "layout" ? 1 : 0.4}>
               {/* Nicho do totem de pagamento */}
-              <rect x={totem.x} y={totem.y} width={totem.w} height={totem.h} />
-              <rect x={totem.x + 1.5} y={totem.y + 1.5} width={totem.w - 3} height={totem.h - 3} />
-              <circle cx={totem.x + totem.w / 2} cy={totem.y + totem.h / 2} r={Math.min(totem.w, totem.h) / 4} />
-              <Label x={totem.x + totem.w / 2} y={totem.y - 2} size={4.5} fill={CAD.gray}>
-                NICHO TOTEM
-              </Label>
+              {totem && (
+                <>
+                  <rect x={totem.x} y={totem.y} width={totem.w} height={totem.h} />
+                  <rect x={totem.x + 1.5} y={totem.y + 1.5} width={totem.w - 3} height={totem.h - 3} />
+                  <circle cx={totem.x + totem.w / 2} cy={totem.y + totem.h / 2} r={Math.min(totem.w, totem.h) / 4} />
+                  <Label x={totem.x + totem.w / 2} y={totem.y - 2} size={4.5} fill={CAD.gray}>
+                    NICHO TOTEM
+                  </Label>
+                </>
+              )}
               {fur.poufs.map((p, i) => (
                 <Chair key={i} r={p} wall={fur.chairsWall} />
               ))}
-              <rect x={table.x} y={table.y} width={table.w} height={table.h} rx={2} />
-              <Label x={table.x + table.w / 2} y={table.y + table.h / 2 + 2} size={5} fill={CAD.gray}>
-                MESA CENTRAL
-              </Label>
+              {table && (
+                <>
+                  <rect x={table.x} y={table.y} width={table.w} height={table.h} rx={2} />
+                  <Label x={table.x + table.w / 2} y={table.y + table.h / 2 + 2} size={5} fill={CAD.gray}>
+                    MESA CENTRAL
+                  </Label>
+                </>
+              )}
               {counter && fur.premium && (() => {
                 // Balcão alto + 3 banquetas do lado oposto à parede dele.
                 const vertical = counter.h > counter.w;
@@ -874,16 +883,20 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout; sheet?: Pla
                 );
               })()}
               {/* Ar-condicionado na parede */}
-              <rect x={ac.x} y={ac.y} width={ac.w} height={ac.h} />
-              <Label
-                x={ac.x + ac.w / 2 + (acVertical ? 1.6 : 0)}
-                y={ac.y + ac.h / 2 + (acVertical ? 0 : 1.6)}
-                size={4.2}
-                fill={CAD.ink}
-                rotate={acVertical ? -90 : 0}
-              >
-                AR CONDICIONADO
-              </Label>
+              {ac && (
+                <>
+                  <rect x={ac.x} y={ac.y} width={ac.w} height={ac.h} />
+                  <Label
+                    x={ac.x + ac.w / 2 + (acVertical ? 1.6 : 0)}
+                    y={ac.y + ac.h / 2 + (acVertical ? 0 : 1.6)}
+                    size={4.2}
+                    fill={CAD.ink}
+                    rotate={acVertical ? -90 : 0}
+                  >
+                    AR CONDICIONADO
+                  </Label>
+                </>
+              )}
             </g>
           );
         })()}

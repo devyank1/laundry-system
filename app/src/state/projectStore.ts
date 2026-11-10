@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type {
+  FurnitureItem,
   LayoutOrientation,
   MachineSelection,
   ProjectState,
@@ -22,6 +23,7 @@ interface ProjectStore extends ProjectState {
   toggleDoor: () => void;
   setTechAccessSide: (side: TechAccessSide) => void;
   toggleFurniture: () => void;
+  toggleFurnitureItem: (item: FurnitureItem) => void;
   setTotemSide: (side: TechAccessSide) => void;
   setTableSide: (side: TechAccessSide) => void;
   setChairsSide: (side: TechAccessSide) => void;
@@ -69,6 +71,7 @@ const initialState: ProjectState = {
   doorEnabled: true,
   techAccessSide: "right",
   furnitureEnabled: true,
+  furnitureOff: [],
   // Por padrão tudo agrupado do lado oposto à porta técnica (arranjo mais
   // econômico de espaço), mas cada item pode ser movido independentemente.
   totemSide: "left",
@@ -111,6 +114,11 @@ export const useProjectStore = create<ProjectStore>()((set) => ({
   toggleDoor: () => set((state) => ({ doorEnabled: !state.doorEnabled })),
   setTechAccessSide: (side) => set({ techAccessSide: side }),
   toggleFurniture: () => set((state) => ({ furnitureEnabled: !state.furnitureEnabled })),
+  toggleFurnitureItem: (item) =>
+    set((state) => {
+      const off = state.furnitureOff ?? [];
+      return { furnitureOff: off.includes(item) ? off.filter((i) => i !== item) : [...off, item] };
+    }),
   setTotemSide: (side) => set({ totemSide: side }),
   setTableSide: (side) => set({ tableSide: side }),
   setChairsSide: (side) => set({ chairsSide: side }),

@@ -1,7 +1,7 @@
 import { CATALOG_SEED } from "../catalog/seed";
 import { describe, expect, it } from "vitest";
 import { computeLayout } from "./layout";
-import { computeMinCeilingMm } from "./constraints";
+import { computeMinCeilingMm, machineRowWidthMm } from "./constraints";
 import type { CatalogMachine, ProjectState } from "./types";
 
 const catalog: CatalogMachine[] = [
@@ -114,7 +114,7 @@ describe("computeLayout", () => {
     // encostadas na mesma parede da mesa (tableSide="left" → x=0), uma logo
     // depois da outra em y, continuando a fileira a partir da mesa
     expect(chair1.x).toBe(0);
-    expect(chair1.y).toBe(furniture.table.y + furniture.table.height + 100);
+    expect(chair1.y).toBe(furniture.table!.y + furniture.table!.height + 100);
     expect(chair2.x).toBe(0);
     expect(chair2.y).toBe(chair1.y + 420 + 100);
     expect(chair3.x).toBe(0);
@@ -125,7 +125,7 @@ describe("computeLayout", () => {
     // validState: techAccessSide="right", totemSide="left" (lados opostos)
     // → o totem usa a faixa de 50cm inteira da esquerda, livre do corredor.
     const layout = computeLayout(validState, catalog).layout!;
-    const totem = layout.furniture!.totem;
+    const totem = layout.furniture!.totem!;
     expect(totem.y).toBe(layout.drywall.y);
     expect(totem.width).toBe(400);
     expect(totem.x).toBe((500 - 400) / 2); // centralizado na faixa [0, 500]
@@ -137,7 +137,7 @@ describe("computeLayout", () => {
       { ...validState, techAccessSide: "left", totemSide: "right" },
       catalog
     ).layout!;
-    const leftTotem = left.furniture!.totem;
+    const leftTotem = left.furniture!.totem!;
     const leftStripX = left.roomWidthMm - 500; // faixa [roomWidth-500, roomWidth] do lado direito
     expect(leftTotem.x).toBe(leftStripX + (500 - 400) / 2);
     expect(leftTotem.x).toBeGreaterThanOrEqual(leftStripX);
@@ -148,7 +148,7 @@ describe("computeLayout", () => {
       { ...validState, techAccessSide: "right", totemSide: "right" },
       catalog
     ).layout!;
-    const totem = layout.furniture!.totem;
+    const totem = layout.furniture!.totem!;
     // faixa do totem fica logo à esquerda do corredor (que tem 700mm,
     // encostado na parede direita), sem sobrepor
     const expectedStripX = validState.roomWidthMm - 700 - 500;
@@ -158,7 +158,9 @@ describe("computeLayout", () => {
 
   it("encosta a mesa na parede perto das máquinas (início do salão), lado escolhido (tableSide)", () => {
     const layout = computeLayout(validState, catalog).layout!; // tableSide/acSide: "left"
-    const { ac, acWall, table } = layout.furniture!;
+    const { acWall } = layout.furniture!;
+    const ac = layout.furniture!.ac!;
+    const table = layout.furniture!.table!;
     const salonFrontY = layout.drywall.y + 100;
     const salonCenter = (salonFrontY + validState.roomDepthMm) / 2;
 
@@ -179,9 +181,9 @@ describe("computeLayout", () => {
       catalog
     ).layout!;
     expect(right.furniture!.acWall).toBe("right");
-    expect(right.furniture!.ac.x + right.furniture!.ac.width).toBe(validState.roomWidthMm);
-    expect(right.furniture!.table.x + right.furniture!.table.width).toBe(validState.roomWidthMm);
-    expect(right.furniture!.table.y).toBe(right.drywall.y + 1000);
+    expect(right.furniture!.ac!.x + right.furniture!.ac!.width).toBe(validState.roomWidthMm);
+    expect(right.furniture!.table!.x + right.furniture!.table!.width).toBe(validState.roomWidthMm);
+    expect(right.furniture!.table!.y).toBe(right.drywall.y + 1000);
   });
 
   it("cada item de mobiliário pode ir pra um lado diferente, de forma independente", () => {
@@ -197,10 +199,10 @@ describe("computeLayout", () => {
       catalog
     ).layout!.furniture!;
 
-    expect(mixed.totem.x).toBeLessThan(500); // lado esquerdo
-    expect(mixed.table.x + mixed.table.width).toBe(validState.roomWidthMm); // encostada na direita
+    expect(mixed.totem!.x).toBeLessThan(500); // lado esquerdo
+    expect(mixed.table!.x + mixed.table!.width).toBe(validState.roomWidthMm); // encostada na direita
     expect(mixed.poufs[0].x + mixed.poufs[0].width).toBe(validState.roomWidthMm); // cadeiras também na direita
-    expect(mixed.ac.x).toBe(0); // AC na esquerda, junto com o totem
+    expect(mixed.ac!.x).toBe(0); // AC na esquerda, junto com o totem
     expect(mixed.acWall).toBe("left");
   });
 
@@ -222,7 +224,7 @@ describe("computeLayout", () => {
       expect(c.y + c.height).toBeLessThanOrEqual(s.roomDepthMm);
       expect(c.x + c.width).toBeLessThanOrEqual(s.roomWidthMm);
     }
-    expect(f.poufs[0].x).toBe(f.table.x + f.table.width + 100);
+    expect(f.poufs[0].x).toBe(f.table!.x + f.table!.width + 100);
   });
 
   it("omite mobiliário quando furnitureEnabled=false", () => {
@@ -369,19 +371,19 @@ describe("computeLayout — orientation=side (fileira na parede lateral)", () =>
   it("mesa em 'farTop' encosta na parede oposta às máquinas, em cima, girada 90°", () => {
     const layout = computeLayout(sideState, catalog).layout!;
     const f = layout.furniture!;
-    expect(f.table.y).toBe(0);
-    expect(f.table.x + f.table.width).toBe(sideState.roomWidthMm);
-    expect(f.table.width).toBe(800); // TABLE_DEPTH_MM e TABLE_WIDTH_MM trocaram de eixo
-    expect(f.table.height).toBe(2000);
+    expect(f.table!.y).toBe(0);
+    expect(f.table!.x + f.table!.width).toBe(sideState.roomWidthMm);
+    expect(f.table!.width).toBe(800); // TABLE_DEPTH_MM e TABLE_WIDTH_MM trocaram de eixo
+    expect(f.table!.height).toBe(2000);
   });
 
   it("mesa em 'farBottom' fica embaixo e em 'near' fica a 1,00m da frente das máquinas", () => {
     const bottom = computeLayout({ ...sideState, tableSlot: "farBottom" }, catalog).layout!;
-    expect(bottom.furniture!.table.y + bottom.furniture!.table.height).toBe(sideState.roomDepthMm);
-    expect(bottom.furniture!.table.x + bottom.furniture!.table.width).toBe(sideState.roomWidthMm);
+    expect(bottom.furniture!.table!.y + bottom.furniture!.table!.height).toBe(sideState.roomDepthMm);
+    expect(bottom.furniture!.table!.x + bottom.furniture!.table!.width).toBe(sideState.roomWidthMm);
 
     const near = computeLayout({ ...sideState, tableSlot: "near" }, catalog).layout!;
-    expect(near.furniture!.table.x).toBe(near.drywall.y + 1000);
+    expect(near.furniture!.table!.x).toBe(near.drywall.y + 1000);
   });
 
   it("machineWall='right' espelha a planta: máquinas na parede direita, mobiliário 'far' na esquerda", () => {
@@ -393,7 +395,7 @@ describe("computeLayout — orientation=side (fileira na parede lateral)", () =>
       expect(sideState.roomWidthMm - (m.x + m.widthMm)).toBe(1050);
     }
     expect(layout.techCorridor.x + layout.techCorridor.width).toBe(sideState.roomWidthMm);
-    expect(layout.furniture!.table.x).toBe(0);
+    expect(layout.furniture!.table!.x).toBe(0);
     expect(layout.furniture!.acWall).toBe("left"); // acSlot="farBottom" → parede oposta
   });
 
@@ -402,14 +404,14 @@ describe("computeLayout — orientation=side (fileira na parede lateral)", () =>
       const first = computeLayout({ ...sideState, techAccessSide, totemSide: "left" }, catalog)
         .layout!;
       const m1 = first.machines[0];
-      const t1 = first.furniture!.totem;
+      const t1 = first.furniture!.totem!;
       expect(t1.y + t1.height).toBeLessThanOrEqual(m1.y);
       expect(m1.y - (t1.y + t1.height)).toBeLessThan(100);
 
       const last = computeLayout({ ...sideState, techAccessSide, totemSide: "right" }, catalog)
         .layout!;
       const mN = last.machines[last.machines.length - 1];
-      const tN = last.furniture!.totem;
+      const tN = last.furniture!.totem!;
       expect(tN.y).toBeGreaterThanOrEqual(mN.y + mN.depthMm);
       expect(tN.y - (mN.y + mN.depthMm)).toBeLessThan(100);
     }
@@ -438,10 +440,10 @@ describe("computeLayout — orientation=side (fileira na parede lateral)", () =>
         expect(c.y + c.height).toBeLessThanOrEqual(layout.techCorridor.y);
       }
       // AC na mesma parede, em cima das cadeiras, mas a ≥60cm da última máquina
-      expect(machineWall === "left" ? f.ac.x : f.ac.x + f.ac.width).toBe(drywallFaceX);
-      expect(f.ac.y).toBeGreaterThanOrEqual(f.poufs[0].y);
-      expect(f.ac.y + f.ac.height).toBeLessThanOrEqual(f.poufs[2].y + f.poufs[2].height);
-      expect(f.ac.y - (lastMachine.y + lastMachine.depthMm)).toBeGreaterThanOrEqual(600);
+      expect(machineWall === "left" ? f.ac!.x : f.ac!.x + f.ac!.width).toBe(drywallFaceX);
+      expect(f.ac!.y).toBeGreaterThanOrEqual(f.poufs[0].y);
+      expect(f.ac!.y + f.ac!.height).toBeLessThanOrEqual(f.poufs[2].y + f.poufs[2].height);
+      expect(f.ac!.y - (lastMachine.y + lastMachine.depthMm)).toBeGreaterThanOrEqual(600);
     }
   });
 
@@ -457,7 +459,7 @@ describe("computeLayout — orientation=side (fileira na parede lateral)", () =>
     };
     const f = computeLayout(s, catalog).layout!.furniture!;
     for (const c of f.poufs) expect(c.y).toBe(0); // parede de cima (corredor técnico embaixo)
-    expect(f.ac.y).toBe(0);
+    expect(f.ac!.y).toBe(0);
   });
 
   it("porta de entrada fica na fachada (parede de baixo, lado menor), dentro do salão", () => {
@@ -486,7 +488,7 @@ describe("computeLayout — orientation=side (fileira na parede lateral)", () =>
             for (const acSlot of slots) {
               const s = { ...sideState, machineWall, techAccessSide, tableSlot, chairsSlot, acSlot };
               const f = computeLayout(s, catalog).layout!.furniture!;
-              for (const r of [f.table, f.ac, ...f.poufs]) {
+              for (const r of [f.table!, f.ac!, ...f.poufs]) {
                 expect(r.x).toBeGreaterThanOrEqual(0);
                 expect(r.x + r.width).toBeLessThanOrEqual(s.roomWidthMm);
                 expect(r.y).toBeGreaterThanOrEqual(0);
@@ -515,7 +517,8 @@ describe("computeLayout — orientation=side (fileira na parede lateral)", () =>
                 };
                 const layout = computeLayout(s, catalog).layout;
                 if (!layout) continue; // totem do lado da porta pode não caber com 6
-                const { ac, totem } = layout.furniture!;
+                const ac = layout.furniture!.ac!;
+                const totem = layout.furniture!.totem!;
                 const blocked = [...layout.machines, totem, layout.techCorridor].map((r) => ({
                   y: r.y,
                   h: "depthMm" in r ? r.depthMm : r.height,
@@ -545,5 +548,57 @@ describe("computeLayout — orientation=side (fileira na parede lateral)", () =>
     expect(violations).toContainEqual(
       expect.objectContaining({ code: "DEPTH_TOO_SMALL", field: "roomWidthMm" })
     );
+  });
+});
+
+describe("Mamute sem recuo lateral de 50 cm", () => {
+  const mamute = CATALOG_SEED.find((m) => m.id === "mamute-smart10")!;
+  const cat = [...catalog, mamute];
+  const base: ProjectState = { ...validState, roomDepthMm: 6000, machines: [{ catalogId: "mamute-smart10", qty: 3 }] };
+
+  it("fileira encosta na parede quando o totem não está nessa ponta", () => {
+    const off = computeLayout({ ...base, furnitureOff: ["totem"] }, cat).layout!;
+    expect(Math.min(...off.machines.map((m) => m.x))).toBe(0);
+  });
+
+  it("com o totem nessa ponta, mantém só o nicho dele (50 cm)", () => {
+    const layout = computeLayout(base, cat).layout!;
+    expect(Math.min(...layout.machines.map((m) => m.x))).toBe(500);
+  });
+
+  it("Speed Queen continua com o recuo mesmo sem totem", () => {
+    const layout = computeLayout({ ...validState, furnitureOff: ["totem"] }, catalog).layout!;
+    expect(Math.min(...layout.machines.map((m) => m.x))).toBe(500);
+  });
+
+  it("largura mínima = fileira + porta técnica (sem os 50 cm)", () => {
+    const row = machineRowWidthMm([mamute, mamute, mamute]);
+    const r = computeLayout({ ...base, roomWidthMm: 1000, furnitureOff: ["totem", "table"] }, cat);
+    expect(r.violations).toContainEqual(expect.objectContaining({ code: "WIDTH_TOO_SMALL", suggestedValueMm: row + 700 }));
+    const withTotem = computeLayout({ ...base, roomWidthMm: 1000, furnitureOff: ["table"] }, cat);
+    expect(withTotem.violations).toContainEqual(expect.objectContaining({ code: "WIDTH_TOO_SMALL", suggestedValueMm: 500 + row + 700 }));
+  });
+});
+
+describe("mobiliário: cada item liga e desliga sozinho", () => {
+  it("item desligado vem null e os outros ficam no mesmo lugar", () => {
+    const all = computeLayout(validState, catalog).layout!.furniture!;
+    const f = computeLayout({ ...validState, furnitureOff: ["table", "ac"] }, catalog).layout!.furniture!;
+    expect(f.table).toBeNull();
+    expect(f.ac).toBeNull();
+    expect(f.totem).toEqual(all.totem);
+    expect(f.poufs).toEqual(all.poufs);
+  });
+
+  it("sem cadeiras não há tomadas de cliente; sem ar, sem dreno do ar", () => {
+    const l = computeLayout({ ...validState, furnitureOff: ["chairs", "ac"] }, catalog).layout!;
+    expect(l.furniture!.poufs).toEqual([]);
+    expect(l.electrical!.customerOutlets).toEqual([]);
+    expect(l.acDrain).toBeNull();
+  });
+
+  it("tudo desligado: sem mobiliário", () => {
+    const l = computeLayout({ ...validState, furnitureOff: ["totem", "table", "chairs", "ac", "counter", "pufs"] }, catalog).layout!;
+    expect(l.furniture).toBeNull();
   });
 });

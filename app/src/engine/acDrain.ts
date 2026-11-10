@@ -61,6 +61,7 @@ export function computeAcDrain(input: AcDrainInput): AcDrainLayout | null {
 
   // Saída do dreno: ponta do aparelho mais perto do corredor, na face da parede.
   const ac = furniture.ac;
+  if (!ac) return null; // ar-condicionado desligado no painel
   const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
   const start = {
     x: clamp(front.x, ac.x, ac.x + ac.width),

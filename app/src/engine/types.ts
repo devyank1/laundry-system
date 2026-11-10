@@ -43,6 +43,8 @@ export interface CatalogMachine {
   directDrain?: boolean;
   /** saída de drenagem traseira, da base da máquina (mm) */
   drainHeightMm?: number;
+  /** recuo de segurança na ponta livre da fileira (mm); padrão LATERAL_CLEARANCE_MM (Mamute: 0) */
+  lateralClearanceMm?: number;
   /** espaço livre mínimo acima da máquina (mm); padrão CEILING_CLEARANCE_MM */
   topClearanceMm?: number;
   /** duto de exaustão cresce 2" a cada tantos mm de trajeto */
@@ -67,6 +69,9 @@ export type LayoutOrientation = "back" | "side";
 // ou de baixo da planta.
 export type SideSlot = "near" | "farTop" | "farBottom";
 
+// Itens do mobiliário que dá pra ligar/desligar um a um.
+export type FurnitureItem = "totem" | "table" | "chairs" | "ac" | "counter" | "pufs";
+
 export interface ProjectState {
   roomWidthMm: number;
   roomDepthMm: number;
@@ -76,6 +81,8 @@ export interface ProjectState {
   doorEnabled: boolean;
   techAccessSide: TechAccessSide;
   furnitureEnabled: boolean;
+  /** itens do mobiliário desligados (somem da planta, do 3D e das instalações) */
+  furnitureOff?: FurnitureItem[];
   totemSide: TechAccessSide;
   tableSide: TechAccessSide;
   chairsSide: TechAccessSide;
@@ -122,12 +129,13 @@ export type DrywallOpening = Rect;
 export type WallSide = "left" | "right" | "top" | "bottom";
 
 export interface FurnitureLayout {
-  table: Rect;
+  // null / vazio = item desligado no painel.
+  table: Rect | null;
   poufs: Rect[];
   // Pra onde as costas das cadeiras ficam viradas.
   chairsWall: WallSide;
-  totem: Rect;
-  ac: Rect;
+  totem: Rect | null;
+  ac: Rect | null;
   acWall: WallSide;
   // Itens da lavanderia premium (área >= 30 m²); null nas demais.
   premium: PremiumLayout | null;

@@ -20,6 +20,7 @@ export const CATALOG_SEED: CatalogMachine[] = [
   {
     id: "mamute-smart10",
     brand: "Mamute",
+    lateralClearanceMm: 0, // não pede o recuo lateral de 50 cm
     model: "Smart 10",
     type: "stack",
     widthMm: 680,
@@ -36,6 +37,7 @@ export const CATALOG_SEED: CatalogMachine[] = [
   {
     id: "mamute-smart17",
     brand: "Mamute",
+    lateralClearanceMm: 0, // não pede o recuo lateral de 50 cm
     model: "Smart 17",
     type: "stack",
     widthMm: 835,

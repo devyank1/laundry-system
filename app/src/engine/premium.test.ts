@@ -66,7 +66,7 @@ describe("lavanderia premium (>= 30 m²)", () => {
       expect(counter.y).toBeGreaterThanOrEqual(0);
       expect(counter.x + counter.width).toBeLessThanOrEqual(layout.roomWidthMm);
       expect(counter.y + counter.height).toBeLessThanOrEqual(layout.roomDepthMm);
-      for (const o of [f.table, ...f.poufs, f.totem, layout.techCorridor]) {
+      for (const o of [f.table!, ...f.poufs, f.totem!, layout.techCorridor]) {
         expect(hit(counter, o)).toBe(false);
       }
       expect(hit(counter, f.premium!.pufs!)).toBe(false);
@@ -101,7 +101,7 @@ describe("lavanderia premium (>= 30 m²)", () => {
       const pufs = f.premium!.pufs!;
       expect(pufs.width).toBe(PUFS_SIZE_MM);
       expect(pufs.height).toBe(PUFS_SIZE_MM);
-      for (const o of [f.table, ...f.poufs, f.totem, layout.techCorridor, f.premium!.counter!]) {
+      for (const o of [f.table!, ...f.poufs, f.totem!, layout.techCorridor, f.premium!.counter!]) {
         expect(hit(pufs, o)).toBe(false);
       }
       // dentro da planta e, na fileira no fundo, perto do centro da loja
