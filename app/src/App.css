@@ -838,6 +838,30 @@
   color: var(--text-subtle);
 }
 
+/* Aviso "salão só de passagem" (sem móveis no chão) */
+.app .traffic-note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-muted);
+  background: var(--primary-bg);
+  border: 1px solid var(--primary-soft);
+  border-radius: var(--radius-sm);
+}
+
+.app .traffic-note strong {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.app .traffic-note button {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
 /* Itens do mobiliário agrupados num cartão logo abaixo da chave */
 .app .sub-group {
   margin: -4px 20px 14px;

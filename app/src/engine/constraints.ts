@@ -4,6 +4,8 @@ import {
   TECH_AREA_DEFAULT_MM,
   DRYWALL_THICKNESS_MM,
   SALON_MIN_DEPTH_MM,
+  SALON_TRAFFIC_ONLY_DEPTH_MM,
+  PREMIUM_MIN_AREA_MM2,
   CEILING_CLEARANCE_MM,
   FURNITURE_BLOCK_WIDTH_MM,
   TECH_DOOR_WIDTH_MM,
@@ -62,10 +64,25 @@ export function computeMinWidthMm(list: CatalogMachine[], freeEndMm = rowClearan
   return freeEndMm + machineRowWidthMm(list) + TECH_DOOR_WIDTH_MM;
 }
 
-export function computeMinDepthMm(list: CatalogMachine[]): number {
+// Móvel no chão do salão? (totem e ar ficam na parede: não contam)
+export function hasFloorFurniture(state: ProjectState): boolean {
+  const premium = state.roomWidthMm * state.roomDepthMm >= PREMIUM_MIN_AREA_MM2;
+  return (
+    isFurnitureOn(state, "table") ||
+    isFurnitureOn(state, "chairs") ||
+    (premium && (isFurnitureOn(state, "counter") || isFurnitureOn(state, "pufs")))
+  );
+}
+
+// Fundo mínimo do salão: 1,80 m com móveis; só passagem (1,20 m) sem eles.
+export function salonMinDepthMm(state: ProjectState): number {
+  return hasFloorFurniture(state) ? SALON_MIN_DEPTH_MM : SALON_TRAFFIC_ONLY_DEPTH_MM;
+}
+
+export function computeMinDepthMm(list: CatalogMachine[], salonMm = SALON_MIN_DEPTH_MM): number {
   if (list.length === 0) return 0;
   const maxDepth = Math.max(...list.map((m) => m.depthMm));
-  return TECH_AREA_DEFAULT_MM + maxDepth + DRYWALL_THICKNESS_MM + SALON_MIN_DEPTH_MM;
+  return TECH_AREA_DEFAULT_MM + maxDepth + DRYWALL_THICKNESS_MM + salonMm;
 }
 
 export function computeMinCeilingMm(list: CatalogMachine[]): number {
@@ -131,7 +148,7 @@ export function validate(state: ProjectState, catalog: CatalogMachine[]): Violat
     });
   }
 
-  const minAcross = computeMinDepthMm(list);
+  const minAcross = computeMinDepthMm(list, salonMinDepthMm(state));
   if (acrossLengthMm < minAcross) {
     violations.push({
       code: "DEPTH_TOO_SMALL",

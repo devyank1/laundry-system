@@ -5,6 +5,9 @@ export const TECH_AREA_MAX_MM = 1100;
 export const TECH_AREA_DEFAULT_MM = 1050;
 export const DRYWALL_THICKNESS_MM = 100;
 export const SALON_MIN_DEPTH_MM = 1800;
+// Sem móvel no chão (mesa, cadeiras, balcão, pufs): só passagem pra entrar,
+// usar a máquina e sair. 1,20 m = circulação acessível (NBR 9050).
+export const SALON_TRAFFIC_ONLY_DEPTH_MM = 1200;
 export const CEILING_CLEARANCE_MM = 300;
 
 // Totem de pagamento embutido no drywall, ao lado das máquinas.

@@ -602,3 +602,23 @@ describe("mobiliário: cada item liga e desliga sozinho", () => {
     expect(l.furniture).toBeNull();
   });
 });
+
+describe("salão só de passagem (sem móvel no chão)", () => {
+  const noFloor: ProjectState = { ...validState, furnitureOff: ["table", "chairs", "counter", "pufs"] };
+  const minWith = 1050 + 794 + 100 + 1800;
+  const minWithout = 1050 + 794 + 100 + 1200;
+
+  it("com mesa/cadeiras o salão pede 1,80 m", () => {
+    const r = computeLayout({ ...validState, roomDepthMm: minWithout }, catalog);
+    expect(r.violations).toContainEqual(expect.objectContaining({ code: "DEPTH_TOO_SMALL", suggestedValueMm: minWith }));
+  });
+
+  it("sem eles basta 1,20 m de passagem (totem e ar na parede não contam)", () => {
+    const r = computeLayout({ ...noFloor, roomDepthMm: minWithout }, catalog);
+    expect(r.violations).toEqual([]);
+    expect(r.layout!.furniture!.totem).not.toBeNull();
+    const short = computeLayout({ ...noFloor, roomDepthMm: minWithout - 1 }, catalog);
+    expect(short.violations).toContainEqual(expect.objectContaining({ code: "DEPTH_TOO_SMALL", suggestedValueMm: minWithout }));
+  });
+});
+

@@ -352,8 +352,20 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout; sheet?: Pla
 
   // Centro do salão (entre o drywall e a fachada / parede oposta).
   // Mais pra frente do salão, onde costuma sobrar piso livre.
-  const salonCenter = alongAcrossPoint(alongLengthMm / 2, layout.drywall.y + (acrossLengthMm - layout.drywall.y) * 0.6);
-  const roomLabelSize = Math.min(24, Math.max(14, width / 16));
+  // Salão curto (só passagem, ~1,20 m): nome menor, abaixo do "VISTA 01" e
+  // fora do meio (onde abre a porta de entrada).
+  const labelBandStart = layout.drywall.y + 700;
+  const labelBand = Math.max(0, acrossLengthMm - labelBandStart);
+  const shortSalon = labelBand < 1800;
+  const doorMid = layout.frontDoor
+    ? (isSide ? layout.frontDoor.y + layout.frontDoor.height / 2 : layout.frontDoor.x + layout.frontDoor.width / 2)
+    : alongLengthMm / 2;
+  const salonCenter = shortSalon
+    ? alongAcrossPoint(doorMid > alongLengthMm / 2 ? alongLengthMm * 0.3 : alongLengthMm * 0.7, labelBandStart + labelBand * 0.45)
+    : alongAcrossPoint(alongLengthMm / 2, layout.drywall.y + (acrossLengthMm - layout.drywall.y) * 0.6);
+  const roomLabelSize = shortSalon
+    ? Math.max(6, Math.min(10, mm(labelBand) / 3))
+    : Math.min(24, Math.max(14, width / 16));
 
   return (
     <svg

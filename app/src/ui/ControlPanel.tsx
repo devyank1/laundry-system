@@ -8,6 +8,13 @@ import { FacadeControls } from "./FacadeControls";
 import { SectionTitle } from "./SectionTitle";
 import { IconInfo, IconRuler, IconSofa, IconWasher } from "./icons";
 import { isPremium } from "../engine/layout";
+import {
+  computeMinDepthMm,
+  flattenSelection,
+  hasFloorFurniture,
+  resolveSelection,
+  salonMinDepthMm,
+} from "../engine/constraints";
 import type { FurnitureItem, LayoutOrientation, SideSlot, TechAccessSide } from "../engine/types";
 
 // Rótulos dos encaixes de mobiliário em orientation="side": dependem de qual
@@ -86,6 +93,19 @@ export function ControlPanel({ show3dOptions = true }: { show3dOptions?: boolean
         {on && children}
       </fieldset>
     );
+  }
+
+  // Sem móvel no chão o salão vira só passagem: dá pra encolher a loja.
+  const trafficOnly = !hasFloorFurniture(state);
+  const acrossMm = isSide ? state.roomWidthMm : state.roomDepthMm;
+  const minAcrossMm = computeMinDepthMm(
+    flattenSelection(resolveSelection(state.machines, catalog)),
+    salonMinDepthMm(state)
+  );
+  const meters = (mm: number) => (mm / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+  function shrinkToMin() {
+    if (isSide) state.setRoomWidthMm(minAcrossMm);
+    else state.setRoomDepthMm(minAcrossMm);
   }
 
   const hasTechInfo = Boolean(layout?.exhaust || layout?.electrical || layout?.hydraulics);
@@ -248,6 +268,20 @@ export function ControlPanel({ show3dOptions = true }: { show3dOptions?: boolean
           Mobiliário
         </SectionTitle>
         <p className="furn-hint">Ligue ou desligue cada item da loja.</p>
+        {trafficOnly && minAcrossMm > 0 && (
+          <div className="traffic-note" role="note">
+            <strong>Salão só de passagem</strong>
+            <span>
+              Sem mesa, cadeiras ou balcão, basta 1,20 m pra entrar, lavar e sair. Mínimo da loja:{" "}
+              {meters(minAcrossMm)} m de {isSide ? "largura" : "comprimento"}.
+            </span>
+            {acrossMm > minAcrossMm && (
+              <button type="button" onClick={shrinkToMin}>
+                Encolher pra {meters(minAcrossMm)} m
+              </button>
+            )}
+          </div>
+        )}
       </fieldset>
 
       {state.furnitureEnabled && (

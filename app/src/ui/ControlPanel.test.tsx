@@ -199,4 +199,12 @@ describe("ControlPanel — elétrica", () => {
     expect(screen.getByRole("switch", { name: /mostrar cadeiras/i })).toBeChecked();
     expect(screen.getByLabelText(/lado das cadeiras/i)).toBeInTheDocument();
   });
+
+  it("sem móvel no chão oferece encolher a loja pro mínimo de passagem", async () => {
+    useProjectStore.setState({ roomDepthMm: 6000, furnitureOff: ["table", "chairs"] });
+    render(<ControlPanel />);
+    expect(screen.getByText(/salão só de passagem/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /encolher pra/i }));
+    expect(useProjectStore.getState().roomDepthMm).toBe(1050 + 794 + 100 + 1200);
+  });
 });
