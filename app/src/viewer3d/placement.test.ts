@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { computeLayout } from "../engine/layout";
 import type { CatalogMachine, ProjectState } from "../engine/types";
-import { drywallFrame, fitSize, logoPlacement, wallYaw } from "./placement";
+import { drywallFrame, fitSize, logoPlacement, machineForwardOffset, roomWalls, wallYaw } from "./placement";
 
 const catalog: CatalogMachine[] = [
   { id: "sq-stack", brand: "Speed Queen", model: "Stack", type: "stack", widthMm: 683, depthMm: 794, heightMm: 1986 },
@@ -84,6 +84,29 @@ describe("drywallFrame", () => {
     expect(f.pos(1, 0, 2)).toEqual([3, 0, 1]);
     // corredor espelhado continua no mesmo trecho do eixo along
     expect(f.spatialSpan(layout.techCorridor).start).toBeCloseTo(5.3);
+  });
+});
+
+describe("máquinas avançando pro vão do drywall", () => {
+  const offset = (state: ProjectState) => machineForwardOffset(drywallFrame(computeLayout(state, catalog).layout!));
+  const fwd = (v: number[]) => v.map((n) => Math.round(n * 1000));
+
+  it("é um deslocamento curto, nunca uma posição na sala", () => {
+    expect(fwd(offset(base))).toEqual([0, 0, 90]);
+    expect(fwd(offset({ ...base, orientation: "side" }))).toEqual([90, 0, 0]);
+    // parede direita: anda 9 cm pra -x (antes andava a largura da sala e a máquina ia pra rua)
+    expect(fwd(offset({ ...base, orientation: "side", machineWall: "right" }))).toEqual([-90, 0, 0]);
+  });
+});
+
+describe("paredes da sala no 3D", () => {
+  it("fundo: laterais fechadas, parede de trás aberta pra ver a área técnica", () => {
+    expect(roomWalls(base)).toEqual({ back: false, left: true, right: true });
+  });
+
+  it("lateral: fecha o fundo real e abre a parede atrás das máquinas", () => {
+    expect(roomWalls({ orientation: "side", machineWall: "left" })).toEqual({ back: true, left: false, right: true });
+    expect(roomWalls({ orientation: "side", machineWall: "right" })).toEqual({ back: true, left: true, right: false });
   });
 });
 

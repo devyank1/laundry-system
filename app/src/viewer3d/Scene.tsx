@@ -12,7 +12,7 @@ import {
   TOTEM_SIZE_MM,
 } from "../engine/constants";
 import type { Layout, PlacedMachine } from "../engine/types";
-import { MACHINE_FORWARD_M, drywallFrame, fitSize, rectCenter, wallYaw, type DrywallFrame } from "./placement";
+import { drywallFrame, fitSize, machineForwardOffset, rectCenter, roomWalls, wallYaw, type DrywallFrame } from "./placement";
 import { PLAN_COLORS } from "../viewer2d/planTheme";
 import { Chair } from "./models/Chair";
 import { FitBox } from "./models/FitBox";
@@ -47,10 +47,6 @@ import { CounterWithStools } from "./models/CounterWithStools";
 import { StdMat } from "./models/SharedMaterial";
 
 const M = (mmValue: number) => mmValue / 1000;
-
-// Parede do fundo escondida por enquanto: deixa ver a área técnica (exaustão,
-// água, esgoto e dosagem) pelas costas. Voltar a `true` pra fechar a loja.
-const SHOW_BACK_WALL = false;
 
 const TABLE_HEIGHT_MM = 900;
 const AC_UNIT_HEIGHT_MM = 300;
@@ -422,6 +418,8 @@ export function Scene({
   const span = Math.max(roomW, roomD);
   const gridSize = Math.ceil(span) + 4;
   const frame = drywallFrame(layout);
+  const forward = machineForwardOffset(frame);
+  const walls = roomWalls(layout);
   const furniture = layout.furniture;
   const light = LIGHTING_PRESETS[lighting];
   const fixtures = placeStoreFixtures(layout);
@@ -466,25 +464,29 @@ export function Scene({
           position={[roomW / 2, 0.002, roomD / 2]}
         />
 
-        {/* Paredes: laterais (e o fundo, quando SHOW_BACK_WALL); a frente fica
-            aberta para ver o interior */}
-        {SHOW_BACK_WALL && (
+        {/* Paredes: a frente fica aberta para ver o interior e a parede atrás da
+            fileira some pra mostrar a área técnica (ver roomWalls) */}
+        {walls.back && (
           <Box
             position={[roomW / 2, roomH / 2, -ROOM_WALL_THICKNESS / 2]}
             size={[roomW + ROOM_WALL_THICKNESS * 2, roomH, ROOM_WALL_THICKNESS]}
             color={PLAN_COLORS.wall}
           />
         )}
-        <Box
-          position={[-ROOM_WALL_THICKNESS / 2, roomH / 2, roomD / 2]}
-          size={[ROOM_WALL_THICKNESS, roomH, roomD]}
-          color={PLAN_COLORS.wall}
-        />
-        <Box
-          position={[roomW + ROOM_WALL_THICKNESS / 2, roomH / 2, roomD / 2]}
-          size={[ROOM_WALL_THICKNESS, roomH, roomD]}
-          color={PLAN_COLORS.wall}
-        />
+        {walls.left && (
+          <Box
+            position={[-ROOM_WALL_THICKNESS / 2, roomH / 2, roomD / 2]}
+            size={[ROOM_WALL_THICKNESS, roomH, roomD]}
+            color={PLAN_COLORS.wall}
+          />
+        )}
+        {walls.right && (
+          <Box
+            position={[roomW + ROOM_WALL_THICKNESS / 2, roomH / 2, roomD / 2]}
+            size={[ROOM_WALL_THICKNESS, roomH, roomD]}
+            color={PLAN_COLORS.wall}
+          />
+        )}
 
         {/* Fileira na parede lateral: a área técnica encosta na fachada (que
             fica aberta pra ver o interior). Fecha esse trecho pra não parecer
@@ -504,7 +506,7 @@ export function Scene({
 
         <Drywall layout={layout} color={drywallColor} />
         {/* Máquinas e tudo que prende nelas avançam juntos pra dentro do vão do drywall */}
-        <group position={frame.pos(0, 0, MACHINE_FORWARD_M)}>
+        <group position={forward}>
           {layout.exhaust && <Exhaust layout={layout} exhaust={layout.exhaust} />}
           {layout.hydraulics && <Hydraulics layout={layout} hydraulics={layout.hydraulics} />}
           {layout.electrical && <Electrical layout={layout} electrical={layout.electrical} />}
@@ -521,7 +523,7 @@ export function Scene({
           />
         )}
 
-        <group position={frame.pos(0, 0, MACHINE_FORWARD_M)}>
+        <group position={forward}>
         {layout.machines.map((machine) => (
           <MachineMesh
             key={`${machine.catalogId}-${machine.instanceIndex}`}

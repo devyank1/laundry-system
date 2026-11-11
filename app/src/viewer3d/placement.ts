@@ -116,6 +116,24 @@ export function logoPlacement(
 export const MACHINE_DRYWALL_GAP_MM = 10;
 export const MACHINE_FORWARD_M = (DRYWALL_THICKNESS_MM - MACHINE_DRYWALL_GAP_MM) / 1000;
 
+// Deslocamento (vetor, não posição) que avança as máquinas MACHINE_FORWARD_M
+// pra dentro do salão. `frame.pos` dá posição: na parede direita ela já soma a
+// largura da sala, então aqui tira a origem e sobra só a direção × distância.
+export function machineForwardOffset(frame: DrywallFrame): [number, number, number] {
+  const o = frame.pos(0, 0, 0);
+  const p = frame.pos(0, 0, MACHINE_FORWARD_M);
+  return [p[0] - o[0], p[1] - o[1], p[2] - o[2]];
+}
+
+// Paredes de alvenaria da sala no 3D. A frente (fachada) fica aberta pra ver
+// o interior, e a parede atrás da fileira some pra mostrar a área técnica:
+//   fundo   → laterais (esquerda/direita), sem a de trás;
+//   lateral → a de trás (fundo real da loja) e a lateral oposta às máquinas.
+export function roomWalls(layout: Pick<Layout, "orientation" | "machineWall">): { back: boolean; left: boolean; right: boolean } {
+  if (layout.orientation !== "side") return { back: false, left: true, right: true };
+  return { back: true, left: layout.machineWall !== "left", right: layout.machineWall !== "right" };
+}
+
 export function drywallFrame(layout: Layout): DrywallFrame {
   const roomW = M(layout.roomWidthMm);
   if (layout.orientation !== "side") {
