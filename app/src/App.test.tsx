@@ -1,7 +1,20 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { App } from "./App";
 import { useProjectStore } from "./state/projectStore";
+import type { AuthState } from "./auth/useAuth";
+import type { Role } from "./auth/types";
+
+const auth = vi.hoisted(() => ({ state: null as unknown as AuthState }));
+vi.mock("./auth/useAuth", () => ({ useAuth: () => auth.state }));
+
+function loginAs(role: Role, isOwner = false) {
+  auth.state = {
+    profile: { id: "u1", role, companyId: role === "empresa" ? "c1" : null, isOwner, active: true },
+    loading: false,
+    signOut: async () => {},
+  };
+}
 
 class ResizeObserverStub {
   observe() {}
@@ -11,6 +24,7 @@ class ResizeObserverStub {
 globalThis.ResizeObserver ??= ResizeObserverStub;
 
 beforeEach(() => {
+  loginAs("admin");
   localStorage.clear();
   useProjectStore.setState({
     roomWidthMm: 5000,
@@ -62,4 +76,41 @@ describe("Modo inauguração", () => {
     expect(useProjectStore.getState().inauguracao).toBe(true);
     // abre o 3D (import dinâmico): passa dos 5 s padrão com a suíte toda rodando
   }, 15_000);
+});
+
+describe("Acesso por papel", () => {
+  it("admin vê ROI, Conectividade e Gerenciar máquinas", () => {
+    loginAs("admin");
+    render(<App />);
+    expect(screen.getByRole("button", { name: /retorno \(roi\)/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /conectividade/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /gerenciar máquinas/i })).toBeInTheDocument();
+  });
+
+  it("empresa vê ROI e Conectividade, mas não Gerenciar máquinas", () => {
+    loginAs("empresa", true);
+    render(<App />);
+    expect(screen.getByRole("button", { name: /retorno \(roi\)/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /conectividade/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /gerenciar máquinas/i })).not.toBeInTheDocument();
+  });
+
+  it("cliente físico não vê ROI, Conectividade nem Gerenciar máquinas", () => {
+    loginAs("cliente_fisico");
+    render(<App />);
+    expect(screen.getByRole("button", { name: /planta 2d/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /retorno \(roi\)/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /conectividade/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /gerenciar máquinas/i })).not.toBeInTheDocument();
+  });
+
+  it("tem botão Sair que chama signOut", async () => {
+    const { default: userEvent } = await import("@testing-library/user-event");
+    const signOut = vi.fn(async () => {});
+    loginAs("cliente_fisico");
+    auth.state = { ...auth.state, signOut };
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: /sair/i }));
+    expect(signOut).toHaveBeenCalled();
+  });
 });

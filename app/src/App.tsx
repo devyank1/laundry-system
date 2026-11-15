@@ -23,6 +23,8 @@ import { exportFloorPlanPDF, exportFloorPlanPNG } from "./export/export2d";
 import { exportSceneScreenshot } from "./export/export3d";
 import { drywallColorFor } from "./viewer3d/colors";
 import { usePlantSync } from "./plantLink";
+import { useAuth } from "./auth/useAuth";
+import { RequireRole } from "./auth/RouteGuards";
 import "./App.css";
 
 const PLAN_ZOOMS = [1, 1.5, 2, 3];
@@ -34,6 +36,11 @@ const loadScene = () => import("./viewer3d/Scene");
 const Scene = lazy(() => loadScene().then((m) => ({ default: m.Scene })));
 
 export function App() {
+  const { profile, signOut } = useAuth();
+  // Cliente físico não usa ROI/Conectividade; só admin gerencia o catálogo.
+  // (A UI só esconde; quem barra de verdade é a RLS no banco.)
+  const canSeeBusinessTabs = profile?.role === "admin" || profile?.role === "empresa";
+  const isAdmin = profile?.role === "admin";
   const { layout, violations } = useLayout();
   // ROI e Conectividade seguem as máquinas da planta.
   usePlantSync();
@@ -82,9 +89,14 @@ export function App() {
           </div>
         </div>
         <div className="topbar-actions">
-          <button type="button" aria-label="Gerenciar máquinas" title="Gerenciar máquinas" onClick={() => setShowCatalog(true)}>
-            <IconSettings />
-            Gerenciar máquinas
+          {isAdmin && (
+            <button type="button" aria-label="Gerenciar máquinas" title="Gerenciar máquinas" onClick={() => setShowCatalog(true)}>
+              <IconSettings />
+              Gerenciar máquinas
+            </button>
+          )}
+          <button type="button" title="Sair da conta" onClick={() => void signOut()}>
+            Sair
           </button>
         </div>
       </header>
@@ -99,7 +111,11 @@ export function App() {
         </aside>
       )}
 
-      {showCatalog && <CatalogManager onClose={() => setShowCatalog(false)} />}
+      {isAdmin && showCatalog && (
+        <RequireRole roles={["admin"]}>
+          <CatalogManager onClose={() => setShowCatalog(false)} />
+        </RequireRole>
+      )}
 
       <main className="workspace">
       <ViolationsPanel violations={violations} />
@@ -120,14 +136,18 @@ export function App() {
           <IconCube />
           Planta 3D
         </button>
-        <button type="button" aria-pressed={tab === "roi"} onClick={() => setTab("roi")}>
-          <IconChart />
-          Retorno (ROI)
-        </button>
-        <button type="button" aria-pressed={tab === "insights"} onClick={() => setTab("insights")}>
-          <IconSignal />
-          Conectividade
-        </button>
+        {canSeeBusinessTabs && (
+          <>
+            <button type="button" aria-pressed={tab === "roi"} onClick={() => setTab("roi")}>
+              <IconChart />
+              Retorno (ROI)
+            </button>
+            <button type="button" aria-pressed={tab === "insights"} onClick={() => setTab("insights")}>
+              <IconSignal />
+              Conectividade
+            </button>
+          </>
+        )}
       </nav>
       {layout && tab === "2d" && (
         <div className="export-actions tabs-actions">
@@ -190,8 +210,16 @@ export function App() {
       )}
       </div>
 
-      {tab === "roi" && <RoiCalculator />}
-      {tab === "insights" && <InsightsCalculator />}
+      {tab === "roi" && (
+        <RequireRole roles={["admin", "empresa"]}>
+          <RoiCalculator />
+        </RequireRole>
+      )}
+      {tab === "insights" && (
+        <RequireRole roles={["admin", "empresa"]}>
+          <InsightsCalculator />
+        </RequireRole>
+      )}
 
       {!layout && tab !== "roi" && tab !== "insights" && (
         <p className="empty-state">Ajuste as dimensões para visualizar a planta.</p>
