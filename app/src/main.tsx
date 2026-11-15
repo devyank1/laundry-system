@@ -8,11 +8,13 @@ import { RequireAuth } from './auth/RouteGuards'
 import { NotFoundPage } from './ui/ErrorPages'
 import { LoginPage } from './ui/LoginPage'
 import { SetPasswordPage } from './ui/SetPasswordPage'
+import { ErrorBoundary } from './ui/ErrorBoundary'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
+        <ErrorBoundary>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/set-password" element={<SetPasswordPage />} />
@@ -26,6 +28,7 @@ createRoot(document.getElementById('root')!).render(
           />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
+        </ErrorBoundary>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>,
