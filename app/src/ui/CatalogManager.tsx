@@ -5,7 +5,6 @@ import {
   exportCatalogJSON,
   getCatalog,
   importCatalogJSON,
-  restoreDefaults,
   subscribeCatalog,
 } from "../catalog/store";
 import { useProjectStore } from "../state/projectStore";
@@ -25,8 +24,25 @@ export function CatalogManager({ onClose }: { onClose: () => void }) {
   const catalog = useSyncExternalStore(subscribeCatalog, getCatalog);
   const [draft, setDraft] = useState<CatalogMachine>(emptyMachine);
   const [formError, setFormError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  function handleAdd(): void {
+  // Toda escrita passa pelo banco (só admin passa na RLS); a mensagem de
+  // erro mostrada é sempre a amigável que o store já devolve.
+  async function run(action: () => Promise<void>): Promise<boolean> {
+    setBusy(true);
+    try {
+      await action();
+      setFormError(null);
+      return true;
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : "Não foi possível salvar no catálogo. Tente novamente.");
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleAdd(): Promise<void> {
     if (!draft.id || !draft.brand || !draft.model) {
       setFormError("Preencha ID, marca e modelo.");
       return;
@@ -39,23 +55,14 @@ export function CatalogManager({ onClose }: { onClose: () => void }) {
       setFormError("Largura, profundidade e altura devem ser maiores que zero.");
       return;
     }
-    setFormError(null);
-    addMachine(draft);
-    setDraft(emptyMachine);
+    if (await run(() => addMachine(draft))) setDraft(emptyMachine);
   }
 
   function handleImport(e: ChangeEvent<HTMLInputElement>): void {
     const file = e.target.files?.[0];
     if (!file) return;
-    file
-      .text()
-      .then((text) => {
-        importCatalogJSON(text);
-        setFormError(null);
-      })
-      .catch((err: unknown) => {
-        setFormError(err instanceof Error ? err.message : "Falha ao importar o arquivo.");
-      });
+    void run(async () => importCatalogJSON(await file.text()));
+    e.target.value = "";
   }
 
   function handleExport(): void {
@@ -76,9 +83,6 @@ export function CatalogManager({ onClose }: { onClose: () => void }) {
       </button>
       <h2>Gerenciar máquinas</h2>
       <div className="dialog-toolbar">
-        <button type="button" onClick={() => restoreDefaults()}>
-          Restaurar padrão
-        </button>
         <button type="button" onClick={handleExport}>
           Exportar JSON
         </button>
@@ -94,9 +98,12 @@ export function CatalogManager({ onClose }: { onClose: () => void }) {
             {m.brand} {m.model} — {m.widthMm}×{m.depthMm}×{m.heightMm}mm
             <button
               type="button"
+              disabled={busy}
               onClick={() => {
-                deleteMachine(m.id);
-                useProjectStore.getState().removeMachine(m.id);
+                void run(async () => {
+                  await deleteMachine(m.id);
+                  useProjectStore.getState().removeMachine(m.id);
+                });
               }}
             >
               Remover
@@ -155,7 +162,7 @@ export function CatalogManager({ onClose }: { onClose: () => void }) {
           />
         </label>
         {formError && <p role="alert">{formError}</p>}
-        <button type="button" onClick={handleAdd}>
+        <button type="button" disabled={busy} onClick={() => void handleAdd()}>
           Adicionar
         </button>
       </fieldset>

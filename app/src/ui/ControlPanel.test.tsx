@@ -1,10 +1,18 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ControlPanel } from "./ControlPanel";
 import { useProjectStore } from "../state/projectStore";
+import { resetFakeCatalog } from "../test/fakeSupabase";
+import { refreshCatalog } from "../catalog/store";
 
-beforeEach(() => {
+// Catálogo vem do Supabase: aqui, um banco falso em memória com o seed.
+vi.mock("../lib/supabaseClient", async () => (await import("../test/fakeSupabase")).fakeSupabaseModule());
+
+
+beforeEach(async () => {
+  resetFakeCatalog();
+  await refreshCatalog();
   localStorage.clear();
   useProjectStore.setState({
     roomWidthMm: 4000,

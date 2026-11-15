@@ -1,7 +1,26 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { App } from "./App";
 import { useProjectStore } from "./state/projectStore";
+import type { AuthState } from "./auth/useAuth";
+import type { Role } from "./auth/types";
+import { resetFakeCatalog } from "./test/fakeSupabase";
+import { refreshCatalog } from "./catalog/store";
+
+// Catálogo vem do Supabase: aqui, um banco falso em memória com o seed.
+vi.mock("./lib/supabaseClient", async () => (await import("./test/fakeSupabase")).fakeSupabaseModule());
+
+
+const auth = vi.hoisted(() => ({ state: null as unknown as AuthState }));
+vi.mock("./auth/useAuth", () => ({ useAuth: () => auth.state }));
+
+function loginAs(role: Role, isOwner = false) {
+  auth.state = {
+    profile: { id: "u1", role, companyId: role === "empresa" ? "c1" : null, isOwner, active: true },
+    loading: false,
+    signOut: async () => {},
+  };
+}
 
 class ResizeObserverStub {
   observe() {}
@@ -10,7 +29,10 @@ class ResizeObserverStub {
 }
 globalThis.ResizeObserver ??= ResizeObserverStub;
 
-beforeEach(() => {
+beforeEach(async () => {
+  resetFakeCatalog();
+  await refreshCatalog();
+  loginAs("admin");
   localStorage.clear();
   useProjectStore.setState({
     roomWidthMm: 5000,
@@ -62,4 +84,72 @@ describe("Modo inauguração", () => {
     expect(useProjectStore.getState().inauguracao).toBe(true);
     // abre o 3D (import dinâmico): passa dos 5 s padrão com a suíte toda rodando
   }, 15_000);
+});
+
+describe("Acesso por papel", () => {
+  it("admin vê ROI, Conectividade e Gerenciar máquinas", () => {
+    loginAs("admin");
+    render(<App />);
+    expect(screen.getByRole("button", { name: /retorno \(roi\)/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /conectividade/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /gerenciar máquinas/i })).toBeInTheDocument();
+  });
+
+  it("empresa vê ROI e Conectividade, mas não Gerenciar máquinas", () => {
+    loginAs("empresa", true);
+    render(<App />);
+    expect(screen.getByRole("button", { name: /retorno \(roi\)/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /conectividade/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /gerenciar máquinas/i })).not.toBeInTheDocument();
+  });
+
+  it("cliente físico não vê ROI, Conectividade nem Gerenciar máquinas", () => {
+    loginAs("cliente_fisico");
+    render(<App />);
+    expect(screen.getByRole("button", { name: /planta 2d/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /retorno \(roi\)/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /conectividade/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /gerenciar máquinas/i })).not.toBeInTheDocument();
+  });
+
+  it("só admin vê o botão Painel Admin, que abre o painel", async () => {
+    const { default: userEvent } = await import("@testing-library/user-event");
+    loginAs("admin");
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: /painel admin/i }));
+    expect(screen.getByRole("dialog", { name: /painel admin/i })).toBeInTheDocument();
+  });
+
+  it("empresa e cliente físico não veem o botão Painel Admin", () => {
+    loginAs("empresa", true);
+    const { unmount } = render(<App />);
+    expect(screen.queryByRole("button", { name: /painel admin/i })).not.toBeInTheDocument();
+    unmount();
+    loginAs("cliente_fisico");
+    render(<App />);
+    expect(screen.queryByRole("button", { name: /painel admin/i })).not.toBeInTheDocument();
+  });
+
+  it("empresa vê o botão Minha empresa; admin e cliente físico não", async () => {
+    loginAs("empresa", false);
+    const first = render(<App />);
+    expect(screen.getByRole("button", { name: /minha empresa/i })).toBeInTheDocument();
+    first.unmount();
+    for (const role of ["admin", "cliente_fisico"] as const) {
+      loginAs(role);
+      const r = render(<App />);
+      expect(screen.queryByRole("button", { name: /minha empresa/i })).not.toBeInTheDocument();
+      r.unmount();
+    }
+  });
+
+  it("tem botão Sair que chama signOut", async () => {
+    const { default: userEvent } = await import("@testing-library/user-event");
+    const signOut = vi.fn(async () => {});
+    loginAs("cliente_fisico");
+    auth.state = { ...auth.state, signOut };
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: /sair/i }));
+    expect(signOut).toHaveBeenCalled();
+  });
 });

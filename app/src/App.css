@@ -1832,3 +1832,13 @@
   background: var(--orange-hover);
   border-color: var(--orange-hover);
 }
+
+.app div[role="dialog"] fieldset label.admin-machine-option {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.app div[role="dialog"] fieldset label.admin-machine-option input {
+  width: auto;
+}
