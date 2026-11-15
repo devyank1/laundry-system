@@ -33,10 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!userId) {
-      setProfile(null);
-      return;
-    }
+    if (!userId) return;
     let cancelled = false;
     void (async () => {
       const { data, error } = await supabase.from("profiles").select("id, role, company_id, is_owner, active").eq("id", userId).single();
@@ -61,7 +58,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<AuthState>(
-    () => ({ profile, loading: userId === undefined || (userId !== null && resolvedFor !== userId), signOut }),
+    // Perfil só vale pro usuário da sessão atual (troca de conta não vaza o anterior).
+    () => ({ profile: userId && resolvedFor === userId ? profile : null, loading: userId === undefined || (userId !== null && resolvedFor !== userId), signOut }),
     [profile, userId, resolvedFor, signOut],
   );
 

@@ -38,10 +38,7 @@ export function SetPasswordPage() {
   const verifiedToken = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!tokenHash || !isLinkType(type)) {
-      setStatus("invalid");
-      return;
-    }
+    if (!tokenHash || !isLinkType(type)) return;
     if (verifiedToken.current === tokenHash) return;
     verifiedToken.current = tokenHash;
     void (async () => {
@@ -81,7 +78,8 @@ export function SetPasswordPage() {
     }
   }
 
-  if (status === "invalid") return <InviteExpiredPage />;
+  const linkOk = Boolean(tokenHash) && isLinkType(type);
+  if (!linkOk || status === "invalid") return <InviteExpiredPage />;
   if (status === "verifying") return <AuthLoading />;
 
   return (
