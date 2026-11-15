@@ -24,6 +24,9 @@ vi.mock("../lib/supabaseClient", () => ({
   },
 }));
 
+const catalog = vi.hoisted(() => ({ refreshCatalog: vi.fn(async () => {}), resetCatalog: vi.fn() }));
+vi.mock("../catalog/store", () => catalog);
+
 import { AuthProvider } from "./AuthProvider";
 import { useAuth } from "./useAuth";
 
@@ -42,6 +45,8 @@ beforeEach(() => {
   mocks.callback = null;
   mocks.signOut.mockClear();
   mocks.from.mockReset();
+  catalog.refreshCatalog.mockClear();
+  catalog.resetCatalog.mockClear();
 });
 
 describe("AuthProvider", () => {
@@ -59,6 +64,14 @@ describe("AuthProvider", () => {
     await waitFor(() => expect(screen.getByTestId("state")).toHaveTextContent("empresa|c1|true"));
     expect(mocks.from).toHaveBeenCalledWith("profiles");
     expect(mocks.eq).toHaveBeenCalledWith("id", "u1");
+    expect(catalog.refreshCatalog).toHaveBeenCalled();
+  });
+
+  it("sem sessão esvazia o catálogo em memória", async () => {
+    render(<AuthProvider><Probe /></AuthProvider>);
+    mocks.callback?.("SIGNED_OUT", null);
+    await waitFor(() => expect(catalog.resetCatalog).toHaveBeenCalled());
+    expect(catalog.refreshCatalog).not.toHaveBeenCalled();
   });
 
   it("profile inativo (active=false) dispara signOut e profile fica null", async () => {

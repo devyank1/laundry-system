@@ -1,73 +1,102 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { CATALOG_SEED } from "./seed";
+import { fakeCalls, resetFakeCatalog } from "../test/fakeSupabase";
+
+vi.mock("../lib/supabaseClient", async () => (await import("../test/fakeSupabase")).fakeSupabaseModule());
+
 import {
   addMachine,
   deleteMachine,
   exportCatalogJSON,
   getCatalog,
   importCatalogJSON,
-  restoreDefaults,
+  refreshCatalog,
+  resetCatalog,
+  subscribeCatalog,
   updateMachine,
 } from "./store";
-import { CATALOG_SEED } from "./seed";
 
 beforeEach(() => {
-  localStorage.clear();
+  resetCatalog();
+  resetFakeCatalog(CATALOG_SEED.slice(0, 2));
 });
 
-describe("catalog store", () => {
-  it("catálogo salvo antigo ganha as LG uma vez; excluída não volta", () => {
-    localStorage.setItem("lavanderia.catalog.v1", JSON.stringify(CATALOG_SEED.slice(0, 3)));
-    expect(getCatalog().map((m) => m.id)).toEqual(["sq-stack", "mamute-smart10", "mamute-smart17", "lg-giant-c", "lg-titan", "sq-ssu030", "sq-syc180", "sq-st055"]);
-    deleteMachine("lg-titan");
-    expect(getCatalog().map((m) => m.id)).not.toContain("lg-titan");
-    expect(getCatalog().map((m) => m.id)).toContain("lg-giant-c");
+describe("catalog store (Supabase)", () => {
+  it("getCatalog começa vazio antes de qualquer refreshCatalog", () => {
+    expect(getCatalog()).toEqual([]);
   });
 
-  it("retorna o catálogo seed quando não há nada salvo", () => {
-    expect(getCatalog()).toEqual(CATALOG_SEED);
+  it("refreshCatalog busca catalog_machines, popula o cache e notifica os listeners", async () => {
+    const listener = vi.fn();
+    const unsubscribe = subscribeCatalog(listener);
+    await refreshCatalog();
+    unsubscribe();
+    expect(getCatalog().map((m) => m.id).sort()).toEqual(CATALOG_SEED.slice(0, 2).map((m) => m.id).sort());
+    expect(getCatalog().find((m) => m.id === CATALOG_SEED[0].id)).toEqual(CATALOG_SEED[0]);
+    expect(listener).toHaveBeenCalled();
   });
 
-  it("adiciona uma máquina nova e persiste", () => {
+  it("getCatalog devolve a mesma referência entre chamadas (useSyncExternalStore)", async () => {
+    await refreshCatalog();
+    expect(getCatalog()).toBe(getCatalog());
+  });
+
+  it("ordena por marca e modelo (o banco não garante ordem)", async () => {
+    await refreshCatalog();
+    const labels = getCatalog().map((m) => `${m.brand} ${m.model}`);
+    expect(labels).toEqual([...labels].sort((a, b) => a.localeCompare(b)));
+  });
+
+  it("resetCatalog esvazia o cache e notifica os listeners", async () => {
+    await refreshCatalog();
+    const listener = vi.fn();
+    subscribeCatalog(listener);
+    resetCatalog();
+    expect(getCatalog()).toEqual([]);
+    expect(listener).toHaveBeenCalled();
+  });
+});
+
+describe("catalog store — escrita (admin)", () => {
+  beforeEach(async () => {
+    await refreshCatalog();
+  });
+
+  it("addMachine faz upsert em catalog_machines e atualiza o cache", async () => {
     const custom = { ...CATALOG_SEED[0], id: "custom-1", model: "Custom" };
-    addMachine(custom);
+    await addMachine(custom);
+    expect(fakeCalls.upserts).toEqual([[{ id: "custom-1", data: custom }]]);
     expect(getCatalog()).toContainEqual(custom);
   });
 
-  it("atualiza uma máquina existente mantendo o id", () => {
-    updateMachine("sq-stack", { model: "Stack Atualizada" });
-    const updated = getCatalog().find((m) => m.id === "sq-stack");
-    expect(updated?.model).toBe("Stack Atualizada");
+  it("updateMachine grava a máquina mesclada mantendo o id", async () => {
+    await updateMachine(CATALOG_SEED[0].id, { model: "Atualizada", id: "outro-id" });
+    const updated = getCatalog().find((m) => m.id === CATALOG_SEED[0].id);
+    expect(updated?.model).toBe("Atualizada");
+    expect(getCatalog().some((m) => m.id === "outro-id")).toBe(false);
   });
 
-  it("remove uma máquina", () => {
-    deleteMachine("sq-stack");
-    expect(getCatalog().find((m) => m.id === "sq-stack")).toBeUndefined();
+  it("deleteMachine remove a linha por id e atualiza o cache", async () => {
+    await deleteMachine(CATALOG_SEED[0].id);
+    expect(fakeCalls.deletes).toEqual([CATALOG_SEED[0].id]);
+    expect(getCatalog().find((m) => m.id === CATALOG_SEED[0].id)).toBeUndefined();
   });
 
-  it("restaura o catálogo padrão", () => {
-    deleteMachine("sq-stack");
-    restoreDefaults();
-    expect(getCatalog()).toEqual(CATALOG_SEED);
-  });
-
-  it("exporta e reimporta o catálogo mantendo os dados", () => {
+  it("exporta e reimporta o catálogo mantendo os dados", async () => {
     const json = exportCatalogJSON();
-    deleteMachine("sq-stack");
-    const imported = importCatalogJSON(json);
-    expect(imported).toEqual(CATALOG_SEED);
-    expect(getCatalog()).toEqual(CATALOG_SEED);
+    await deleteMachine(CATALOG_SEED[0].id);
+    await importCatalogJSON(json);
+    expect(getCatalog().map((m) => m.id).sort()).toEqual(CATALOG_SEED.slice(0, 2).map((m) => m.id).sort());
   });
 
-  it("rejeita JSON que não é um array", () => {
-    expect(() => importCatalogJSON('{"a":1}')).toThrow();
+  it("importCatalogJSON com item inválido lança erro e NÃO chama upsert", async () => {
+    await expect(importCatalogJSON(JSON.stringify([{ id: "x", brand: "Y" }]))).rejects.toThrow();
+    expect(fakeCalls.upserts).toEqual([]);
   });
 
-  it("rejeita import com array vazio", () => {
-    expect(() => importCatalogJSON("[]")).toThrow();
-  });
-
-  it("rejeita import com item faltando campos obrigatórios", () => {
-    const invalid = JSON.stringify([{ id: "x", brand: "Y" }]);
-    expect(() => importCatalogJSON(invalid)).toThrow();
+  it("rejeita JSON que não é um array ou array vazio", async () => {
+    await expect(importCatalogJSON('{"a":1}')).rejects.toThrow();
+    await expect(importCatalogJSON("[]")).rejects.toThrow();
+    expect(fakeCalls.upserts).toEqual([]);
   });
 });

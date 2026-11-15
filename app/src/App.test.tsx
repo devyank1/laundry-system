@@ -4,6 +4,12 @@ import { App } from "./App";
 import { useProjectStore } from "./state/projectStore";
 import type { AuthState } from "./auth/useAuth";
 import type { Role } from "./auth/types";
+import { resetFakeCatalog } from "./test/fakeSupabase";
+import { refreshCatalog } from "./catalog/store";
+
+// Catálogo vem do Supabase: aqui, um banco falso em memória com o seed.
+vi.mock("./lib/supabaseClient", async () => (await import("./test/fakeSupabase")).fakeSupabaseModule());
+
 
 const auth = vi.hoisted(() => ({ state: null as unknown as AuthState }));
 vi.mock("./auth/useAuth", () => ({ useAuth: () => auth.state }));
@@ -23,7 +29,9 @@ class ResizeObserverStub {
 }
 globalThis.ResizeObserver ??= ResizeObserverStub;
 
-beforeEach(() => {
+beforeEach(async () => {
+  resetFakeCatalog();
+  await refreshCatalog();
   loginAs("admin");
   localStorage.clear();
   useProjectStore.setState({

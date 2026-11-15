@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { refreshCatalog, resetCatalog } from "../catalog/store";
 import { AuthContext, type AuthState } from "./authContext";
 import type { Profile, Role } from "./types";
 
@@ -33,7 +34,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {
+      // Saiu (ou nunca entrou): nada do catálogo da conta anterior fica em memória.
+      resetCatalog();
+      return;
+    }
     let cancelled = false;
     void (async () => {
       const { data, error } = await supabase.from("profiles").select("id, role, company_id, is_owner, active").eq("id", userId).single();
@@ -44,6 +49,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(null);
         await supabase.auth.signOut();
       } else {
+        // Carrega o catálogo (já filtrado pela RLS) antes de liberar a tela.
+        try {
+          await refreshCatalog();
+        } catch {
+          /* catálogo indisponível: a tela abre e mostra a lista vazia */
+        }
+        if (cancelled) return;
         setProfile(toProfile(row));
       }
       if (!cancelled) setResolvedFor(userId);
