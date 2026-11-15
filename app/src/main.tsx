@@ -7,6 +7,7 @@ import { AuthProvider } from './auth/AuthProvider'
 import { RequireAuth } from './auth/RouteGuards'
 import { NotFoundPage } from './ui/ErrorPages'
 import { LoginPage } from './ui/LoginPage'
+import { SetPasswordPage } from './ui/SetPasswordPage'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -14,6 +15,7 @@ createRoot(document.getElementById('root')!).render(
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/set-password" element={<SetPasswordPage />} />
           <Route
             path="/"
             element={
