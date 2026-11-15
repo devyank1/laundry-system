@@ -31,7 +31,7 @@ if (link.error || !link.data.user) {
 
 const { error } = await admin
   .from("profiles")
-  .upsert({ id: link.data.user.id, role: "admin", company_id: null, is_owner: false, active: true });
+  .upsert({ id: link.data.user.id, email, role: "admin", company_id: null, is_owner: false, active: true });
 if (error) {
   console.error("Falha ao gravar o perfil admin:", error.message);
   process.exit(1);

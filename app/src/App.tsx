@@ -3,6 +3,7 @@ import { ControlPanel } from "./ui/ControlPanel";
 import { ViolationsPanel } from "./ui/ViolationsPanel";
 import { CatalogManager } from "./ui/CatalogManager";
 import { AdminPanel } from "./ui/AdminPanel";
+import { CompanyPanel } from "./ui/CompanyPanel";
 import { RoiCalculator } from "./roi/RoiCalculator";
 import { InsightsCalculator } from "./insights/InsightsCalculator";
 import {
@@ -70,6 +71,8 @@ export function App() {
   const [planZoom, setPlanZoom] = useState(1);
   const [showCatalog, setShowCatalog] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [showCompany, setShowCompany] = useState(false);
+  const isEmpresa = profile?.role === "empresa";
   const [svgEl, setSvgEl] = useState<SVGSVGElement | null>(null);
   const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
   // "Visão do cliente": número = passeio rodando (novo número reinicia); null = órbita livre.
@@ -91,6 +94,11 @@ export function App() {
           </div>
         </div>
         <div className="topbar-actions">
+          {isEmpresa && (
+            <button type="button" title="Equipe da sua empresa" onClick={() => setShowCompany(true)}>
+              Minha empresa
+            </button>
+          )}
           {isAdmin && (
             <button type="button" title="Cadastrar empresas parceiras" onClick={() => setShowAdmin(true)}>
               Painel Admin
@@ -116,6 +124,12 @@ export function App() {
           </div>
           <ControlPanel show3dOptions={tab === "3d"} />
         </aside>
+      )}
+
+      {isEmpresa && showCompany && (
+        <RequireRole roles={["empresa"]}>
+          <CompanyPanel onClose={() => setShowCompany(false)} />
+        </RequireRole>
       )}
 
       {isAdmin && showAdmin && (

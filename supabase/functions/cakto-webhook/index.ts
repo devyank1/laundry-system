@@ -40,7 +40,7 @@ Deno.serve((req) => {
       }
       const { error } = await admin
         .from("profiles")
-        .upsert({ id: link.userId, role: "cliente_fisico", company_id: null, is_owner: false, active: true }, { onConflict: "id", ignoreDuplicates: true });
+        .upsert({ id: link.userId, email, role: "cliente_fisico", company_id: null, is_owner: false, active: true }, { onConflict: "id", ignoreDuplicates: true });
       if (error) throw new Error(`profiles insert falhou: ${error.code}`);
       await sendSetPasswordEmail(email, link.url, INTRO);
       return { created: true };

@@ -130,6 +130,19 @@ describe("Acesso por papel", () => {
     expect(screen.queryByRole("button", { name: /painel admin/i })).not.toBeInTheDocument();
   });
 
+  it("empresa vê o botão Minha empresa; admin e cliente físico não", async () => {
+    loginAs("empresa", false);
+    const first = render(<App />);
+    expect(screen.getByRole("button", { name: /minha empresa/i })).toBeInTheDocument();
+    first.unmount();
+    for (const role of ["admin", "cliente_fisico"] as const) {
+      loginAs(role);
+      const r = render(<App />);
+      expect(screen.queryByRole("button", { name: /minha empresa/i })).not.toBeInTheDocument();
+      r.unmount();
+    }
+  });
+
   it("tem botão Sair que chama signOut", async () => {
     const { default: userEvent } = await import("@testing-library/user-event");
     const signOut = vi.fn(async () => {});

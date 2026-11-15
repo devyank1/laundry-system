@@ -33,7 +33,7 @@ Deno.serve((req) => {
 
         const { error: profileError } = await admin
           .from("profiles")
-          .insert({ id: link.userId, role: "empresa", company_id: companyId, is_owner: true, active: true });
+          .insert({ id: link.userId, email: ownerEmail, role: "empresa", company_id: companyId, is_owner: true, active: true });
         if (profileError) throw new Error(`profiles insert falhou: ${profileError.code}`);
 
         await sendSetPasswordEmail(
