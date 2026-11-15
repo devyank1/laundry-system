@@ -1,5 +1,5 @@
 begin;
-select plan(16);
+select plan(19);
 
 -- Usuários de teste
 insert into auth.users (id, email) values
@@ -36,6 +36,20 @@ set local role authenticated;
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}';
 select is((select count(*)::int from catalog_machines), 3, 'admin lê catálogo completo');
 select lives_ok($$ insert into catalog_machines (id, data) values ('m4', '{"id":"m4"}') $$, 'admin escreve no catálogo');
+update catalog_machines set data = '{"id":"m4","model":"novo"}' where id = 'm4';
+delete from catalog_machines where id = 'm3';
+reset role;
+select results_eq(
+  $$ select action, actor_id::text, details->>'id' from admin_actions_log where action like 'catalog_%' and actor_id is not null order by id $$,
+  $$ values ('catalog_insert', '00000000-0000-0000-0000-00000000000a', 'm4'),
+            ('catalog_update', '00000000-0000-0000-0000-00000000000a', 'm4'),
+            ('catalog_delete', '00000000-0000-0000-0000-00000000000a', 'm3') $$,
+  'edição do catálogo pelo admin vai pra auditoria com autor'
+);
+select is((select details->'old'->>'model' from admin_actions_log where action = 'catalog_update'), null, 'update guarda o valor antigo');
+select is((select details->'new'->>'model' from admin_actions_log where action = 'catalog_update'), 'novo', 'update guarda o valor novo');
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}';
 select is((select count(*)::int from profiles), 5, 'admin lê todos os perfis');
 
 -- dono da empresa A
@@ -54,7 +68,7 @@ select is((select count(*)::int from companies), 0, 'colega revogado não lê em
 
 -- cliente físico
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000d","role":"authenticated"}';
-select is((select count(*)::int from catalog_machines), 4, 'cliente físico lê catálogo completo');
+select is((select count(*)::int from catalog_machines), 3, 'cliente físico lê catálogo completo');
 select throws_ok($$ select * from cakto_processed_events $$, '42501', null, 'cliente físico não lê eventos da Cakto');
 
 -- auth_user_id_by_email: só service_role (Edge Functions) usa
