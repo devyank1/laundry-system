@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useState, type CSSProperties } from "react";
 import { ControlPanel } from "./ui/ControlPanel";
 import { ViolationsPanel } from "./ui/ViolationsPanel";
 import { CatalogManager } from "./ui/CatalogManager";
+import { AdminPanel } from "./ui/AdminPanel";
 import { RoiCalculator } from "./roi/RoiCalculator";
 import { InsightsCalculator } from "./insights/InsightsCalculator";
 import {
@@ -68,6 +69,7 @@ export function App() {
   // Zoom da planta 2D (o desenho alarga e a área rola).
   const [planZoom, setPlanZoom] = useState(1);
   const [showCatalog, setShowCatalog] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
   const [svgEl, setSvgEl] = useState<SVGSVGElement | null>(null);
   const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
   // "Visão do cliente": número = passeio rodando (novo número reinicia); null = órbita livre.
@@ -90,6 +92,11 @@ export function App() {
         </div>
         <div className="topbar-actions">
           {isAdmin && (
+            <button type="button" title="Cadastrar empresas parceiras" onClick={() => setShowAdmin(true)}>
+              Painel Admin
+            </button>
+          )}
+          {isAdmin && (
             <button type="button" aria-label="Gerenciar máquinas" title="Gerenciar máquinas" onClick={() => setShowCatalog(true)}>
               <IconSettings />
               Gerenciar máquinas
@@ -109,6 +116,12 @@ export function App() {
           </div>
           <ControlPanel show3dOptions={tab === "3d"} />
         </aside>
+      )}
+
+      {isAdmin && showAdmin && (
+        <RequireRole roles={["admin"]}>
+          <AdminPanel onClose={() => setShowAdmin(false)} />
+        </RequireRole>
       )}
 
       {isAdmin && showCatalog && (

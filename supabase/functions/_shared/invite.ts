@@ -1,7 +1,9 @@
 import { requireEnv, type SupabaseClient } from "./supabaseAdmin.ts";
 import { sendBrandedEmail } from "./resend.ts";
 
-export class EmailAlreadyRegisteredError extends Error {}
+import { EmailAlreadyRegisteredError } from "./errors.ts";
+
+export { EmailAlreadyRegisteredError };
 
 type LinkType = "invite" | "recovery";
 
@@ -16,8 +18,18 @@ function isAlreadyRegistered(error: { code?: string; message?: string; status?: 
   return error.code === "email_exists" || /already been registered/i.test(error.message ?? "");
 }
 
+export async function findAuthUserIdByEmail(admin: SupabaseClient, email: string): Promise<string | null> {
+  const { data, error } = await admin.rpc("auth_user_id_by_email", { p_email: email });
+  if (error) throw new Error(`auth_user_id_by_email falhou: ${error.code}`);
+  return (data as string | null) ?? null;
+}
+
 // Cria o usuário (sem senha) e devolve o link de convite de uso único.
+// Email que já existe (mesmo só convidado, sem senha ainda) NUNCA passa por
+// aqui como "novo": generateLink(invite) devolveria o usuário existente e um
+// rollback do chamador apagaria a conta de outra pessoa.
 export async function createInviteLink(admin: SupabaseClient, email: string): Promise<{ userId: string; url: string }> {
+  if (await findAuthUserIdByEmail(admin, email)) throw new EmailAlreadyRegisteredError();
   const { data, error } = await admin.auth.admin.generateLink({ type: "invite", email });
   if (error) {
     if (isAlreadyRegistered(error)) throw new EmailAlreadyRegisteredError();

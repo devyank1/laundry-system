@@ -1,13 +1,13 @@
 begin;
-select plan(13);
+select plan(16);
 
 -- Usuários de teste
 insert into auth.users (id, email) values
-  ('00000000-0000-0000-0000-00000000000a', 'admin@test.local'),
-  ('00000000-0000-0000-0000-00000000000b', 'dono@test.local'),
-  ('00000000-0000-0000-0000-00000000000c', 'colega@test.local'),
-  ('00000000-0000-0000-0000-00000000000d', 'cliente@test.local'),
-  ('00000000-0000-0000-0000-00000000000e', 'outra@test.local');
+  ('00000000-0000-0000-0000-00000000000a', 'admin@pgtap.local'),
+  ('00000000-0000-0000-0000-00000000000b', 'dono@pgtap.local'),
+  ('00000000-0000-0000-0000-00000000000c', 'colega@pgtap.local'),
+  ('00000000-0000-0000-0000-00000000000d', 'cliente@pgtap.local'),
+  ('00000000-0000-0000-0000-00000000000e', 'outra@pgtap.local');
 
 insert into companies (id, name) values
   ('10000000-0000-0000-0000-000000000001', 'Empresa A'),
@@ -56,6 +56,13 @@ select is((select count(*)::int from companies), 0, 'colega revogado não lê em
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000d","role":"authenticated"}';
 select is((select count(*)::int from catalog_machines), 4, 'cliente físico lê catálogo completo');
 select throws_ok($$ select * from cakto_processed_events $$, '42501', null, 'cliente físico não lê eventos da Cakto');
+
+-- auth_user_id_by_email: só service_role (Edge Functions) usa
+reset role;
+select is(auth_user_id_by_email('DONO@pgtap.local'), '00000000-0000-0000-0000-00000000000b'::uuid, 'acha usuário por email sem diferenciar caixa');
+select is(auth_user_id_by_email('ninguem@pgtap.local'), null, 'email inexistente devolve null');
+set local role authenticated;
+select throws_ok($$ select auth_user_id_by_email('dono@pgtap.local') $$, '42501', null, 'usuário logado não consegue enumerar emails');
 
 select * from finish();
 rollback;
