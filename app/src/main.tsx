@@ -6,12 +6,14 @@ import { App } from './App.tsx'
 import { AuthProvider } from './auth/AuthProvider'
 import { RequireAuth } from './auth/RouteGuards'
 import { NotFoundPage } from './ui/ErrorPages'
+import { LoginPage } from './ui/LoginPage'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
         <Routes>
+          <Route path="/login" element={<LoginPage />} />
           <Route
             path="/"
             element={

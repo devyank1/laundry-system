@@ -119,3 +119,11 @@
   background: var(--bg);
   color: var(--text-muted);
 }
+
+.status-link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
