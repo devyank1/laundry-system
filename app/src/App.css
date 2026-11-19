@@ -1855,3 +1855,44 @@
   align-items: center;
   gap: 12px;
 }
+
+/* Clientes (leads) e reunião ligada */
+.meeting-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: var(--surface-2, #f1f4f2);
+  border-bottom: 1px solid var(--border, #d9dfdb);
+  font-size: 0.9rem;
+}
+.clients-actions,
+.client-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.client-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border, #d9dfdb);
+}
+.client-list {
+  list-style: none;
+  padding: 0;
+}
+.confirm-box {
+  border: 1px solid var(--border, #d9dfdb);
+  padding: 8px 12px;
+  margin: 8px 0;
+}
+.client-form .check {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}

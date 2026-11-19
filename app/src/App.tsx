@@ -6,6 +6,8 @@ import { NotificationsButton, ThemeToggle, UserMenu, type Notice } from "./ui/Us
 import { AdminPanel } from "./ui/AdminPanel";
 import { CompanyPanel } from "./ui/CompanyPanel";
 import { MyDataPanel } from "./ui/MyDataPanel";
+import { ClientsPanel } from "./ui/ClientsPanel";
+import { MeetingBar } from "./ui/MeetingBar";
 import { RoiCalculator } from "./roi/RoiCalculator";
 import { InsightsCalculator } from "./insights/InsightsCalculator";
 import {
@@ -75,6 +77,7 @@ export function App() {
   const [showAdmin, setShowAdmin] = useState(false);
   const [showCompany, setShowCompany] = useState(false);
   const [showMyData, setShowMyData] = useState(false);
+  const [showClients, setShowClients] = useState(false);
   const isEmpresa = profile?.role === "empresa";
   const [svgEl, setSvgEl] = useState<SVGSVGElement | null>(null);
   const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
@@ -118,6 +121,11 @@ export function App() {
         </div>
         <div className="topbar-actions">
           {isEmpresa && (
+            <button type="button" title="Clientes atendidos e reuniões salvas" onClick={() => setShowClients(true)}>
+              Clientes
+            </button>
+          )}
+          {isEmpresa && (
             <button type="button" title="Seu telefone, cargo e foto" onClick={() => setShowMyData(true)}>
               Meus dados
             </button>
@@ -147,6 +155,7 @@ export function App() {
           <UserMenu />
         </div>
       </header>
+      {isEmpresa && <MeetingBar />}
 
       {tab !== "roi" && tab !== "insights" && (
         <aside className="sidebar">
@@ -161,6 +170,12 @@ export function App() {
       {isEmpresa && showCompany && (
         <RequireRole roles={["empresa"]}>
           <CompanyPanel onClose={() => setShowCompany(false)} />
+        </RequireRole>
+      )}
+
+      {isEmpresa && showClients && (
+        <RequireRole roles={["empresa"]}>
+          <ClientsPanel onClose={() => setShowClients(false)} />
         </RequireRole>
       )}
 
