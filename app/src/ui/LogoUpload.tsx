@@ -3,6 +3,7 @@ import { SectionTitle } from "./SectionTitle";
 import { IconImage } from "./icons";
 import { useProjectStore, type LogoSideColor, type LogoStyle } from "../state/projectStore";
 import { NotPngError, readPngAsDataUrl } from "./logoFile";
+import { shrinkLogo } from "../lib/logoImage";
 
 // Logo do protótipo/local: PNG (fundo transparente), aparece no 3D no
 // drywall em cima das máquinas. Cada projeto pode ter uma logo diferente.
@@ -20,7 +21,9 @@ export function LogoUpload() {
   async function handleFile(file: File | undefined) {
     if (!file) return;
     try {
-      setLogoDataUrl(await readPngAsDataUrl(file));
+      await readPngAsDataUrl(file); // confere que é PNG de verdade
+      // reduz e converte pra WebP (mais leve, mantém a transparência)
+      setLogoDataUrl(await shrinkLogo(file));
       setError(null);
     } catch (e) {
       setError(e instanceof NotPngError ? e.message : "Não foi possível ler a imagem.");

@@ -1,6 +1,9 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+const logo = vi.hoisted(() => ({ shrinkLogo: vi.fn(async () => "data:image/webp;base64,UklG") }));
+vi.mock("../lib/logoImage", () => logo);
+
 import { LogoUpload } from "./LogoUpload";
 import { useProjectStore } from "../state/projectStore";
 
@@ -8,17 +11,19 @@ const PNG_BYTES = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a
 const JPG_BYTES = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0]);
 
 beforeEach(() => {
+  logo.shrinkLogo.mockClear();
   useProjectStore.setState({ logoDataUrl: null });
 });
 
 describe("LogoUpload", () => {
-  it("aceita um PNG e guarda como data URL, mostrando a prévia", async () => {
+  it("aceita um PNG, reduz/converte e guarda como data URL, mostrando a prévia", async () => {
     render(<LogoUpload />);
     const file = new File([PNG_BYTES], "logo.png", { type: "image/png" });
     await userEvent.upload(screen.getByLabelText(/enviar logo/i), file);
     await waitFor(() =>
-      expect(useProjectStore.getState().logoDataUrl).toMatch(/^data:image\/png;base64,/)
+      expect(useProjectStore.getState().logoDataUrl).toBe("data:image/webp;base64,UklG")
     );
+    expect(logo.shrinkLogo).toHaveBeenCalledWith(file);
     expect(screen.getByAltText("Logo atual")).toBeInTheDocument();
   });
 
@@ -28,6 +33,7 @@ describe("LogoUpload", () => {
     await userEvent.upload(screen.getByLabelText(/enviar logo/i), fake);
     expect(await screen.findByRole("alert")).toHaveTextContent(/PNG/);
     expect(useProjectStore.getState().logoDataUrl).toBeNull();
+    expect(logo.shrinkLogo).not.toHaveBeenCalled();
   });
 
   it("remove a logo atual", async () => {
