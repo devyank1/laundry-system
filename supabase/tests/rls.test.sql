@@ -56,7 +56,7 @@ select is((select count(*)::int from profiles), 5, 'admin lê todos os perfis');
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}';
 select results_eq($$ select id from catalog_machines order by id $$, $$ values ('m1') $$, 'empresa vê só o catálogo liberado');
 select throws_ok($$ insert into catalog_machines (id, data) values ('x', '{}') $$, '42501', null, 'empresa não escreve no catálogo');
-select is((select count(*)::int from profiles), 2, 'empresa vê só perfis da própria empresa');
+select is((select count(*)::int from profiles), 1, 'empresa lê só o próprio perfil direto (equipe vem por company_team)');
 select is((select count(*)::int from companies), 1, 'empresa vê só a própria empresa');
 update profiles set role = 'admin' where id = '00000000-0000-0000-0000-00000000000b';
 select is((select role from current_profile()), 'empresa', 'empresa não se promove a admin');
