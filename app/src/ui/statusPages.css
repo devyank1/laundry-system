@@ -127,3 +127,11 @@
   font: inherit;
   cursor: pointer;
 }
+
+.status-photo {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 50%;
+  align-self: center;
+}

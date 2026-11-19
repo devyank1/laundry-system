@@ -9,14 +9,16 @@ vi.mock("./useAuth", () => ({ useAuth: () => auth.state }));
 const guard = vi.hoisted(() => ({ useSessionGuard: vi.fn() }));
 vi.mock("./useSessionGuard", () => guard);
 
-import { RequireAuth, RequireRole } from "./RouteGuards";
+vi.mock("../ui/CompleteRegistrationPage", () => ({ CompleteRegistrationPage: () => <h1>Complete seu cadastro</h1> }));
+
+import { RequireAuth, RequireRegistration, RequireRole } from "./RouteGuards";
 
 function setAuth(partial: Partial<AuthState>) {
-  auth.state = { profile: null, loading: false, signOut: async () => {}, ...partial };
+  auth.state = { profile: null, loading: false, signOut: async () => {}, refreshProfile: async () => {}, ...partial };
 }
 
-const admin = { id: "u1", role: "admin" as const, companyId: null, isOwner: false, active: true };
-const empresa = { id: "u2", role: "empresa" as const, companyId: "c1", isOwner: true, active: true };
+const admin = { id: "u1", role: "admin" as const, companyId: null, isOwner: false, active: true, fullName: null, registrationComplete: false };
+const empresa = { id: "u2", role: "empresa" as const, companyId: "c1", isOwner: true, active: true, fullName: "Dono", registrationComplete: true };
 
 beforeEach(() => setAuth({}));
 
@@ -79,5 +81,32 @@ describe("RequireRole", () => {
       </MemoryRouter>,
     );
     expect(guard.useSessionGuard).toHaveBeenCalledWith(true);
+  });
+});
+
+describe("RequireRegistration", () => {
+  function renderApp() {
+    render(<RequireRegistration><p>o app</p></RequireRegistration>);
+  }
+  it("vendedor sem cadastro completo cai na tela de cadastro", () => {
+    setAuth({ profile: { ...empresa, isOwner: false, registrationComplete: false } });
+    renderApp();
+    expect(screen.getByText("Complete seu cadastro")).toBeInTheDocument();
+    expect(screen.queryByText("o app")).not.toBeInTheDocument();
+  });
+  it("dono de empresa já existente sem cadastro também cai no cadastro", () => {
+    setAuth({ profile: { ...empresa, registrationComplete: false } });
+    renderApp();
+    expect(screen.getByText("Complete seu cadastro")).toBeInTheDocument();
+  });
+  it("cliente físico e admin não passam pelo cadastro", () => {
+    setAuth({ profile: { ...admin, role: "cliente_fisico" } });
+    renderApp();
+    expect(screen.getByText("o app")).toBeInTheDocument();
+  });
+  it("empresa com cadastro completo vê o app", () => {
+    setAuth({ profile: empresa });
+    renderApp();
+    expect(screen.getByText("o app")).toBeInTheDocument();
   });
 });

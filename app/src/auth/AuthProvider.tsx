@@ -11,10 +11,35 @@ interface ProfileRow {
   company_id: string | null;
   is_owner: boolean;
   active: boolean;
+  full_name: string | null;
+  registration_completed_at: string | null;
 }
 
+const PROFILE_COLUMNS = "id, role, company_id, is_owner, active, full_name, registration_completed_at";
+
 function toProfile(row: ProfileRow): Profile {
-  return { id: row.id, role: row.role, companyId: row.company_id, isOwner: row.is_owner, active: row.active };
+  return {
+    id: row.id,
+    role: row.role,
+    companyId: row.company_id,
+    isOwner: row.is_owner,
+    active: row.active,
+    fullName: row.full_name ?? null,
+    registrationComplete: Boolean(row.registration_completed_at),
+  };
+}
+
+// Perfil ativo + catálogo (já filtrado pela RLS). null = sem perfil/revogado.
+async function loadProfile(userId: string): Promise<Profile | null> {
+  const { data, error } = await supabase.from("profiles").select(PROFILE_COLUMNS).eq("id", userId).single();
+  const row = data as ProfileRow | null;
+  if (error || !row || !row.active) return null;
+  try {
+    await refreshCatalog();
+  } catch {
+    /* catálogo indisponível: a tela abre e mostra a lista vazia */
+  }
+  return toProfile(row);
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -46,22 +71,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // a RLS devolve tudo vazio).
       await waitForClaim();
       if (cancelled) return;
-      const { data, error } = await supabase.from("profiles").select("id, role, company_id, is_owner, active").eq("id", userId).single();
+      const loaded = await loadProfile(userId);
       if (cancelled) return;
-      const row = data as ProfileRow | null;
-      if (error || !row || !row.active) {
+      if (!loaded) {
         // Sem perfil ou revogado: não fica logado nem pela metade.
         setProfile(null);
         await supabase.auth.signOut();
       } else {
-        // Carrega o catálogo (já filtrado pela RLS) antes de liberar a tela.
-        try {
-          await refreshCatalog();
-        } catch {
-          /* catálogo indisponível: a tela abre e mostra a lista vazia */
-        }
-        if (cancelled) return;
-        setProfile(toProfile(row));
+        setProfile(loaded);
       }
       if (!cancelled) setResolvedFor(userId);
     })();
@@ -74,10 +91,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   }, []);
 
+  const refreshProfile = useCallback(async () => {
+    if (!userId) return;
+    const loaded = await loadProfile(userId);
+    if (loaded) setProfile(loaded);
+  }, [userId]);
+
   const value = useMemo<AuthState>(
     // Perfil só vale pro usuário da sessão atual (troca de conta não vaza o anterior).
-    () => ({ profile: userId && resolvedFor === userId ? profile : null, loading: userId === undefined || (userId !== null && resolvedFor !== userId), signOut }),
-    [profile, userId, resolvedFor, signOut],
+    () => ({ profile: userId && resolvedFor === userId ? profile : null, loading: userId === undefined || (userId !== null && resolvedFor !== userId), signOut, refreshProfile }),
+    [profile, userId, resolvedFor, signOut, refreshProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

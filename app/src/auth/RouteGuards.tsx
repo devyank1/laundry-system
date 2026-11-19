@@ -3,6 +3,7 @@ import { Navigate } from "react-router";
 import { useAuth } from "./useAuth";
 import { useSessionGuard } from "./useSessionGuard";
 import { ForbiddenPage } from "../ui/ErrorPages";
+import { CompleteRegistrationPage } from "../ui/CompleteRegistrationPage";
 import type { Role } from "./types";
 
 export function AuthLoading() {
@@ -27,5 +28,12 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 export function RequireRole({ roles, children }: { roles: Role[]; children: ReactNode }) {
   const { profile } = useAuth();
   if (!profile || !roles.includes(profile.role)) return <ForbiddenPage />;
+  return <>{children}</>;
+}
+
+// Conta de empresa sem cadastro completo só vê a tela de cadastro.
+export function RequireRegistration({ children }: { children: ReactNode }) {
+  const { profile } = useAuth();
+  if (profile?.role === "empresa" && !profile.registrationComplete) return <CompleteRegistrationPage />;
   return <>{children}</>;
 }

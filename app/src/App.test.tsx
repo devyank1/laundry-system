@@ -16,9 +16,10 @@ vi.mock("./auth/useAuth", () => ({ useAuth: () => auth.state }));
 
 function loginAs(role: Role, isOwner = false) {
   auth.state = {
-    profile: { id: "u1", role, companyId: role === "empresa" ? "c1" : null, isOwner, active: true },
+    profile: { id: "u1", role, companyId: role === "empresa" ? "c1" : null, isOwner, active: true, fullName: "Fulano", registrationComplete: true },
     loading: false,
     signOut: async () => {},
+    refreshProfile: async () => {},
   };
 }
 

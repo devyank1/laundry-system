@@ -1,5 +1,5 @@
 begin;
-select plan(22);
+select plan(26);
 
 -- a: admin, b: dono A, c: vendedor A, f: vendedor A (2), d: cliente físico, e: vendedor B
 insert into auth.users (id, email) values
@@ -94,6 +94,26 @@ select results_eq(
   'vendedor vê só nome e cargo do colega'
 );
 select isnt((select cpf from company_team() where id = '00000000-0000-0000-0000-0000000000c1'), null, 'vendedor vê os próprios dados');
+
+-- fotos (bucket privado)
+reset role;
+insert into storage.objects (bucket_id, name) values
+  ('profile-photos', '00000000-0000-0000-0000-0000000000c1/photo'),
+  ('profile-photos', '00000000-0000-0000-0000-0000000000e1/photo');
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000f1","session_id":"00000000-0000-0000-0000-0000000000f1","role":"authenticated"}';
+select throws_ok($$ insert into storage.objects (bucket_id, name) values ('profile-photos', '00000000-0000-0000-0000-0000000000c1/photo2') $$, '42501', null, 'ninguém grava na pasta de outra pessoa');
+select lives_ok($$ insert into storage.objects (bucket_id, name) values ('profile-photos', '00000000-0000-0000-0000-0000000000f1/photo') $$, 'cada um grava a própria foto');
+select is((select count(*)::int from storage.objects where name = '00000000-0000-0000-0000-0000000000c1/photo'), 0, 'vendedor não vê foto do colega');
+reset role;
+update profiles set registration_completed_at = now() where id = '00000000-0000-0000-0000-0000000000b1';
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000b1","session_id":"00000000-0000-0000-0000-0000000000b1","role":"authenticated"}';
+select results_eq(
+  $$ select name from storage.objects where bucket_id = 'profile-photos' order by name $$,
+  $$ values ('00000000-0000-0000-0000-0000000000c1/photo'::text), ('00000000-0000-0000-0000-0000000000f1/photo'::text) $$,
+  'dono vê as fotos da própria equipe e não as de outra empresa'
+);
 
 select * from finish();
 rollback;

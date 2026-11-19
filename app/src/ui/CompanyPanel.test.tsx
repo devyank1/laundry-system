@@ -20,9 +20,10 @@ const team = [
 
 function loginAs(isOwner: boolean) {
   auth.state = {
-    profile: { id: isOwner ? "u-dono" : "u-col", role: "empresa", companyId: "c1", isOwner, active: true },
+    profile: { id: isOwner ? "u-dono" : "u-col", role: "empresa", companyId: "c1", isOwner, active: true, fullName: "Fulano", registrationComplete: true },
     loading: false,
     signOut: async () => {},
+    refreshProfile: async () => {},
   };
 }
 
