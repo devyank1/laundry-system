@@ -55,10 +55,41 @@ as $$
   from (select regexp_replace(coalesce(p, ''), '[^0-9]', '', 'g') as d) x
 $$;
 
+-- A foto tem que existir de verdade no bucket (não basta mandar o caminho).
+create or replace function public.photo_uploaded(p_path text)
+returns boolean
+language sql
+security definer
+stable
+set search_path = ''
+as $$
+  select exists (select 1 from storage.objects o where o.bucket_id = 'profile-photos' and o.name = p_path)
+$$;
+revoke all on function public.photo_uploaded(text) from public, anon, authenticated;
+
+-- CPF/telefone já usado por conta ativa: registra a tentativa na auditoria
+-- (sem os valores) e devolve o código pro app. Chamada dentro do handler de
+-- unique_violation, então o log sobrevive ao rollback do UPDATE.
+create or replace function public.reject_duplicate(p_user uuid, p_constraint text)
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_field text := case when p_constraint like '%cpf%' then 'cpf' else 'phone' end;
+begin
+  insert into public.admin_actions_log (actor_id, action, details)
+  values (p_user, 'registration_duplicate_rejected', jsonb_build_object('id', p_user, 'field', v_field));
+  return v_field || '_taken';
+end;
+$$;
+revoke all on function public.reject_duplicate(uuid, text) from public, anon, authenticated;
+
 create or replace function public.complete_registration(
   p_full_name text, p_cpf text, p_phone text, p_job_title text, p_photo_path text
 )
-returns void
+returns text
 language plpgsql
 security definer
 set search_path = ''
@@ -66,6 +97,7 @@ as $$
 declare
   me public.profiles;
   v_phone text;
+  v_constraint text;
 begin
   -- definida em 0007 (sessão única); resolvida em tempo de execução.
   perform public.require_current_session();
@@ -74,7 +106,8 @@ begin
     raise exception 'not_allowed' using errcode = '42501';
   end if;
   if coalesce(btrim(p_full_name), '') = '' or coalesce(btrim(p_job_title), '') = ''
-     or coalesce(p_photo_path, '') <> auth.uid()::text || '/photo' then
+     or coalesce(p_photo_path, '') <> auth.uid()::text || '/photo'
+     or not public.photo_uploaded(p_photo_path) then
     raise exception 'missing_field' using errcode = '22023';
   end if;
   if not public.is_valid_cpf(p_cpf) then
@@ -84,20 +117,26 @@ begin
   if v_phone is null then
     raise exception 'invalid_phone' using errcode = '22023';
   end if;
-  update public.profiles set
-    full_name = btrim(p_full_name),
-    cpf = regexp_replace(p_cpf, '[^0-9]', '', 'g'),
-    phone = v_phone,
-    job_title = btrim(p_job_title),
-    photo_path = p_photo_path,
-    registration_completed_at = now()
-  where id = me.id;
+  begin
+    update public.profiles set
+      full_name = btrim(p_full_name),
+      cpf = regexp_replace(p_cpf, '[^0-9]', '', 'g'),
+      phone = v_phone,
+      job_title = btrim(p_job_title),
+      photo_path = p_photo_path,
+      registration_completed_at = now()
+    where id = me.id;
+  exception when unique_violation then
+    get stacked diagnostics v_constraint = constraint_name;
+    return public.reject_duplicate(me.id, v_constraint);
+  end;
+  return 'ok';
 end;
 $$;
 
 -- Depois do cadastro: telefone, cargo e foto. Nome e CPF só o admin corrige.
 create or replace function public.update_my_contact(p_phone text, p_job_title text, p_photo_path text)
-returns void
+returns text
 language plpgsql
 security definer
 set search_path = ''
@@ -105,6 +144,7 @@ as $$
 declare
   me public.profiles;
   v_phone text;
+  v_constraint text;
 begin
   -- definida em 0007 (sessão única); resolvida em tempo de execução.
   perform public.require_current_session();
@@ -112,15 +152,22 @@ begin
   if me.id is null or me.role <> 'empresa' or me.registration_completed_at is null then
     raise exception 'not_allowed' using errcode = '42501';
   end if;
-  if coalesce(btrim(p_job_title), '') = '' or coalesce(p_photo_path, '') <> auth.uid()::text || '/photo' then
+  if coalesce(btrim(p_job_title), '') = '' or coalesce(p_photo_path, '') <> auth.uid()::text || '/photo'
+     or not public.photo_uploaded(p_photo_path) then
     raise exception 'missing_field' using errcode = '22023';
   end if;
   v_phone := public.normalize_phone(p_phone);
   if v_phone is null then
     raise exception 'invalid_phone' using errcode = '22023';
   end if;
-  update public.profiles set phone = v_phone, job_title = btrim(p_job_title), photo_path = p_photo_path
-  where id = me.id;
+  begin
+    update public.profiles set phone = v_phone, job_title = btrim(p_job_title), photo_path = p_photo_path
+    where id = me.id;
+  exception when unique_violation then
+    get stacked diagnostics v_constraint = constraint_name;
+    return public.reject_duplicate(me.id, v_constraint);
+  end;
+  return 'ok';
 end;
 $$;
 

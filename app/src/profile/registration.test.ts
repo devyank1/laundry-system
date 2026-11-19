@@ -29,6 +29,13 @@ describe("completeRegistration", () => {
     await expect(completeRegistration(input)).rejects.toThrow("Este CPF já está em uso.");
   });
 
+  it("servidor recusa CPF/telefone repetido devolvendo um código (a tentativa fica auditada)", async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: "cpf_taken", error: null });
+    await expect(completeRegistration(input)).rejects.toThrow("Este CPF já está em uso.");
+    mocks.rpc.mockResolvedValueOnce({ data: "phone_taken", error: null });
+    await expect(updateMyContact({ phone: "11987654321", jobTitle: "V", photoPath: "u1/photo" })).rejects.toThrow("Este telefone já está em uso.");
+  });
+
   it("telefone já usado", async () => {
     mocks.rpc.mockResolvedValue({ data: null, error: { code: "23505", message: 'duplicate key value violates unique constraint "profiles_phone_active_uniq"' } });
     await expect(completeRegistration(input)).rejects.toThrow("Este telefone já está em uso.");

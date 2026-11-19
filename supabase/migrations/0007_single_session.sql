@@ -129,3 +129,12 @@ end;
 $$;
 revoke all on function public.require_current_session() from public, anon;
 grant execute on function public.require_current_session() to authenticated;
+
+-- Quem já estava logado antes desta migration não tem sessão reivindicada:
+-- a sessão mais recente de cada conta vira a atual (as outras caem), pra
+-- ninguém ser derrubado só por causa da publicação.
+insert into public.user_sessions (user_id, session_id, updated_at)
+select distinct on (s.user_id) s.user_id, s.id, now()
+from auth.sessions s
+order by s.user_id, s.created_at desc
+on conflict (user_id) do nothing;

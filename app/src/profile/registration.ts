@@ -21,8 +21,15 @@ export function registrationErrorMessage(error: { code?: string; message?: strin
   return "Não foi possível salvar. Tente novamente em instantes.";
 }
 
+// Recusa por CPF/telefone repetido volta como código (o servidor audita a
+// tentativa e não pode dar erro, senão o log seria desfeito).
+function checkResult(data: unknown): void {
+  if (data === "cpf_taken") throw new Error("Este CPF já está em uso.");
+  if (data === "phone_taken") throw new Error("Este telefone já está em uso.");
+}
+
 export async function completeRegistration(input: RegistrationInput): Promise<void> {
-  const { error } = await supabase.rpc("complete_registration", {
+  const { data, error } = await supabase.rpc("complete_registration", {
     p_full_name: input.fullName.trim(),
     p_cpf: normalizeCpf(input.cpf),
     p_phone: normalizePhone(input.phone),
@@ -30,15 +37,17 @@ export async function completeRegistration(input: RegistrationInput): Promise<vo
     p_photo_path: input.photoPath,
   });
   if (error) throw new Error(registrationErrorMessage(error));
+  checkResult(data);
 }
 
 export async function updateMyContact(input: { phone: string; jobTitle: string; photoPath: string }): Promise<void> {
-  const { error } = await supabase.rpc("update_my_contact", {
+  const { data, error } = await supabase.rpc("update_my_contact", {
     p_phone: normalizePhone(input.phone),
     p_job_title: input.jobTitle.trim(),
     p_photo_path: input.photoPath,
   });
   if (error) throw new Error(registrationErrorMessage(error));
+  checkResult(data);
 }
 
 export interface MyData {

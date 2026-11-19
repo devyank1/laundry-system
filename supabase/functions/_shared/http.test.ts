@@ -7,9 +7,9 @@ function b64url(s: string): string {
 }
 const token = `h.${b64url(JSON.stringify({ sub: "u1", session_id: "s-new" }))}.sig`;
 
-function fakeAdmin(currentSession: string | null) {
+function fakeAdmin(currentSession: string | null, registered: string | null = "2026-11-18T00:00:00Z", role = "empresa") {
   const rows: Record<string, unknown> = {
-    profiles: { id: "u1", role: "empresa", company_id: "c1", is_owner: true, active: true },
+    profiles: { id: "u1", role, company_id: role === "empresa" ? "c1" : null, is_owner: role === "empresa", active: true, registration_completed_at: registered },
     user_sessions: currentSession ? { session_id: currentSession } : null,
   };
   return {
@@ -38,5 +38,11 @@ describe("getCaller", () => {
   });
   it("recusa quando a conta não tem sessão reivindicada", async () => {
     expect(await getCaller(fakeAdmin(null), req())).toBeNull();
+  });
+  it("recusa conta de empresa sem cadastro completo", async () => {
+    expect(await getCaller(fakeAdmin("s-new", null), req())).toBeNull();
+  });
+  it("admin não precisa de cadastro", async () => {
+    expect(await getCaller(fakeAdmin("s-new", null, "admin"), req())).toMatchObject({ role: "admin" });
   });
 });

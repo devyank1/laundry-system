@@ -1,5 +1,5 @@
 begin;
-select plan(29);
+select plan(31);
 
 -- a: admin, b: dono A, c: vendedor A, f: vendedor A (2), d: cliente físico, e: vendedor B
 insert into auth.users (id, email) values
@@ -32,6 +32,12 @@ set local role authenticated;
 
 -- vendedor 1 completa o cadastro
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000c1","session_id":"00000000-0000-0000-0000-0000000000c1","role":"authenticated"}';
+select throws_ok($$ select complete_registration('Ana Lima', '529.982.247-25', '(11) 98765-4321', 'Vendedora', '00000000-0000-0000-0000-0000000000c1/photo') $$, '22023', 'missing_field', 'cadastro exige a foto enviada de verdade');
+reset role;
+insert into storage.objects (bucket_id, name) values
+  ('profile-photos', '00000000-0000-0000-0000-0000000000c1/photo'),
+  ('profile-photos', '00000000-0000-0000-0000-0000000000f1/photo');
+set local role authenticated;
 select lives_ok($$ select complete_registration('Ana Lima', '529.982.247-25', '(11) 98765-4321', 'Vendedora', '00000000-0000-0000-0000-0000000000c1/photo') $$, 'vendedor completa o cadastro');
 select results_eq(
   $$ select cpf, phone, registration_completed_at is not null from profiles where id = '00000000-0000-0000-0000-0000000000c1' $$,
@@ -45,8 +51,17 @@ set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000f1","s
 select throws_ok($$ select complete_registration('Bia', '52998224726', '11912345678', 'Vendedora', '00000000-0000-0000-0000-0000000000f1/photo') $$, '22023', 'invalid_cpf', 'CPF inválido é recusado');
 select throws_ok($$ select complete_registration('Bia', '111.444.777-35', '123', 'Vendedora', '00000000-0000-0000-0000-0000000000f1/photo') $$, '22023', 'invalid_phone', 'telefone inválido é recusado');
 select throws_ok($$ select complete_registration('  ', '111.444.777-35', '11912345678', 'Vendedora', '00000000-0000-0000-0000-0000000000f1/photo') $$, '22023', 'missing_field', 'nome vazio é recusado');
-select throws_ok($$ select complete_registration('Bia Souza', '529.982.247-25', '11912345678', 'Vendedora', '00000000-0000-0000-0000-0000000000f1/photo') $$, '23505', null, 'CPF de conta ativa não pode ser repetido');
-select throws_ok($$ select complete_registration('Bia Souza', '111.444.777-35', '(11) 98765-4321', 'Vendedora', '00000000-0000-0000-0000-0000000000f1/photo') $$, '23505', null, 'telefone de conta ativa não pode ser repetido');
+select is(complete_registration('Bia Souza', '529.982.247-25', '11912345678', 'Vendedora', '00000000-0000-0000-0000-0000000000f1/photo'), 'cpf_taken', 'CPF de conta ativa não pode ser repetido');
+select is(complete_registration('Bia Souza', '111.444.777-35', '(11) 98765-4321', 'Vendedora', '00000000-0000-0000-0000-0000000000f1/photo'), 'phone_taken', 'telefone de conta ativa não pode ser repetido');
+reset role;
+select ok(
+  (select count(*) from admin_actions_log where action = 'registration_duplicate_rejected'
+     and actor_id = '00000000-0000-0000-0000-0000000000f1'
+     and details::text not like '%52998224725%' and details::text not like '%11987654321%') = 2
+  and (select registration_completed_at from profiles where id = '00000000-0000-0000-0000-0000000000f1') is null,
+  'tentativa com CPF/telefone repetido vai pra auditoria (sem os valores) e não completa o cadastro'
+);
+set local role authenticated;
 
 -- revogar libera o CPF
 reset role;
@@ -115,12 +130,13 @@ select ok(
 -- fotos (bucket privado)
 reset role;
 insert into storage.objects (bucket_id, name) values
-  ('profile-photos', '00000000-0000-0000-0000-0000000000c1/photo'),
   ('profile-photos', '00000000-0000-0000-0000-0000000000e1/photo');
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000f1","session_id":"00000000-0000-0000-0000-0000000000f1","role":"authenticated"}';
 select throws_ok($$ insert into storage.objects (bucket_id, name) values ('profile-photos', '00000000-0000-0000-0000-0000000000c1/photo2') $$, '42501', null, 'ninguém grava na pasta de outra pessoa');
-select lives_ok($$ insert into storage.objects (bucket_id, name) values ('profile-photos', '00000000-0000-0000-0000-0000000000f1/photo') $$, 'cada um grava a própria foto');
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000b1","session_id":"00000000-0000-0000-0000-0000000000b1","role":"authenticated"}';
+select lives_ok($$ insert into storage.objects (bucket_id, name) values ('profile-photos', '00000000-0000-0000-0000-0000000000b1/photo') $$, 'cada um grava a própria foto');
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000f1","session_id":"00000000-0000-0000-0000-0000000000f1","role":"authenticated"}';
 select is((select count(*)::int from storage.objects where name = '00000000-0000-0000-0000-0000000000c1/photo'), 0, 'vendedor não vê foto do colega');
 reset role;
 update profiles set registration_completed_at = now() where id = '00000000-0000-0000-0000-0000000000b1';
@@ -128,7 +144,7 @@ set local role authenticated;
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000b1","session_id":"00000000-0000-0000-0000-0000000000b1","role":"authenticated"}';
 select results_eq(
   $$ select name from storage.objects where bucket_id = 'profile-photos' order by name $$,
-  $$ values ('00000000-0000-0000-0000-0000000000c1/photo'::text), ('00000000-0000-0000-0000-0000000000f1/photo'::text) $$,
+  $$ values ('00000000-0000-0000-0000-0000000000b1/photo'::text), ('00000000-0000-0000-0000-0000000000c1/photo'::text), ('00000000-0000-0000-0000-0000000000f1/photo'::text) $$,
   'dono vê as fotos da própria equipe e não as de outra empresa'
 );
 
