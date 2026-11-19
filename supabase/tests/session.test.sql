@@ -1,5 +1,5 @@
 begin;
-select plan(13);
+select plan(16);
 
 -- v: vendedor (cadastro completo), n: vendedor sem cadastro, c: cliente físico, a: admin
 insert into auth.users (id, email) values
@@ -7,6 +7,14 @@ insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-0000000005b1', 'vend@sess.pgtap.local'),
   ('00000000-0000-0000-0000-0000000005c1', 'novo@sess.pgtap.local'),
   ('00000000-0000-0000-0000-0000000005d1', 'cliente@sess.pgtap.local');
+-- sessões do Auth (o login cria; created_at decide qual é a mais nova)
+insert into auth.sessions (id, user_id, created_at) values
+  ('aaaaaaaa-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000005b1', now() - interval '2 minutes'),
+  ('aaaaaaaa-0000-0000-0000-000000000002', '00000000-0000-0000-0000-0000000005b1', now() - interval '1 minute'),
+  ('aaaaaaaa-0000-0000-0000-000000000003', '00000000-0000-0000-0000-0000000005c1', now()),
+  ('aaaaaaaa-0000-0000-0000-000000000004', '00000000-0000-0000-0000-0000000005d1', now()),
+  ('aaaaaaaa-0000-0000-0000-000000000005', '00000000-0000-0000-0000-0000000005a1', now()),
+  ('aaaaaaaa-0000-0000-0000-000000000006', '00000000-0000-0000-0000-0000000005d1', now() - interval '10 minutes');
 insert into companies (id, name) values ('30000000-0000-0000-0000-000000000001', 'Sessao A');
 insert into catalog_machines (id, data) values ('s1', '{"id":"s1"}');
 insert into company_machines values ('30000000-0000-0000-0000-000000000001', 's1');
@@ -31,6 +39,9 @@ select lives_ok($$ select claim_session('ua2') $$, 'login em outro aparelho');
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000005b1","session_id":"aaaaaaaa-0000-0000-0000-000000000001","role":"authenticated"}';
 select ok(not session_is_current(), 'aparelho antigo deixa de ser a sessão atual');
 select is((select count(*)::int from catalog_machines), 0, 'token antigo ainda válido não lê catálogo');
+select throws_ok($$ select claim_session('ua1') $$, '42501', null, 'aparelho antigo não retoma a sessão');
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000005b1","session_id":"aaaaaaaa-0000-0000-0000-000000000002","role":"authenticated"}';
+select ok(session_is_current(), 'o aparelho novo continua sendo o atual');
 
 -- vendedor sem cadastro, sessão válida
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000005c1","session_id":"aaaaaaaa-0000-0000-0000-000000000003","role":"authenticated"}';
@@ -42,6 +53,9 @@ select throws_ok($$ select complete_registration('X', '529.982.247-25', '1198765
 -- cliente físico não precisa de cadastro
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000005d1","session_id":"aaaaaaaa-0000-0000-0000-000000000004","role":"authenticated"}';
 select claim_session('ua4');
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000005d1","session_id":"aaaaaaaa-0000-0000-0000-000000000006","role":"authenticated"}';
+select throws_ok($$ select claim_session('ua6') $$, '42501', null, 'sessão criada há mais de 5 minutos não reivindica');
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000005d1","session_id":"aaaaaaaa-0000-0000-0000-000000000004","role":"authenticated"}';
 select is((select count(*)::int from catalog_machines), 1, 'cliente físico com sessão lê catálogo sem cadastro');
 select is((select count(*)::int from login_events), 0, 'usuário comum não lê o histórico de logins');
 select throws_ok($$ select * from user_sessions $$, '42501', null, 'usuário comum não lê sessões');

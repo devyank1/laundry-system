@@ -55,12 +55,28 @@ as $$
 declare
   v_session uuid := public.jwt_session_id();
   v_previous uuid;
+  v_created timestamptz;
+  v_previous_created timestamptz;
   v_ip text;
 begin
   if auth.uid() is null or v_session is null then
     raise exception 'not_allowed' using errcode = '42501';
   end if;
+  -- Só um login de verdade reivindica: a sessão do Auth tem que ter sido
+  -- criada há pouco e ser mais nova que a atual. Assim um aparelho derrubado
+  -- (token antigo ainda válido) não consegue tomar a sessão de volta.
+  select s.created_at into v_created from auth.sessions s
+  where s.id = v_session and s.user_id = auth.uid();
+  if v_created is null or v_created < now() - interval '5 minutes' then
+    raise exception 'not_allowed' using errcode = '42501';
+  end if;
   select session_id into v_previous from public.user_sessions where user_id = auth.uid();
+  if v_previous is not null and v_previous <> v_session then
+    select s.created_at into v_previous_created from auth.sessions s where s.id = v_previous;
+    if v_previous_created is not null and v_previous_created >= v_created then
+      raise exception 'not_allowed' using errcode = '42501';
+    end if;
+  end if;
   insert into public.user_sessions (user_id, session_id, updated_at)
   values (auth.uid(), v_session, now())
   on conflict (user_id) do update set session_id = excluded.session_id, updated_at = now();
