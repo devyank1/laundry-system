@@ -40,3 +40,18 @@ export async function updateMyContact(input: { phone: string; jobTitle: string; 
   });
   if (error) throw new Error(registrationErrorMessage(error));
 }
+
+export interface MyData {
+  fullName: string | null;
+  cpf: string | null;
+  phone: string | null;
+  jobTitle: string | null;
+  photoPath: string | null;
+}
+
+export async function loadMyData(userId: string): Promise<MyData> {
+  const { data, error } = await supabase.from("profiles").select("full_name, cpf, phone, job_title, photo_path").eq("id", userId).single();
+  if (error || !data) throw new Error("Não foi possível carregar seus dados.");
+  const row = data as { full_name: string | null; cpf: string | null; phone: string | null; job_title: string | null; photo_path: string | null };
+  return { fullName: row.full_name, cpf: row.cpf, phone: row.phone, jobTitle: row.job_title, photoPath: row.photo_path };
+}

@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ rpc: vi.fn() }));
-vi.mock("../lib/supabaseClient", () => ({ supabase: { rpc: mocks.rpc } }));
+const mocks = vi.hoisted(() => ({ rpc: vi.fn(), single: vi.fn() }));
+vi.mock("../lib/supabaseClient", () => ({
+  supabase: { rpc: mocks.rpc, from: () => ({ select: () => ({ eq: () => ({ single: mocks.single }) }) }) },
+}));
 
-import { completeRegistration, updateMyContact } from "./registration";
+import { completeRegistration, loadMyData, updateMyContact } from "./registration";
 
 const input = { fullName: "Ana Lima", cpf: "529.982.247-25", phone: "(11) 98765-4321", jobTitle: "Vendedora", photoPath: "u1/photo" };
 
@@ -45,5 +47,12 @@ describe("updateMyContact", () => {
     mocks.rpc.mockResolvedValue({ data: null, error: null });
     await updateMyContact({ phone: "(21) 3456-7890", jobTitle: "Gerente", photoPath: "u1/photo" });
     expect(mocks.rpc).toHaveBeenCalledWith("update_my_contact", { p_phone: "2134567890", p_job_title: "Gerente", p_photo_path: "u1/photo" });
+  });
+});
+
+describe("loadMyData", () => {
+  it("lê os próprios dados cadastrais", async () => {
+    mocks.single.mockResolvedValue({ data: { full_name: "Ana", cpf: "52998224725", phone: "11987654321", job_title: "V", photo_path: "u1/photo" }, error: null });
+    expect(await loadMyData("u1")).toEqual({ fullName: "Ana", cpf: "52998224725", phone: "11987654321", jobTitle: "V", photoPath: "u1/photo" });
   });
 });

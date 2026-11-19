@@ -1842,3 +1842,10 @@
 .app div[role="dialog"] fieldset label.admin-machine-option input {
   width: auto;
 }
+
+.member-photo {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 50%;
+}
