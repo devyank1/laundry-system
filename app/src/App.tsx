@@ -5,6 +5,7 @@ import { CatalogManager } from "./ui/CatalogManager";
 import { NotificationsButton, ThemeToggle, UserMenu, type Notice } from "./ui/UserArea";
 import { AdminPanel } from "./ui/AdminPanel";
 import { CompanyPanel } from "./ui/CompanyPanel";
+import { MyDataPanel } from "./ui/MyDataPanel";
 import { RoiCalculator } from "./roi/RoiCalculator";
 import { InsightsCalculator } from "./insights/InsightsCalculator";
 import {
@@ -73,6 +74,7 @@ export function App() {
   const [showCatalog, setShowCatalog] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [showCompany, setShowCompany] = useState(false);
+  const [showMyData, setShowMyData] = useState(false);
   const isEmpresa = profile?.role === "empresa";
   const [svgEl, setSvgEl] = useState<SVGSVGElement | null>(null);
   const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
@@ -116,6 +118,11 @@ export function App() {
         </div>
         <div className="topbar-actions">
           {isEmpresa && (
+            <button type="button" title="Seu telefone, cargo e foto" onClick={() => setShowMyData(true)}>
+              Meus dados
+            </button>
+          )}
+          {isEmpresa && (
             <button type="button" title="Equipe da sua empresa" onClick={() => setShowCompany(true)}>
               Minha empresa
             </button>
@@ -154,6 +161,12 @@ export function App() {
       {isEmpresa && showCompany && (
         <RequireRole roles={["empresa"]}>
           <CompanyPanel onClose={() => setShowCompany(false)} />
+        </RequireRole>
+      )}
+
+      {isEmpresa && showMyData && (
+        <RequireRole roles={["empresa"]}>
+          <MyDataPanel onClose={() => setShowMyData(false)} />
         </RequireRole>
       )}
 

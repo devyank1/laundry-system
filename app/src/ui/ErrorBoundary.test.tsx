@@ -19,9 +19,9 @@ beforeEach(() => {
 
 describe("ErrorBoundary", () => {
   it("captura erro de render, mostra ServerErrorPage (sem stack trace na tela) e insere em client_errors", () => {
-    const profile = { id: "u1", role: "admin" as const, companyId: null, isOwner: false, active: true };
+    const profile = { id: "u1", role: "admin" as const, companyId: null, isOwner: false, active: true, fullName: null, registrationComplete: false };
     render(
-      <AuthContext.Provider value={{ profile, loading: false, signOut: async () => {} }}>
+      <AuthContext.Provider value={{ profile, loading: false, signOut: async () => {}, refreshProfile: async () => {} }}>
         <ErrorBoundary>
           <Bomb />
         </ErrorBoundary>

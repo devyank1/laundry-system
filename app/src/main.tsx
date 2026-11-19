@@ -4,7 +4,7 @@ import { BrowserRouter, Route, Routes } from 'react-router'
 import './index.css'
 import { App } from './App.tsx'
 import { AuthProvider } from './auth/AuthProvider'
-import { RequireAuth } from './auth/RouteGuards'
+import { RequireAuth, RequireRegistration } from './auth/RouteGuards'
 import { NotFoundPage } from './ui/ErrorPages'
 import { LoginPage } from './ui/LoginPage'
 import { SetPasswordPage } from './ui/SetPasswordPage'
@@ -22,7 +22,9 @@ createRoot(document.getElementById('root')!).render(
             path="/"
             element={
               <RequireAuth>
-                <App />
+                <RequireRegistration>
+                  <App />
+                </RequireRegistration>
               </RequireAuth>
             }
           />

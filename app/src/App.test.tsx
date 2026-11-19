@@ -16,9 +16,10 @@ vi.mock("./auth/useAuth", () => ({ useAuth: () => auth.state }));
 
 function loginAs(role: Role, isOwner = false) {
   auth.state = {
-    profile: { id: "u1", role, companyId: role === "empresa" ? "c1" : null, isOwner, active: true },
+    profile: { id: "u1", role, companyId: role === "empresa" ? "c1" : null, isOwner, active: true, fullName: "Fulano", registrationComplete: true },
     loading: false,
     signOut: async () => {},
+    refreshProfile: async () => {},
   };
 }
 
@@ -139,6 +140,19 @@ describe("Acesso por papel", () => {
       loginAs(role);
       const r = render(<App />);
       expect(screen.queryByRole("button", { name: /minha empresa/i })).not.toBeInTheDocument();
+      r.unmount();
+    }
+  });
+
+  it("só empresa vê o botão Meus dados", () => {
+    loginAs("empresa", false);
+    const first = render(<App />);
+    expect(screen.getByRole("button", { name: /meus dados/i })).toBeInTheDocument();
+    first.unmount();
+    for (const role of ["admin", "cliente_fisico"] as const) {
+      loginAs(role);
+      const r = render(<App />);
+      expect(screen.queryByRole("button", { name: /meus dados/i })).not.toBeInTheDocument();
       r.unmount();
     }
   });

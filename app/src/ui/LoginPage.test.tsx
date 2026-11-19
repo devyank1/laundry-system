@@ -12,11 +12,19 @@ vi.mock("../lib/supabaseClient", () => ({
   supabase: { auth: { signInWithPassword: mocks.signInWithPassword, resetPasswordForEmail: mocks.resetPasswordForEmail } },
 }));
 
+const session = vi.hoisted(() => ({
+  loginAndClaim: vi.fn(async (fn: () => Promise<unknown>) => fn()),
+}));
+vi.mock("../auth/session", () => ({
+  loginAndClaim: session.loginAndClaim,
+  SESSION_REPLACED_MESSAGE: "Seu acesso neste aparelho foi encerrado porque a conta entrou em outro aparelho.",
+}));
+
 import { LoginPage } from "./LoginPage";
 
-function renderLogin() {
+function renderLogin(url = "/login") {
   render(
-    <MemoryRouter initialEntries={["/login"]}>
+    <MemoryRouter initialEntries={[url]}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<p>home do app</p>} />
@@ -48,6 +56,7 @@ describe("LoginPage", () => {
     await userEvent.type(screen.getByLabelText(/^senha/i), "certa1234");
     await userEvent.click(screen.getByRole("button", { name: /entrar/i }));
     expect(mocks.signInWithPassword).toHaveBeenCalledWith({ email: "a@b.com", password: "certa1234" });
+    expect(session.loginAndClaim).toHaveBeenCalled();
     expect(await screen.findByText("home do app")).toBeInTheDocument();
   });
 
@@ -59,5 +68,10 @@ describe("LoginPage", () => {
     expect(mocks.resetPasswordForEmail).toHaveBeenCalledWith("a@b.com", expect.objectContaining({ redirectTo: expect.stringMatching(/\/set-password$/) }));
     expect(await screen.findByText(/se existir uma conta com esse email/i)).toBeInTheDocument();
     expect(screen.queryByText(/user not found/i)).not.toBeInTheDocument();
+  });
+
+  it("mostra o aviso quando o aparelho foi derrubado por outro login", () => {
+    renderLogin("/login?motivo=outro-aparelho");
+    expect(screen.getByRole("status")).toHaveTextContent("Seu acesso neste aparelho foi encerrado porque a conta entrou em outro aparelho.");
   });
 });

@@ -11,7 +11,7 @@ beforeEach(() => {
   deps = {
     allowedOrigin: "http://localhost:5173",
     getCaller: vi.fn(async () => owner),
-    deactivateColleague: vi.fn(async () => true),
+    deactivateColleague: vi.fn(async () => "revoked" as const),
     log: vi.fn(async () => {}),
   };
 });
@@ -22,10 +22,19 @@ describe("company-revoke-member", () => {
     expect(res.status).toBe(200);
     expect(deps.deactivateColleague).toHaveBeenCalledWith({ userId: UID, companyId: "c1" });
     expect(deps.log).toHaveBeenCalledWith("o1", "colleague_revoked", { companyId: "c1", userId: UID });
+    expect(await res.json()).toEqual({ result: "revoked" });
+  });
+
+  it("convite nunca aceito é cancelado (usuário removido)", async () => {
+    deps.deactivateColleague = vi.fn(async () => "removed" as const);
+    const res = await handleRevokeMember(post({ userId: UID }), deps);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ result: "removed" });
+    expect(deps.log).toHaveBeenCalledWith("o1", "colleague_invite_cancelled", { companyId: "c1", userId: UID });
   });
 
   it("colega fora da empresa (ou o próprio dono) responde 404 sem revelar nada", async () => {
-    deps.deactivateColleague = vi.fn(async () => false);
+    deps.deactivateColleague = vi.fn(async () => "not_found" as const);
     expect((await handleRevokeMember(post({ userId: UID }), deps)).status).toBe(404);
     expect(deps.log).not.toHaveBeenCalled();
   });

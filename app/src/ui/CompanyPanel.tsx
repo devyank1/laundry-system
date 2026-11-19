@@ -2,6 +2,23 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useAuth } from "../auth/useAuth";
 import { invokeEdgeFunction } from "../lib/edgeFunctions";
 import { listCompanyMembers, type CompanyMember } from "../company/members";
+import { formatCpf, formatPhone } from "../lib/cpf";
+import { photoUrl } from "../profile/photos";
+
+function MemberPhoto({ member }: { member: CompanyMember }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!member.photoPath) return;
+    let cancelled = false;
+    void photoUrl(member.photoPath).then((u) => {
+      if (!cancelled) setUrl(u);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [member.photoPath]);
+  return url ? <img className="member-photo" src={url} alt={member.fullName ?? member.email ?? "Foto"} /> : null;
+}
 
 // Equipe da empresa. Só o dono convida/revoga — e a Edge Function confere
 // isso de novo no servidor; aqui é só o que a tela mostra.
@@ -18,7 +35,7 @@ export function CompanyPanel({ onClose }: { onClose?: () => void }) {
   const reload = useCallback(async () => {
     if (!companyId) return;
     try {
-      setTeam(await listCompanyMembers(companyId));
+      setTeam(await listCompanyMembers());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível carregar a equipe.");
     }
@@ -54,7 +71,9 @@ export function CompanyPanel({ onClose }: { onClose?: () => void }) {
   }
 
   function onRevoke(member: CompanyMember) {
-    void run(() => invokeEdgeFunction("company-revoke-member", { userId: member.id }).then(() => {}), `Acesso de ${member.email} revogado.`);
+    const who = member.fullName ?? member.email ?? "colega";
+    const done = member.registered ? `Acesso de ${who} revogado.` : `Convite para ${who} cancelado.`;
+    void run(() => invokeEdgeFunction("company-revoke-member", { userId: member.id }).then(() => {}), done);
   }
 
   return (
@@ -67,12 +86,21 @@ export function CompanyPanel({ onClose }: { onClose?: () => void }) {
       <h2>Minha empresa</h2>
       <ul>
         {team.map((m) => (
-          <li key={m.id}>
-            <span>{m.email}</span> — {m.isOwner ? "dono" : "colega"}
-            {!m.active && " (revogado)"}
+          <li key={m.id} className="member-row">
+            <MemberPhoto member={m} />
+            <div>
+              <strong>{m.fullName ?? m.email ?? "Sem nome"}</strong>
+              {m.jobTitle && <span> — {m.jobTitle}</span>}
+              {m.isOwner && <span> (dono)</span>}
+              {!m.active && <span> (revogado)</span>}
+              {m.active && !m.registered && <span> — Convite pendente</span>}
+              {m.fullName && m.email && <div>{m.email}</div>}
+              {m.cpf && <div>CPF {formatCpf(m.cpf)}</div>}
+              {m.phone && <div>Tel. {formatPhone(m.phone)}</div>}
+            </div>
             {isOwner && !m.isOwner && m.active && (
               <button type="button" disabled={busy} onClick={() => onRevoke(m)}>
-                Revogar
+                {m.registered ? "Revogar" : "Cancelar convite"}
               </button>
             )}
           </li>
