@@ -214,10 +214,21 @@ function writeSync(v: { roi?: string; insights?: string }): void {
   }
 }
 
+function plantSignature(plant: PlantMachine[]): string {
+  return plant.map((m) => `${m.label}:${m.qty}:${m.bocasKg.join("/")}`).join("|");
+}
+
+/** Marca a planta atual como já aplicada (ex.: reunião reaberta traz o ROI
+ * dela; a sincronização não pode sobrescrever). */
+export function markPlantSynced(selection: MachineSelection[], catalog: CatalogMachine[]): void {
+  const sig = plantSignature(plantMachines(selection, catalog));
+  writeSync({ roi: sig, insights: sig });
+}
+
 /** Faz ROI e Conectividade seguirem a planta sempre que ela muda. */
 export function usePlantSync(): void {
   const plant = usePlant();
-  const sig = plant.map((m) => `${m.label}:${m.qty}:${m.bocasKg.join("/")}`).join("|");
+  const sig = plantSignature(plant);
   useEffect(() => {
     const last = readSync();
     if (last.roi !== sig) applyPlantToRoi(plant);

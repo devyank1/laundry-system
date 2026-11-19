@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { refreshCatalog, resetCatalog } from "../catalog/store";
 import { AuthContext, type AuthState } from "./authContext";
 import { waitForClaim } from "./session";
 import type { Profile, Role } from "./types";
+import { resetWorkspace, workspaceOwnerChanged } from "../clients/resetWorkspace";
 
 interface ProfileRow {
   id: string;
@@ -58,6 +59,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return () => data.subscription.unsubscribe();
   }, []);
+
+  // Trocou de conta ou saiu: limpa a tela (cliente, logo, planta, ROI).
+  const lastUser = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (userId === undefined) return;
+    if (workspaceOwnerChanged(lastUser.current, userId)) resetWorkspace();
+    lastUser.current = userId;
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) {

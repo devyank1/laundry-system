@@ -144,6 +144,19 @@ describe("Acesso por papel", () => {
     }
   });
 
+  it("só empresa vê o botão Clientes", () => {
+    loginAs("empresa", false);
+    const first = render(<App />);
+    expect(screen.getByRole("button", { name: /^clientes$/i })).toBeInTheDocument();
+    first.unmount();
+    for (const role of ["admin", "cliente_fisico"] as const) {
+      loginAs(role);
+      const r = render(<App />);
+      expect(screen.queryByRole("button", { name: /^clientes$/i })).not.toBeInTheDocument();
+      r.unmount();
+    }
+  });
+
   it("só empresa vê o botão Meus dados", () => {
     loginAs("empresa", false);
     const first = render(<App />);

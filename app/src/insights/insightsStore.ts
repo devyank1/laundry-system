@@ -4,11 +4,21 @@ import { defaultInsightsInputs, type InsightsInputs, type TierId } from "./model
 const STORAGE_KEY = "lavanderia.insights.v1";
 
 function load(): InsightsInputs {
-  const base = defaultInsightsInputs();
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return base;
-    const p = JSON.parse(raw) as Partial<InsightsInputs>;
+    if (!raw) return defaultInsightsInputs();
+    return normalizeInsights(JSON.parse(raw));
+  } catch {
+    return defaultInsightsInputs();
+  }
+}
+
+// Completa um Conectividade salvo (localStorage ou reunião de cliente).
+export function normalizeInsights(raw: unknown): InsightsInputs {
+  const base = defaultInsightsInputs();
+  if (!raw || typeof raw !== "object") return base;
+  try {
+    const p = raw as Partial<InsightsInputs>;
     const out = { ...base, ...p, fleet: { ...base.fleet, ...p.fleet } };
     // só aceita texto; qualquer outra coisa salva por engano volta ao padrão
     (Object.keys(base) as (keyof InsightsInputs)[]).forEach((k) => {
@@ -34,6 +44,7 @@ interface InsightsStore extends InsightsInputs {
   setField: (key: Field, value: string) => void;
   setFleet: (id: TierId, value: string) => void;
   reset: () => void;
+  replaceAll: (state: InsightsInputs) => void;
 }
 
 export const useInsightsStore = create<InsightsStore>((set, get) => {
@@ -50,5 +61,6 @@ export const useInsightsStore = create<InsightsStore>((set, get) => {
     setField: (key, value) => apply({ [key]: value }),
     setFleet: (id, value) => apply({ fleet: { ...get().fleet, [id]: value } }),
     reset: () => apply(defaultInsightsInputs()),
+    replaceAll: (state) => apply(normalizeInsights(state)),
   };
 });

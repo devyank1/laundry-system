@@ -62,7 +62,7 @@ interface ProjectStore extends ProjectState {
   toggleInauguracao: () => void;
 }
 
-const initialState: ProjectState = {
+export const initialProjectState: ProjectState = {
   roomWidthMm: 5000,
   roomDepthMm: 6000, // 30m² de área padrão
   ceilingHeightMm: 2800, // pé-direito recomendado pro primeiro passo do projeto
@@ -89,8 +89,28 @@ const initialState: ProjectState = {
   acOverrideBTU: null,
 };
 
+// Fachada/logo que fazem parte da reunião salva (fora do ProjectState do motor).
+export interface FacadeState {
+  logoStyle: LogoStyle;
+  logoDepthMm: number;
+  logoSideColor: LogoSideColor;
+  facadeVisible: boolean;
+  facadeColor: string;
+  facadeSignColor: string;
+}
+
+export const initialFacadeState: FacadeState = {
+  logoStyle: "3d",
+  logoDepthMm: 30,
+  logoSideColor: "white",
+  facadeVisible: true,
+  facadeColor: "#8fa892", // verde-sálvia da referência
+  facadeSignColor: "#a8977c", // bege granilite do painel
+};
+
 export const useProjectStore = create<ProjectStore>()((set) => ({
-  ...initialState,
+  ...initialProjectState,
+  ...initialFacadeState,
   setRoomWidthMm: (mm) => set({ roomWidthMm: mm }),
   setRoomDepthMm: (mm) => set({ roomDepthMm: mm }),
   setRoomAreaM2: (areaM2) =>
@@ -132,17 +152,11 @@ export const useProjectStore = create<ProjectStore>()((set) => ({
   setAcOverrideBTU: (btu) => set({ acOverrideBTU: btu }),
   logoDataUrl: null,
   setLogoDataUrl: (url) => set({ logoDataUrl: url }),
-  logoStyle: "3d",
   setLogoStyle: (style) => set({ logoStyle: style }),
-  logoDepthMm: 30,
   setLogoDepthMm: (mm) => set({ logoDepthMm: mm }),
-  logoSideColor: "white",
   setLogoSideColor: (color) => set({ logoSideColor: color }),
-  facadeVisible: true,
   toggleFacade: () => set((state) => ({ facadeVisible: !state.facadeVisible })),
-  facadeColor: "#8fa892", // verde-sálvia da referência
   setFacadeColor: (hex) => set({ facadeColor: hex }),
-  facadeSignColor: "#a8977c", // bege granilite do painel
   setFacadeSignColor: (hex) => set({ facadeSignColor: hex }),
   sceneLighting: "day",
   setSceneLighting: (mode) => set({ sceneLighting: mode }),
