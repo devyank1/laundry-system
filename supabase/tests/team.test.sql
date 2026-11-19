@@ -1,5 +1,5 @@
 begin;
-select plan(26);
+select plan(29);
 
 -- a: admin, b: dono A, c: vendedor A, f: vendedor A (2), d: cliente físico, e: vendedor B
 insert into auth.users (id, email) values
@@ -94,6 +94,23 @@ select results_eq(
   'vendedor vê só nome e cargo do colega'
 );
 select isnt((select cpf from company_team() where id = '00000000-0000-0000-0000-0000000000c1'), null, 'vendedor vê os próprios dados');
+
+-- admin corrige nome/CPF; vendedor não altera direto
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000f1","session_id":"00000000-0000-0000-0000-0000000000f1","role":"authenticated"}';
+update profiles set cpf = '11144477735' where id = '00000000-0000-0000-0000-0000000000f1';
+reset role;
+select is((select cpf from profiles where id = '00000000-0000-0000-0000-0000000000f1'), '52998224725', 'vendedor não altera o próprio CPF direto');
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000a1","session_id":"00000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+select lives_ok($$ update profiles set full_name = 'Bia Souza Lima', cpf = '22233366638' where id = '00000000-0000-0000-0000-0000000000f1' $$, 'admin corrige nome e CPF');
+reset role;
+select ok(
+  exists (select 1 from admin_actions_log where action = 'profile_data_changed'
+          and actor_id = '00000000-0000-0000-0000-0000000000a1'
+          and details->>'id' = '00000000-0000-0000-0000-0000000000f1' and details->'fields' ? 'cpf'),
+  'correção do admin vai pra auditoria com o autor'
+);
 
 -- fotos (bucket privado)
 reset role;

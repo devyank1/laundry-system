@@ -1,6 +1,7 @@
 import { useState, useSyncExternalStore, type FormEvent } from "react";
 import { getCatalog, subscribeCatalog } from "../catalog/store";
 import { invokeEdgeFunction } from "../lib/edgeFunctions";
+import { AdminTeamsPanel } from "./AdminTeamsPanel";
 
 interface CreateCompanyResponse {
   companyId: string;
@@ -90,6 +91,7 @@ export function AdminPanel({ onClose }: { onClose?: () => void }) {
           </button>
         </fieldset>
       </form>
+      <AdminTeamsPanel />
     </div>
   );
 }

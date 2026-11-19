@@ -7,6 +7,8 @@ vi.mock("../lib/supabaseClient", async () => (await import("../test/fakeSupabase
 const fn = vi.hoisted(() => ({ invokeEdgeFunction: vi.fn() }));
 vi.mock("../lib/edgeFunctions", () => fn);
 
+vi.mock("./AdminTeamsPanel", () => ({ AdminTeamsPanel: () => null }));
+
 import { AdminPanel } from "./AdminPanel";
 import { refreshCatalog } from "../catalog/store";
 import { CATALOG_SEED } from "../catalog/seed";
