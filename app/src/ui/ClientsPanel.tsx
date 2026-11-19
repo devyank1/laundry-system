@@ -7,6 +7,7 @@ import {
   deleteClient,
   duplicateOwner,
   listClients,
+  loadMeeting,
   loadMeetingLogo,
   logoPathFor,
   saveMeeting,
@@ -120,8 +121,8 @@ export function ClientsPanel({ onClose }: { onClose?: () => void }) {
 
   async function doOpen(c: Client) {
     await run(async () => {
-      const logo = await loadMeetingLogo(c);
-      const { removed } = applyMeeting(c.meeting, logo);
+      const [meeting, logo] = await Promise.all([loadMeeting(c.id), loadMeetingLogo(c)]);
+      const { removed } = applyMeeting(meeting, logo);
       useMeetingSession.getState().bind({ id: c.id, name: c.name, canSave: c.sellerId === me, companyId: c.companyId, logoPath: c.logoPath });
       if (removed.length > 0) {
         throw new Error(`Algumas máquinas desta reunião não estão mais no catálogo e foram retiradas: ${removed.join(", ")}.`);
@@ -152,7 +153,7 @@ export function ClientsPanel({ onClose }: { onClose?: () => void }) {
   }
 
   function onSaveHere(c: Client) {
-    if (c.meeting && useMeetingSession.getState().clientId !== c.id) setPending({ kind: "save", client: c });
+    if (c.meetingSavedAt && useMeetingSession.getState().clientId !== c.id) setPending({ kind: "save", client: c });
     else void doSave(c);
   }
 
@@ -176,8 +177,15 @@ export function ClientsPanel({ onClose }: { onClose?: () => void }) {
     }, `${c.name} agora está com ${who}.`);
   }
 
-  function onDownload() {
-    const blob = new Blob([toCsv(clients, getCatalog())], { type: "text/csv;charset=utf-8" });
+  async function onDownload() {
+    let all: Client[];
+    try {
+      all = await listClients({ withMeeting: true });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Não foi possível gerar a planilha.");
+      return;
+    }
+    const blob = new Blob([toCsv(all, getCatalog())], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -211,7 +219,7 @@ export function ClientsPanel({ onClose }: { onClose?: () => void }) {
           Novo cliente
         </button>
         {isOwner && (
-          <button type="button" disabled={clients.length === 0} onClick={onDownload}>
+          <button type="button" disabled={clients.length === 0} onClick={() => void onDownload()}>
             Baixar planilha (CSV)
           </button>
         )}
@@ -300,7 +308,7 @@ export function ClientsPanel({ onClose }: { onClose?: () => void }) {
                 </div>
               </div>
               <div className="client-buttons">
-                {c.meeting != null && (
+                {c.meetingSavedAt && (
                   <button type="button" disabled={busy} onClick={() => onOpen(c)}>
                     Abrir reunião
                   </button>

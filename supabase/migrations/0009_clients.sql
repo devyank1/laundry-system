@@ -1,6 +1,6 @@
 -- Clientes (leads) das empresas parceiras e a reunião salva de cada um.
--- Vendedor vê e edita os próprios; dono vê, edita, transfere e exclui os
--- da empresa. Só o responsável grava a reunião (via save_client_meeting).
+-- Vendedor vê, edita e exclui os próprios; dono vê, edita, transfere e
+-- exclui os da empresa. Só o responsável grava a reunião (via save_client_meeting).
 -- Tudo atrás de current_profile(): sessão única + cadastro completo.
 
 create or replace function public.is_valid_cnpj(p text)
@@ -90,6 +90,14 @@ begin
   new.phone := nullif(regexp_replace(coalesce(new.phone, ''), '[^0-9]', '', 'g'), '');
   new.cnpj := nullif(regexp_replace(coalesce(new.cnpj, ''), '[^0-9]', '', 'g'), '');
   new.email := nullif(btrim(coalesce(new.email, '')), '');
+  if tg_op = 'INSERT' then
+    -- reunião e logo só entram por save_client_meeting; datas são do servidor
+    new.meeting := null;
+    new.meeting_saved_at := null;
+    new.logo_path := null;
+    new.created_at := now();
+    new.updated_at := now();
+  end if;
   if tg_op = 'UPDATE' then
     if new.company_id is distinct from old.company_id then
       raise exception 'not_allowed' using errcode = '42501';

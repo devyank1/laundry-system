@@ -113,13 +113,34 @@ async function memberNames(): Promise<Map<string, string | null>> {
   }
 }
 
-export async function listClients(): Promise<Client[]> {
-  const [{ data, error }, names] = await Promise.all([
-    supabase.from("clients").select("*").order("updated_at", { ascending: false }),
-    memberNames(),
-  ]);
-  if (error) throw new Error("Não foi possível carregar os clientes.");
-  return ((data ?? []) as ClientRow[]).map((r) => fromRow(r, names));
+const LIST_COLUMNS =
+  "id, company_id, seller_id, name, phone, email, cnpj, has_location, address, location_m2, notes, meeting_saved_at, logo_path, created_at, updated_at";
+const PAGE = 1000; // limite de linhas por pedido da API
+
+// Lista sem a reunião (pesa ~5 KB cada); a planilha pede com reunião.
+export async function listClients(opts: { withMeeting?: boolean } = {}): Promise<Client[]> {
+  const columns = opts.withMeeting ? `${LIST_COLUMNS}, meeting` : LIST_COLUMNS;
+  const namesPromise = memberNames();
+  const rows: ClientRow[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from("clients")
+      .select(columns)
+      .order("updated_at", { ascending: false })
+      .range(from, from + PAGE - 1);
+    if (error) throw new Error("Não foi possível carregar os clientes.");
+    const page = (data ?? []) as unknown as ClientRow[];
+    rows.push(...page);
+    if (page.length < PAGE) break;
+  }
+  const names = await namesPromise;
+  return rows.map((r) => fromRow({ ...r, meeting: r.meeting ?? null }, names));
+}
+
+export async function loadMeeting(id: string): Promise<unknown> {
+  const { data, error } = await supabase.from("clients").select("meeting").eq("id", id).single();
+  if (error || !data) throw new Error("Não foi possível abrir a reunião.");
+  return (data as { meeting: unknown }).meeting;
 }
 
 export async function createClient(i: ClientInput, companyId: string, sellerId: string): Promise<Client> {
@@ -188,6 +209,7 @@ export async function saveMeeting(c: Client, logoDataUrl: string | null): Promis
 export async function loadMeetingLogo(c: Client): Promise<string | null> {
   if (!c.logoPath) return null;
   const { data, error } = await supabase.storage.from(BUCKET).download(c.logoPath);
-  if (error || !data) return null;
+  // Abrir sem a logo faria o próximo "Salvar reunião" apagá-la.
+  if (error || !data) throw new Error("Não foi possível baixar a logo desta reunião. Tente de novo.");
   return blobToDataUrl(data);
 }

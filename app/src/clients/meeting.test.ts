@@ -87,6 +87,13 @@ describe("useMeetingSession", () => {
     expect(useMeetingSession.getState().isDirty()).toBe(true);
   });
 
+  it("fechar não esconde alterações não salvas", () => {
+    useMeetingSession.getState().bind({ id: "c1", name: "Lava Já", canSave: true });
+    useProjectStore.setState({ roomWidthMm: 7777 });
+    useMeetingSession.getState().unbind();
+    expect(useMeetingSession.getState().isDirty()).toBe(true);
+  });
+
   it("fechar desliga o cliente", () => {
     useMeetingSession.getState().bind({ id: "c1", name: "Lava Já", canSave: false });
     expect(useMeetingSession.getState()).toMatchObject({ clientId: "c1", clientName: "Lava Já", canSave: false });

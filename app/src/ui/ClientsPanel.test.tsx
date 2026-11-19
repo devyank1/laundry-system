@@ -12,6 +12,7 @@ const api = vi.hoisted(() => ({
   duplicateOwner: vi.fn(async () => null as string | null),
   saveMeeting: vi.fn(async () => {}),
   loadMeetingLogo: vi.fn(async () => null),
+  loadMeeting: vi.fn(async () => ({ v: 1 }) as unknown),
 }));
 vi.mock("../clients/api", async (orig) => ({ ...(await orig<typeof import("../clients/api")>()), ...api }));
 const meeting = vi.hoisted(() => ({ fp: "a", applyMeeting: vi.fn(() => ({ removed: [] as string[] })) }));
@@ -33,7 +34,7 @@ import { useMeetingSession } from "../clients/sessionStore";
 
 const c1: Client = {
   id: "cl1", companyId: "c1", sellerId: "u1", sellerName: "Ana Um", name: "Lava Já", phone: "11987654321", email: "",
-  cnpj: "", hasLocation: false, address: "", locationM2: "", notes: "", meeting: { v: 1 }, meetingSavedAt: "2026-11-19T10:00:00Z",
+  cnpj: "", hasLocation: false, address: "", locationM2: "", notes: "", meeting: null, meetingSavedAt: "2026-11-19T10:00:00Z",
   logoPath: null, createdAt: "2026-11-19T10:00:00Z", updatedAt: "2026-11-19T10:00:00Z",
 };
 
@@ -48,6 +49,7 @@ beforeEach(() => {
   meeting.applyMeeting.mockReset().mockReturnValue({ removed: [] });
   meeting.fp = "a";
   useMeetingSession.getState().unbind();
+  useMeetingSession.getState().markSaved(); // tela limpa a cada teste
 });
 
 describe("ClientsPanel (vendedor)", () => {
@@ -133,7 +135,8 @@ describe("ClientsPanel (dono)", () => {
     render(<ClientsPanel />);
     await screen.findByText("Lava Já");
     await userEvent.click(screen.getByRole("button", { name: "Baixar planilha (CSV)" }));
-    expect(createObjectURL).toHaveBeenCalled();
+    await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+    expect(api.listClients).toHaveBeenLastCalledWith({ withMeeting: true });
     const a = click.mock.instances[0] as unknown as HTMLAnchorElement;
     expect(a.download).toMatch(/^clientes-\d{4}-\d{2}-\d{2}\.csv$/);
     click.mockRestore();

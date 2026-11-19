@@ -45,7 +45,7 @@ export const useMeetingSession = create<MeetingSession>((set, get) => ({
   markSaved: (logoPath) =>
     set((s) => ({ baseline: meetingFingerprint(), logoPath: logoPath === undefined ? s.logoPath : logoPath })),
   setCanSave: (canSave) => set({ canSave }),
-  unbind: () =>
-    set({ clientId: null, clientName: null, companyId: null, logoPath: null, canSave: false, baseline: meetingFingerprint() }),
+  // Mantém o retrato: o que não foi salvo continua contando como não salvo.
+  unbind: () => set({ clientId: null, clientName: null, companyId: null, logoPath: null, canSave: false }),
   isDirty: () => meetingFingerprint() !== get().baseline,
 }));

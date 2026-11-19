@@ -1,5 +1,5 @@
 begin;
-select plan(30);
+select plan(32);
 
 -- o: dono A, a1/a2: vendedores A, b: vendedor B, f: cliente físico
 insert into auth.users (id, email) values
@@ -36,6 +36,15 @@ select throws_ok($$ insert into clients (company_id, seller_id, name) values ('4
 select throws_ok($$ insert into clients (company_id, seller_id, name, email, cnpj) values ('40000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-0000000007a1', 'X', 'x@x.com', '11.111.111/1111-11') $$, '23514', null, 'CNPJ inválido é recusado');
 select throws_ok($$ insert into clients (company_id, seller_id, name, email) values ('40000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-0000000007a2', 'X', 'x@x.com') $$, '42501', null, 'vendedor não cadastra cliente em nome de colega');
 select throws_ok($$ update clients set meeting = '{}' $$, '42501', null, 'reunião não é gravada por edição direta');
+select lives_ok($$
+  with c as (insert into clients (company_id, seller_id, name, email, meeting, meeting_saved_at, logo_path, created_at)
+             values ('40000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-0000000007a1', 'Forjado', 'f@f.com',
+                     '{"x":1}', '2000-01-01', 'outra/empresa/logo', '2000-01-01') returning id)
+  insert into ids select 'forjado', id from c $$, 'insert com campos de reunião não falha');
+select ok((select meeting is null and meeting_saved_at is null and logo_path is null and created_at > now() - interval '1 minute'
+           from clients where id = (select v from ids where k = 'forjado')),
+          'insert não grava reunião, logo nem datas forjadas');
+delete from clients where id = (select v from ids where k = 'forjado');
 select lives_ok($$ select save_client_meeting((select v from ids where k = 'c1'), '{"v":1}', null) $$, 'responsável salva a reunião');
 select isnt((select meeting_saved_at from clients), null, 'data da reunião registrada');
 select throws_ok($$ select save_client_meeting((select v from ids where k = 'c1'), '{"v":1}', 'outra/coisa/logo') $$, '42501', null, 'caminho de logo fora do padrão é recusado');

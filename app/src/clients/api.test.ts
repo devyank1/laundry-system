@@ -6,6 +6,7 @@ const db = vi.hoisted(() => ({
   update: vi.fn(),
   del: vi.fn(),
   select: vi.fn(),
+  selectOne: vi.fn(),
   rpc: vi.fn(),
   upload: vi.fn(),
   remove: vi.fn(),
@@ -18,7 +19,10 @@ vi.mock("../lib/supabaseClient", () => ({
       return db.rpc(...a);
     },
     from: () => ({
-      select: () => ({ order: () => db.select() }),
+      select: (cols: string) => ({
+        order: () => ({ range: (a: number, b: number) => db.select(cols, a, b) }),
+        eq: (_c: string, id: string) => ({ single: () => db.selectOne(cols, id) }),
+      }),
       insert: (row: unknown) => ({ select: () => ({ single: () => db.insert(row) }) }),
       update: (values: unknown) => ({ eq: (_c: string, id: string) => ({ select: () => db.update(values, id) }) }),
       delete: () => ({
@@ -48,7 +52,7 @@ vi.mock("../company/members", () => ({
 }));
 vi.mock("./meeting", () => ({ captureMeeting: () => ({ v: 1, project: {}, roi: {}, insights: {} }) }));
 
-import { clientInputProblem, createClient, deleteClient, duplicateOwner, listClients, saveMeeting, type Client, type ClientInput } from "./api";
+import { clientInputProblem, createClient, deleteClient, duplicateOwner, listClients, loadMeeting, loadMeetingLogo, saveMeeting, type Client, type ClientInput } from "./api";
 
 const input: ClientInput = { name: "Lava Já", phone: "(11) 98765-4321", email: "", cnpj: "11.222.333/0001-81", hasLocation: true, address: "Rua A, 10", locationM2: "45,5", notes: "" };
 const row = { id: "cl1", company_id: "c1", seller_id: "u1", name: "Lava Já", phone: "11987654321", email: null, cnpj: "11222333000181", has_location: true, address: "Rua A, 10", location_m2: 45.5, notes: null, meeting: null, meeting_saved_at: null, logo_path: null, created_at: "2026-11-19T10:00:00Z", updated_at: "2026-11-19T10:00:00Z" };
@@ -56,7 +60,7 @@ const client = { id: "cl1", companyId: "c1", sellerId: "u1", logoPath: "c1/cl1/l
 
 beforeEach(() => {
   db.calls.length = 0;
-  for (const f of [db.insert, db.update, db.del, db.select, db.rpc, db.upload, db.remove, db.download]) f.mockReset();
+  for (const f of [db.selectOne, db.insert, db.update, db.del, db.select, db.rpc, db.upload, db.remove, db.download]) f.mockReset();
   db.rpc.mockResolvedValue({ data: null, error: null });
   db.upload.mockResolvedValue({ data: {}, error: null });
   db.remove.mockResolvedValue({ data: [], error: null });
@@ -82,10 +86,31 @@ describe("api", () => {
     expect(c).toMatchObject({ id: "cl1", name: "Lava Já", sellerId: "u1", locationM2: "45,5" });
   });
 
-  it("listClients junta o nome do vendedor", async () => {
+  it("listClients junta o nome do vendedor e não baixa as reuniões", async () => {
     db.select.mockResolvedValue({ data: [row], error: null });
     const list = await listClients();
     expect(list[0]).toMatchObject({ sellerName: "Ana Um", phone: "11987654321" });
+    expect(db.select.mock.calls[0][0]).not.toContain("meeting,");
+    expect(db.select.mock.calls[0][0]).toContain("meeting_saved_at");
+  });
+
+  it("listClients busca todas as páginas (passa de 1000)", async () => {
+    const page = Array.from({ length: 1000 }, (_, i) => ({ ...row, id: `p${i}` }));
+    db.select.mockResolvedValueOnce({ data: page, error: null }).mockResolvedValueOnce({ data: [row], error: null });
+    const list = await listClients({ withMeeting: true });
+    expect(list).toHaveLength(1001);
+    expect(db.select.mock.calls.map((c) => [c[1], c[2]])).toEqual([[0, 999], [1000, 1999]]);
+    expect(db.select.mock.calls[0][0]).toContain("meeting");
+  });
+
+  it("loadMeeting busca a reunião na hora de abrir", async () => {
+    db.selectOne.mockResolvedValue({ data: { meeting: { v: 1 } }, error: null });
+    expect(await loadMeeting("cl1")).toEqual({ v: 1 });
+  });
+
+  it("logo que não baixa impede abrir (senão o próximo salvar apagaria a logo)", async () => {
+    db.download.mockResolvedValue({ data: null, error: { message: "rede" } });
+    await expect(loadMeetingLogo(client)).rejects.toThrow("Não foi possível baixar a logo desta reunião. Tente de novo.");
   });
 
   it("saveMeeting sobe a logo antes de gravar a reunião", async () => {
