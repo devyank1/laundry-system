@@ -28,12 +28,15 @@ insert into profiles (id, role, company_id, is_owner, active) values
   ('00000000-0000-0000-0000-00000000000e', 'empresa', '10000000-0000-0000-0000-000000000002', true, true);
 
 -- anon
+insert into user_sessions (user_id, session_id) select id, id from auth.users where email like '%pgtap.local';
+update profiles set registration_completed_at = now() where role = 'empresa';
+
 set local role anon;
 select throws_ok($$ select count(*) from catalog_machines $$, '42501', null, 'anon não lê catálogo');
 
 -- admin
 set local role authenticated;
-set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}';
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000a","session_id":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}';
 select is((select count(*)::int from catalog_machines), 3, 'admin lê catálogo completo');
 select lives_ok($$ insert into catalog_machines (id, data) values ('m4', '{"id":"m4"}') $$, 'admin escreve no catálogo');
 update catalog_machines set data = '{"id":"m4","model":"novo"}' where id = 'm4';
@@ -49,11 +52,11 @@ select results_eq(
 select is((select details->'old'->>'model' from admin_actions_log where action = 'catalog_update'), null, 'update guarda o valor antigo');
 select is((select details->'new'->>'model' from admin_actions_log where action = 'catalog_update'), 'novo', 'update guarda o valor novo');
 set local role authenticated;
-set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}';
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000a","session_id":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}';
 select is((select count(*)::int from profiles), 5, 'admin lê todos os perfis');
 
 -- dono da empresa A
-set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}';
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000b","session_id":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}';
 select results_eq($$ select id from catalog_machines order by id $$, $$ values ('m1') $$, 'empresa vê só o catálogo liberado');
 select throws_ok($$ insert into catalog_machines (id, data) values ('x', '{}') $$, '42501', null, 'empresa não escreve no catálogo');
 select is((select count(*)::int from profiles), 1, 'empresa lê só o próprio perfil direto (equipe vem por company_team)');
@@ -62,12 +65,12 @@ update profiles set role = 'admin' where id = '00000000-0000-0000-0000-000000000
 select is((select role from current_profile()), 'empresa', 'empresa não se promove a admin');
 
 -- colega revogado (active=false), com sessão ainda válida
-set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000c","role":"authenticated"}';
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000c","session_id":"00000000-0000-0000-0000-00000000000c","role":"authenticated"}';
 select is((select count(*)::int from catalog_machines), 0, 'colega revogado não lê catálogo');
 select is((select count(*)::int from companies), 0, 'colega revogado não lê empresa');
 
 -- cliente físico
-set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000d","role":"authenticated"}';
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000d","session_id":"00000000-0000-0000-0000-00000000000d","role":"authenticated"}';
 select is((select count(*)::int from catalog_machines), 3, 'cliente físico lê catálogo completo');
 select throws_ok($$ select * from cakto_processed_events $$, '42501', null, 'cliente físico não lê eventos da Cakto');
 

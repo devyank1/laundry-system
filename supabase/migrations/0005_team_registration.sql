@@ -67,6 +67,8 @@ declare
   me public.profiles;
   v_phone text;
 begin
+  -- definida em 0007 (sessão única); resolvida em tempo de execução.
+  perform public.require_current_session();
   select * into me from public.profiles where id = auth.uid() and active;
   if me.id is null or me.role <> 'empresa' or me.registration_completed_at is not null then
     raise exception 'not_allowed' using errcode = '42501';
@@ -104,6 +106,8 @@ declare
   me public.profiles;
   v_phone text;
 begin
+  -- definida em 0007 (sessão única); resolvida em tempo de execução.
+  perform public.require_current_session();
   select * into me from public.profiles where id = auth.uid() and active;
   if me.id is null or me.role <> 'empresa' or me.registration_completed_at is null then
     raise exception 'not_allowed' using errcode = '42501';
@@ -125,11 +129,14 @@ $$;
 create or replace function public.company_team()
 returns table(id uuid, full_name text, job_title text, is_owner boolean, active boolean,
               registered boolean, email text, cpf text, phone text, photo_path text)
-language sql
+language plpgsql
 security definer
 stable
 set search_path = ''
 as $$
+begin
+  perform public.require_current_session();
+  return query
   with me as (
     select p.id, p.company_id, p.is_owner from public.profiles p
     where p.id = auth.uid() and p.active and p.role = 'empresa'
@@ -141,7 +148,8 @@ as $$
          case when me.is_owner or p.id = me.id then p.phone end,
          case when me.is_owner or p.id = me.id then p.photo_path end
   from public.profiles p join me on p.company_id = me.company_id
-  order by p.is_owner desc, p.full_name nulls last, p.email
+  order by p.is_owner desc, p.full_name nulls last, p.email;
+end;
 $$;
 
 revoke all on function public.complete_registration(text, text, text, text, text) from public, anon;
