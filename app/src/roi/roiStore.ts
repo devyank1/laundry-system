@@ -43,11 +43,22 @@ function migrateEquip(equip: RoiState["equip"], base: RoiState["equip"]): RoiSta
 }
 
 function load(): RoiState {
-  const base = defaultRoiState();
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return base;
-    const p = JSON.parse(raw) as Partial<RoiState>;
+    if (!raw) return defaultRoiState();
+    return normalizeRoi(JSON.parse(raw));
+  } catch {
+    return defaultRoiState();
+  }
+}
+
+// Completa/migra um ROI salvo (localStorage ou reunião de cliente): versão
+// antiga ou campo faltando não quebra a tela.
+export function normalizeRoi(raw: unknown): RoiState {
+  const base = defaultRoiState();
+  if (!raw || typeof raw !== "object") return base;
+  try {
+    const p = raw as Partial<RoiState>;
     // Mescla com os valores iniciais: salvo de versão antiga não quebra a tela.
     const equip = Array.isArray(p.equip) && p.equip.length ? migrateEquip(p.equip, base.equip) : base.equip;
     const infra = Array.isArray(p.infra) ? p.infra : base.infra;
@@ -93,6 +104,7 @@ interface RoiStore extends RoiState {
   addFixo: () => void;
   removeFixo: (i: number) => void;
   reset: () => void;
+  replaceAll: (state: RoiState) => void;
 }
 
 export const useRoiStore = create<RoiStore>((set) => {
@@ -142,5 +154,6 @@ export const useRoiStore = create<RoiStore>((set) => {
         return { fixo, cost: { ...s.cost, fixoTotal: sumFixo(fixo) } };
       }),
     reset: () => update(() => defaultRoiState()),
+    replaceAll: (state) => update(() => normalizeRoi(state)),
   };
 });
