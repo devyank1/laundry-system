@@ -12,6 +12,11 @@ vi.mock("../lib/supabaseClient", () => ({
   supabase: { auth: { verifyOtp: mocks.verifyOtp, updateUser: mocks.updateUser } },
 }));
 
+const session = vi.hoisted(() => ({
+  loginAndClaim: vi.fn(async (fn: () => Promise<unknown>) => fn()),
+}));
+vi.mock("../auth/session", () => ({ loginAndClaim: session.loginAndClaim }));
+
 import { SetPasswordPage } from "./SetPasswordPage";
 
 function renderAt(url: string) {
@@ -56,6 +61,7 @@ describe("SetPasswordPage", () => {
     renderAt("/set-password?token_hash=abc&type=invite");
     const nova = await screen.findByLabelText(/^nova senha/i);
     expect(mocks.verifyOtp).toHaveBeenCalledWith({ token_hash: "abc", type: "invite" });
+    expect(session.loginAndClaim).toHaveBeenCalled();
     await userEvent.type(nova, "Senha1234");
     await userEvent.type(screen.getByLabelText(/confirme/i), "Senha1234");
     await userEvent.click(screen.getByRole("button", { name: /salvar senha/i }));

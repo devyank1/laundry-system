@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { supabase } from "../lib/supabaseClient";
+import { loginAndClaim } from "../auth/session";
 import { InviteExpiredPage } from "./ErrorPages";
 import { AuthLoading } from "../auth/RouteGuards";
 import { LogoMark } from "./icons";
@@ -43,7 +44,7 @@ export function SetPasswordPage() {
     verifiedToken.current = tokenHash;
     void (async () => {
       try {
-        const { error: otpError } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+        const { error: otpError } = await loginAndClaim(() => supabase.auth.verifyOtp({ token_hash: tokenHash, type }));
         setStatus(otpError ? "invalid" : "ready");
       } catch {
         setStatus("invalid");

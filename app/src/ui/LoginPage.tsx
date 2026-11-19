@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
+import { loginAndClaim, SESSION_REPLACED_MESSAGE } from "../auth/session";
 import { supabase } from "../lib/supabaseClient";
 import { LogoMark } from "./icons";
 import "./statusPages.css";
@@ -11,10 +12,11 @@ const RESET_SENT = "Se existir uma conta com esse email, enviamos um link para d
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(params.get("motivo") === "outro-aparelho" ? SESSION_REPLACED_MESSAGE : null);
   const [busy, setBusy] = useState(false);
 
   async function onSubmit(event: FormEvent) {
@@ -23,7 +25,7 @@ export function LoginPage() {
     setNotice(null);
     setBusy(true);
     try {
-      const { error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      const { error: authError } = await loginAndClaim(() => supabase.auth.signInWithPassword({ email: email.trim(), password }));
       if (authError) {
         setError(LOGIN_FAILED);
         return;

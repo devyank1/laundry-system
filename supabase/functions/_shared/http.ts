@@ -1,6 +1,7 @@
 // Utilitários HTTP das functions chamadas pelo navegador. Sem Deno.env aqui
 // (fica testável no vitest): a origem permitida vem de quem chama.
 import type { SupabaseClient } from "./supabaseAdmin.ts";
+import { jwtSessionId } from "./jwt.ts";
 
 export { normalizeEmail } from "./validation.ts";
 
@@ -26,7 +27,8 @@ export interface Caller {
 }
 
 // Reconfirma no servidor quem está chamando (JWT do header Authorization) e
-// o papel atual em profiles — nunca confia no que a UI diz. Inativo = null.
+// o papel atual em profiles — nunca confia no que a UI diz. Inativo ou
+// token de aparelho derrubado (não é a sessão atual da conta) = null.
 export async function getCaller(admin: SupabaseClient, req: Request): Promise<Caller | null> {
   const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
   if (!token) return null;
@@ -38,5 +40,8 @@ export async function getCaller(admin: SupabaseClient, req: Request): Promise<Ca
     .eq("id", userData.user.id)
     .single();
   if (error || !data || !data.active) return null;
+  const sessionId = jwtSessionId(token);
+  const { data: current } = await admin.from("user_sessions").select("session_id").eq("user_id", data.id).maybeSingle();
+  if (!sessionId || !current || current.session_id !== sessionId) return null;
   return { id: data.id, role: data.role, companyId: data.company_id, isOwner: data.is_owner };
 }

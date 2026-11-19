@@ -27,6 +27,9 @@ vi.mock("../lib/supabaseClient", () => ({
 const catalog = vi.hoisted(() => ({ refreshCatalog: vi.fn(async () => {}), resetCatalog: vi.fn() }));
 vi.mock("../catalog/store", () => catalog);
 
+const session = vi.hoisted(() => ({ gate: null as Promise<void> | null }));
+vi.mock("./session", () => ({ waitForClaim: () => session.gate ?? Promise.resolve() }));
+
 import { AuthProvider } from "./AuthProvider";
 import { useAuth } from "./useAuth";
 
@@ -47,6 +50,7 @@ beforeEach(() => {
   mocks.from.mockReset();
   catalog.refreshCatalog.mockClear();
   catalog.resetCatalog.mockClear();
+  session.gate = null;
 });
 
 describe("AuthProvider", () => {
@@ -88,5 +92,18 @@ describe("AuthProvider", () => {
     mocks.callback?.("SIGNED_IN", { user: { id: "u1" } });
     await waitFor(() => expect(mocks.signOut).toHaveBeenCalled());
     expect(screen.getByTestId("state")).toHaveTextContent("anon");
+  });
+
+  it("espera o login reivindicar a sessão antes de carregar perfil e catálogo", async () => {
+    let release!: () => void;
+    session.gate = new Promise<void>((r) => (release = r));
+    mockProfileRow({ id: "u1", role: "admin", company_id: null, is_owner: false, active: true });
+    render(<AuthProvider><Probe /></AuthProvider>);
+    mocks.callback?.("SIGNED_IN", { user: { id: "u1" } });
+    await new Promise((r) => setTimeout(r, 20));
+    expect(mocks.from).not.toHaveBeenCalled();
+    expect(catalog.refreshCatalog).not.toHaveBeenCalled();
+    release();
+    await waitFor(() => expect(screen.getByTestId("state")).toHaveTextContent("admin|null|false"));
   });
 });

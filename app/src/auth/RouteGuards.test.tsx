@@ -6,6 +6,9 @@ import type { AuthState } from "./useAuth";
 const auth = vi.hoisted(() => ({ state: null as unknown as AuthState }));
 vi.mock("./useAuth", () => ({ useAuth: () => auth.state }));
 
+const guard = vi.hoisted(() => ({ useSessionGuard: vi.fn() }));
+vi.mock("./useSessionGuard", () => guard);
+
 import { RequireAuth, RequireRole } from "./RouteGuards";
 
 function setAuth(partial: Partial<AuthState>) {
@@ -64,5 +67,17 @@ describe("RequireRole", () => {
     setAuth({ profile: admin });
     render(<MemoryRouter><RequireRole roles={["admin"]}><p>painel admin</p></RequireRole></MemoryRouter>);
     expect(screen.getByText("painel admin")).toBeInTheDocument();
+  });
+
+  it("liga a vigilância da sessão única quando há usuário logado", () => {
+    setAuth({ profile: admin });
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route path="/" element={<RequireAuth><p>conteúdo protegido</p></RequireAuth>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(guard.useSessionGuard).toHaveBeenCalledWith(true);
   });
 });

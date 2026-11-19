@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Navigate } from "react-router";
 import { useAuth } from "./useAuth";
+import { useSessionGuard } from "./useSessionGuard";
 import { ForbiddenPage } from "../ui/ErrorPages";
 import type { Role } from "./types";
 
@@ -16,6 +17,8 @@ export function AuthLoading() {
 // nas Edge Functions: quem burlar a UI ainda leva "negado" do servidor.
 export function RequireAuth({ children }: { children: ReactNode }) {
   const { profile, loading } = useAuth();
+  // Sessão única: aparelho derrubado volta pro login com o aviso.
+  useSessionGuard(Boolean(profile));
   if (loading) return <AuthLoading />;
   if (!profile) return <Navigate to="/login" replace />;
   return <>{children}</>;

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { supabase } from "../lib/supabaseClient";
 import { refreshCatalog, resetCatalog } from "../catalog/store";
 import { AuthContext, type AuthState } from "./authContext";
+import { waitForClaim } from "./session";
 import type { Profile, Role } from "./types";
 
 interface ProfileRow {
@@ -41,6 +42,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     let cancelled = false;
     void (async () => {
+      // Login em andamento: só lê depois da sessão reivindicada (antes disso
+      // a RLS devolve tudo vazio).
+      await waitForClaim();
+      if (cancelled) return;
       const { data, error } = await supabase.from("profiles").select("id, role, company_id, is_owner, active").eq("id", userId).single();
       if (cancelled) return;
       const row = data as ProfileRow | null;
