@@ -1,0 +1,11 @@
+// Publicação na Cloudflare (Workers com arquivos estáticos).
+// O app é uma SPA: qualquer rota desconhecida (ex.: /set-password) devolve
+// o index.html e o React Router decide a tela.
+{
+  "name": "configurador-lavanderia",
+  "compatibility_date": "2025-06-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}
