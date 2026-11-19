@@ -6,8 +6,9 @@ import { readJson, requireCompanyOwner } from "../_shared/ownerGuard.ts";
 export interface RevokeMemberDeps {
   allowedOrigin: string;
   getCaller: (req: Request) => Promise<Caller | null>;
-  // true se desativou; false se o usuário não é colega (não-dono) dessa empresa.
-  deactivateColleague: (input: { userId: string; companyId: string }) => Promise<boolean>;
+  // "revoked": desativou e baniu; "removed": convite nunca aceito, usuário
+  // apagado; "not_found": não é colega (não-dono) dessa empresa.
+  deactivateColleague: (input: { userId: string; companyId: string }) => Promise<"revoked" | "removed" | "not_found">;
   log: (actorId: string, action: string, details: Record<string, unknown>) => Promise<void>;
 }
 
@@ -23,10 +24,11 @@ export async function handleRevokeMember(req: Request, deps: RevokeMemberDeps): 
   if (typeof userId !== "string" || !UUID_RE.test(userId)) return reply(400, { error: "Colega inválido." });
 
   try {
-    const done = await deps.deactivateColleague({ userId, companyId: owner.companyId });
-    if (!done) return reply(404, { error: "Colega não encontrado na sua empresa." });
-    await deps.log(owner.id, "colleague_revoked", { companyId: owner.companyId, userId });
-    return reply(200, { ok: true });
+    const result = await deps.deactivateColleague({ userId, companyId: owner.companyId });
+    if (result === "not_found") return reply(404, { error: "Colega não encontrado na sua empresa." });
+    const action = result === "removed" ? "colleague_invite_cancelled" : "colleague_revoked";
+    await deps.log(owner.id, action, { companyId: owner.companyId, userId });
+    return reply(200, { result });
   } catch (err) {
     console.error("company-revoke-member failed", { reason: err instanceof Error ? err.message : "unknown" });
     return reply(500, { error: "Não foi possível revogar o acesso. Tente novamente." });

@@ -1849,3 +1849,9 @@
   object-fit: cover;
   border-radius: 50%;
 }
+
+.member-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
