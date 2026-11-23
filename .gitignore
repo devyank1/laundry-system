@@ -4,3 +4,6 @@ dist/
 *.local
 .env
 .worktrees/
+
+# Anotações de sessão do plugin Remember (locais, não versionar)
+.remember/
