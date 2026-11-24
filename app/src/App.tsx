@@ -31,6 +31,7 @@ import { drywallColorFor } from "./viewer3d/colors";
 import { usePlantSync } from "./plantLink";
 import { useAuth } from "./auth/useAuth";
 import { RequireRole } from "./auth/RouteGuards";
+import { loadMyData } from "./profile/registration";
 import "./App.css";
 
 const PLAN_ZOOMS = [1, 1.5, 2, 3];
@@ -43,8 +44,8 @@ const Scene = lazy(() => loadScene().then((m) => ({ default: m.Scene })));
 
 export function App() {
   const { profile, signOut } = useAuth();
-  // Cliente físico não usa ROI/Conectividade; só admin gerencia o catálogo.
-  // (A UI só esconde; quem barra de verdade é a RLS no banco.)
+  // Só admin gerencia o catálogo. (A UI só esconde; quem barra de verdade é
+  // a RLS no banco.)
   const canSeeBusinessTabs = profile?.role === "admin" || profile?.role === "empresa";
   const isAdmin = profile?.role === "admin";
   const { layout, violations } = useLayout();
@@ -79,6 +80,19 @@ export function App() {
   const [showMyData, setShowMyData] = useState(false);
   const [showClients, setShowClients] = useState(false);
   const isEmpresa = profile?.role === "empresa";
+  // Cargo e foto do cadastro pro menu do nome; recarrega ao fechar "Meus dados".
+  const [account, setAccount] = useState<{ jobTitle: string | null; photoPath: string | null }>({ jobTitle: null, photoPath: null });
+  const userId = profile?.id ?? null;
+  useEffect(() => {
+    if (!userId || showMyData) return;
+    let cancelled = false;
+    loadMyData(userId)
+      .then((d) => !cancelled && setAccount({ jobTitle: d.jobTitle, photoPath: d.photoPath }))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, showMyData]);
   const [svgEl, setSvgEl] = useState<SVGSVGElement | null>(null);
   const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
   // "Visão do cliente": número = passeio rodando (novo número reinicia); null = órbita livre.
@@ -115,7 +129,7 @@ export function App() {
         <div className="brand">
           <LogoMark />
           <div>
-            <h1>Configurador de Lavanderia</h1>
+            <h1>Sua Lavanderia 3D</h1>
             <p>Planta, instalações e retorno do investimento</p>
           </div>
         </div>
@@ -146,13 +160,16 @@ export function App() {
               Gerenciar máquinas
             </button>
           )}
-          <button type="button" title="Sair da conta" onClick={() => void signOut()}>
-            Sair
-          </button>
           <span className="topbar-sep" aria-hidden="true" />
           <ThemeToggle />
           <NotificationsButton notices={notices} />
-          <UserMenu />
+          <UserMenu
+            name={profile?.fullName?.trim() || "Minha conta"}
+            subtitle={isAdmin ? "Administrador" : account.jobTitle || "Minha conta"}
+            photoPath={account.photoPath}
+            onProjects={isEmpresa ? () => setShowClients(true) : undefined}
+            onSignOut={() => void signOut()}
+          />
         </div>
       </header>
       {isEmpresa && <MeetingBar />}

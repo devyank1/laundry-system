@@ -86,7 +86,7 @@ export function LoginPage() {
       <div className="status-card">
         <LogoMark />
         <h1>Entrar</h1>
-        <p className="status-body">Configurador de Lavanderia</p>
+        <p className="status-body">Sua Lavanderia 3D</p>
         <form className="status-form" onSubmit={onSubmit}>
           <label>
             Email

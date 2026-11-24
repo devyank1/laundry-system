@@ -1,42 +1,11 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { photoUrl } from "../profile/photos";
 
-// Topo do site: sino de notificações e área do cliente (foto, nome e menu).
-// Ainda sem login: o perfil (nome + foto) fica salvo neste navegador e o
-// "Entrar" aparece como em breve. Quando o login chegar, é só trocar a origem
-// de `useProfile` pelos dados da conta.
+// Topo do site: sino de notificações, tema e o menu da conta (clique no nome):
+// Meus projetos, Meus orçamentos e Sair. Nome, cargo e foto vêm do cadastro;
+// trocar foto/cargo é em "Meus dados".
 
-const PROFILE_KEY = "lavanderia.perfil.v1";
 const SEEN_KEY = "lavanderia.notificacoes.lidas.v1";
-
-interface Profile {
-  name: string;
-  photo: string | null;
-}
-
-function loadProfile(): Profile {
-  try {
-    const p = JSON.parse(localStorage.getItem(PROFILE_KEY) ?? "null") as Partial<Profile> | null;
-    if (p && typeof p.name === "string") return { name: p.name, photo: typeof p.photo === "string" ? p.photo : null };
-  } catch {
-    /* sem perfil salvo */
-  }
-  return { name: "", photo: null };
-}
-
-function useProfile() {
-  const [profile, setProfile] = useState<Profile>(loadProfile);
-  const save = (patch: Partial<Profile>) =>
-    setProfile((cur) => {
-      const next = { ...cur, ...patch };
-      try {
-        localStorage.setItem(PROFILE_KEY, JSON.stringify(next));
-      } catch {
-        /* armazenamento cheio/indisponível: vale só nesta sessão */
-      }
-      return next;
-    });
-  return [profile, save] as const;
-}
 
 const initials = (name: string) =>
   name
@@ -46,29 +15,6 @@ const initials = (name: string) =>
     .slice(0, 2)
     .map((w) => w[0]!.toUpperCase())
     .join("") || "?";
-
-/** Foto quadrada pequena (128 px) pra caber no armazenamento do navegador. */
-function readPhoto(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => {
-      const size = 128;
-      const side = Math.min(img.width, img.height);
-      const c = document.createElement("canvas");
-      c.width = size;
-      c.height = size;
-      c.getContext("2d")?.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, size, size);
-      URL.revokeObjectURL(url);
-      resolve(c.toDataURL("image/jpeg", 0.85));
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("imagem inválida"));
-    };
-    img.src = url;
-  });
-}
 
 /** Menu suspenso: fecha ao clicar fora ou com Esc. */
 function useDropdown() {
@@ -90,12 +36,12 @@ function useDropdown() {
   return { open, setOpen, ref };
 }
 
-function Avatar({ profile, size = 32 }: { profile: Profile; size?: number }) {
-  return profile.photo ? (
-    <img className="avatar" src={profile.photo} alt="" width={size} height={size} />
+function Avatar({ name, photo, size = 32 }: { name: string; photo: string | null; size?: number }) {
+  return photo ? (
+    <img className="avatar" src={photo} alt="" width={size} height={size} />
   ) : (
     <span className="avatar avatar-initials" style={{ width: size, height: size }} aria-hidden="true">
-      {initials(profile.name)}
+      {initials(name)}
     </span>
   );
 }
@@ -184,52 +130,63 @@ function MenuItem({ children, onClick, soon }: { children: ReactNode; onClick?: 
   );
 }
 
-export function UserMenu() {
+/** Foto do cadastro (URL assinada); sem foto ou com erro fica nas iniciais. */
+function usePhoto(photoPath: string | null) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    setUrl(null);
+    if (!photoPath) return;
+    let cancelled = false;
+    photoUrl(photoPath)
+      .then((u) => !cancelled && setUrl(u))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [photoPath]);
+  return url;
+}
+
+export interface UserMenuProps {
+  name: string;
+  subtitle: string;
+  photoPath: string | null;
+  /** Sem ele (admin) o item Meus projetos não aparece. */
+  onProjects?: () => void;
+  onSignOut: () => void;
+}
+
+export function UserMenu({ name, subtitle, photoPath, onProjects, onSignOut }: UserMenuProps) {
   const { open, setOpen, ref } = useDropdown();
-  const [profile, save] = useProfile();
-  const file = useRef<HTMLInputElement>(null);
-  const name = profile.name.trim() || "Visitante";
+  const photo = usePhoto(photoPath);
+  const pick = (fn: () => void) => () => {
+    setOpen(false);
+    fn();
+  };
   return (
     <div className="topbar-pop" ref={ref}>
       <button type="button" className="topbar-user" aria-haspopup="menu" aria-expanded={open}
-        aria-label={`Área do cliente: ${name}`} onClick={() => setOpen(!open)}>
-        <Avatar profile={profile} />
+        aria-label={`Minha conta: ${name}`} onClick={() => setOpen(!open)}>
+        <Avatar name={name} photo={photo} />
         <span className="topbar-user-text">
           <b>{name}</b>
-          <small>Área do cliente</small>
+          <small>{subtitle}</small>
         </span>
         <IconChevron />
       </button>
       {open && (
-        <div className="topbar-menu topbar-user-menu" role="menu" aria-label="Área do cliente">
+        <div className="topbar-menu topbar-user-menu" role="menu" aria-label="Minha conta">
           <div className="topbar-user-card">
-            <button type="button" className="topbar-photo" title="Trocar foto" aria-label="Trocar foto"
-              onClick={() => file.current?.click()}>
-              <Avatar profile={profile} size={48} />
-              <span className="topbar-photo-hint">trocar</span>
-            </button>
-            <label className="topbar-name">
-              <small>Seu nome</small>
-              <input value={profile.name} placeholder="Como quer ser chamado" maxLength={40}
-                onChange={(e) => save({ name: e.target.value })} />
-            </label>
+            <Avatar name={name} photo={photo} size={48} />
+            <div className="topbar-card-text">
+              <b>{name}</b>
+              <small>{subtitle}</small>
+            </div>
           </div>
-          <input ref={file} type="file" accept="image/*" hidden
-            onChange={async (e) => {
-              const f = e.target.files?.[0];
-              e.target.value = "";
-              if (!f) return;
-              try {
-                save({ photo: await readPhoto(f) });
-              } catch {
-                /* arquivo que não é imagem: ignora */
-              }
-            }} />
-          <MenuItem soon>Meus projetos</MenuItem>
+          {onProjects && <MenuItem onClick={pick(onProjects)}>Meus projetos</MenuItem>}
           <MenuItem soon>Meus orçamentos</MenuItem>
-          {profile.photo && <MenuItem onClick={() => save({ photo: null })}>Remover foto</MenuItem>}
           <div className="topbar-menu-sep" />
-          <MenuItem soon>Entrar na conta</MenuItem>
+          <MenuItem onClick={pick(onSignOut)}>Sair</MenuItem>
         </div>
       )}
     </div>

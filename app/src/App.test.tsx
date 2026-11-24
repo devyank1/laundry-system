@@ -157,13 +157,39 @@ describe("Acesso por papel", () => {
     }
   });
 
-  it("tem botão Sair que chama signOut", async () => {
+  it("mostra a marca Sua Lavanderia 3D no topo", () => {
+    loginAs("empresa", true);
+    render(<App />);
+    expect(screen.getByRole("heading", { level: 1, name: "Sua Lavanderia 3D" })).toBeInTheDocument();
+  });
+
+  it("Sair fica no menu do nome (não no topo) e chama signOut", async () => {
     const { default: userEvent } = await import("@testing-library/user-event");
     const signOut = vi.fn(async () => {});
     loginAs("empresa", true);
     auth.state = { ...auth.state, signOut };
     render(<App />);
-    await userEvent.click(screen.getByRole("button", { name: /sair/i }));
+    expect(screen.queryByRole("button", { name: /^sair$/i })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /minha conta: fulano/i }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /^sair$/i }));
     expect(signOut).toHaveBeenCalled();
+  });
+
+  it("Meus projetos (empresa) abre os clientes com reuniões salvas", async () => {
+    const { default: userEvent } = await import("@testing-library/user-event");
+    loginAs("empresa", true);
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: /minha conta: fulano/i }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /meus projetos/i }));
+    expect(await screen.findByRole("dialog", { name: /clientes/i })).toBeInTheDocument();
+  });
+
+  it("admin não tem Meus projetos e aparece como Administrador", async () => {
+    const { default: userEvent } = await import("@testing-library/user-event");
+    loginAs("admin");
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: /minha conta: fulano/i }));
+    expect(screen.queryByRole("menuitem", { name: /meus projetos/i })).not.toBeInTheDocument();
+    expect(screen.getAllByText("Administrador").length).toBeGreaterThan(0);
   });
 });
