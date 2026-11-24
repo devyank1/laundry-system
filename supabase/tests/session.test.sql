@@ -61,7 +61,7 @@ select is((select count(*)::int from login_events), 0, 'usuário comum não lê 
 select throws_ok($$ select * from user_sessions $$, '42501', null, 'usuário comum não lê sessões');
 
 -- admin vê o histórico com a derrubada
-set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000005a1","session_id":"aaaaaaaa-0000-0000-0000-000000000005","role":"authenticated"}';
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000005a1","session_id":"aaaaaaaa-0000-0000-0000-000000000005","aal":"aal2","role":"authenticated"}';
 select claim_session('ua5');
 select ok(
   exists (select 1 from login_events where user_id = '00000000-0000-0000-0000-0000000005b1'

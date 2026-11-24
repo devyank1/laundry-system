@@ -213,6 +213,8 @@ token_verifications = 30
 web3 = 30
 
 # Configure one of the supported captcha providers: `hcaptcha`, `turnstile`.
+# Na nuvem o captcha (Turnstile) é ligado no painel: Authentication → Attack
+# Protection. Local fica desligado (o app sem VITE_TURNSTILE_SITE_KEY não manda token).
 # [auth.captcha]
 # enabled = true
 # provider = "hcaptcha"
@@ -315,8 +317,9 @@ max_enrolled_factors = 10
 
 # Control MFA via App Authenticator (TOTP)
 [auth.mfa.totp]
-enroll_enabled = false
-verify_enabled = false
+# Admin é obrigado a usar (current_profile exige aal2). Ver migration 0010.
+enroll_enabled = true
+verify_enabled = true
 
 # Configure MFA via Phone Messaging
 [auth.mfa.phone]

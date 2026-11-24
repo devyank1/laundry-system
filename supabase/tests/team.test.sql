@@ -117,7 +117,7 @@ update profiles set cpf = '11144477735' where id = '00000000-0000-0000-0000-0000
 reset role;
 select is((select cpf from profiles where id = '00000000-0000-0000-0000-0000000000f1'), '52998224725', 'vendedor não altera o próprio CPF direto');
 set local role authenticated;
-set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000a1","session_id":"00000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000a1","session_id":"00000000-0000-0000-0000-0000000000a1","aal":"aal2","role":"authenticated"}';
 select lives_ok($$ update profiles set full_name = 'Bia Souza Lima', cpf = '22233366638' where id = '00000000-0000-0000-0000-0000000000f1' $$, 'admin corrige nome e CPF');
 reset role;
 select ok(

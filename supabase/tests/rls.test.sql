@@ -36,7 +36,7 @@ select throws_ok($$ select count(*) from catalog_machines $$, '42501', null, 'an
 
 -- admin
 set local role authenticated;
-set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000a","session_id":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}';
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000a","session_id":"00000000-0000-0000-0000-00000000000a","aal":"aal2","role":"authenticated"}';
 select is((select count(*)::int from catalog_machines), 3, 'admin lê catálogo completo');
 select lives_ok($$ insert into catalog_machines (id, data) values ('m4', '{"id":"m4"}') $$, 'admin escreve no catálogo');
 update catalog_machines set data = '{"id":"m4","model":"novo"}' where id = 'm4';
@@ -52,7 +52,7 @@ select results_eq(
 select is((select details->'old'->>'model' from admin_actions_log where action = 'catalog_update'), null, 'update guarda o valor antigo');
 select is((select details->'new'->>'model' from admin_actions_log where action = 'catalog_update'), 'novo', 'update guarda o valor novo');
 set local role authenticated;
-set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000a","session_id":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}';
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000a","session_id":"00000000-0000-0000-0000-00000000000a","aal":"aal2","role":"authenticated"}';
 select is((select count(*)::int from profiles), 5, 'admin lê todos os perfis');
 
 -- dono da empresa A
