@@ -8,6 +8,7 @@ const fn = vi.hoisted(() => ({ invokeEdgeFunction: vi.fn() }));
 vi.mock("../lib/edgeFunctions", () => fn);
 
 vi.mock("./AdminTeamsPanel", () => ({ AdminTeamsPanel: () => null }));
+vi.mock("./AdminAdminsPanel", () => ({ AdminAdminsPanel: () => null }));
 
 import { AdminPanel } from "./AdminPanel";
 import { refreshCatalog } from "../catalog/store";
