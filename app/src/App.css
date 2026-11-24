@@ -245,58 +245,24 @@
   border-bottom: 1px solid var(--border);
 }
 
-.app .topbar-photo {
-  position: relative;
-  width: 48px;
-  height: 48px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: none;
-  box-shadow: none;
-  overflow: hidden;
-}
-
-.app .topbar-photo .topbar-photo-hint {
-  position: absolute;
-  inset: auto 0 0;
-  padding: 2px 0 4px;
-  font-size: 9.5px;
-  font-weight: 600;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.55);
-  opacity: 0;
-  transition: opacity var(--transition);
-}
-
-.app .topbar-photo:hover .topbar-photo-hint,
-.app .topbar-photo:focus-visible .topbar-photo-hint {
-  opacity: 1;
-}
-
-.app .topbar-name {
+.app .topbar-card-text {
   display: flex;
   flex-direction: column;
-  gap: 4px;
   min-width: 0;
-  flex: 1;
+  line-height: 1.3;
 }
 
-.app .topbar-name small {
-  font-size: 11px;
+.app .topbar-card-text b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.app .topbar-card-text small {
+  font-size: 12px;
   color: var(--text-muted);
-}
-
-.app .topbar-name input {
-  width: 100%;
-  height: 30px;
-  padding: 0 8px;
-  font: inherit;
-  font-size: 13px;
-  color: var(--text);
-  background: var(--surface-muted);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
 }
 
 .app .topbar-menu-item {
