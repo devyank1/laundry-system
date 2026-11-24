@@ -1,12 +1,11 @@
 begin;
-select plan(19);
+select plan(17);
 
 -- Usuários de teste
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-00000000000a', 'admin@pgtap.local'),
   ('00000000-0000-0000-0000-00000000000b', 'dono@pgtap.local'),
   ('00000000-0000-0000-0000-00000000000c', 'colega@pgtap.local'),
-  ('00000000-0000-0000-0000-00000000000d', 'cliente@pgtap.local'),
   ('00000000-0000-0000-0000-00000000000e', 'outra@pgtap.local');
 
 insert into companies (id, name) values
@@ -24,7 +23,6 @@ insert into profiles (id, role, company_id, is_owner, active) values
   ('00000000-0000-0000-0000-00000000000a', 'admin', null, false, true),
   ('00000000-0000-0000-0000-00000000000b', 'empresa', '10000000-0000-0000-0000-000000000001', true, true),
   ('00000000-0000-0000-0000-00000000000c', 'empresa', '10000000-0000-0000-0000-000000000001', false, false),
-  ('00000000-0000-0000-0000-00000000000d', 'cliente_fisico', null, false, true),
   ('00000000-0000-0000-0000-00000000000e', 'empresa', '10000000-0000-0000-0000-000000000002', true, true);
 
 -- anon
@@ -53,7 +51,7 @@ select is((select details->'old'->>'model' from admin_actions_log where action =
 select is((select details->'new'->>'model' from admin_actions_log where action = 'catalog_update'), 'novo', 'update guarda o valor novo');
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000a","session_id":"00000000-0000-0000-0000-00000000000a","aal":"aal2","role":"authenticated"}';
-select is((select count(*)::int from profiles), 5, 'admin lê todos os perfis');
+select is((select count(*)::int from profiles), 4, 'admin lê todos os perfis');
 
 -- dono da empresa A
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000b","session_id":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}';
@@ -68,11 +66,6 @@ select is((select role from current_profile()), 'empresa', 'empresa não se prom
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000c","session_id":"00000000-0000-0000-0000-00000000000c","role":"authenticated"}';
 select is((select count(*)::int from catalog_machines), 0, 'colega revogado não lê catálogo');
 select is((select count(*)::int from companies), 0, 'colega revogado não lê empresa');
-
--- cliente físico
-set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000d","session_id":"00000000-0000-0000-0000-00000000000d","role":"authenticated"}';
-select is((select count(*)::int from catalog_machines), 3, 'cliente físico lê catálogo completo');
-select throws_ok($$ select * from cakto_processed_events $$, '42501', null, 'cliente físico não lê eventos da Cakto');
 
 -- auth_user_id_by_email: só service_role (Edge Functions) usa
 reset role;

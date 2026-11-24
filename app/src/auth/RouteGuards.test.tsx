@@ -100,8 +100,8 @@ describe("RequireRegistration", () => {
     renderApp();
     expect(screen.getByText("Complete seu cadastro")).toBeInTheDocument();
   });
-  it("cliente físico e admin não passam pelo cadastro", () => {
-    setAuth({ profile: { ...admin, role: "cliente_fisico" } });
+  it("admin não passa pelo cadastro", () => {
+    setAuth({ profile: admin });
     renderApp();
     expect(screen.getByText("o app")).toBeInTheDocument();
   });

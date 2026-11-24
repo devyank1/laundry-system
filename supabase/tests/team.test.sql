@@ -17,7 +17,7 @@ insert into profiles (id, role, company_id, is_owner, active, email) values
   ('00000000-0000-0000-0000-0000000000b1', 'empresa', '20000000-0000-0000-0000-000000000001', true, true, 'dono@team.pgtap.local'),
   ('00000000-0000-0000-0000-0000000000c1', 'empresa', '20000000-0000-0000-0000-000000000001', false, true, 'vend1@team.pgtap.local'),
   ('00000000-0000-0000-0000-0000000000f1', 'empresa', '20000000-0000-0000-0000-000000000001', false, true, 'vend2@team.pgtap.local'),
-  ('00000000-0000-0000-0000-0000000000d1', 'cliente_fisico', null, false, true, 'cliente@team.pgtap.local'),
+  ('00000000-0000-0000-0000-0000000000d1', 'admin', null, false, true, 'cliente@team.pgtap.local'),
   ('00000000-0000-0000-0000-0000000000e1', 'empresa', '20000000-0000-0000-0000-000000000002', true, true, 'outra@team.pgtap.local');
 
 insert into user_sessions (user_id, session_id) select id, id from auth.users where email like '%pgtap.local';
@@ -73,9 +73,9 @@ reset role;
 update profiles set active = true, cpf = '11144477735' where id = '00000000-0000-0000-0000-0000000000c1';
 set local role authenticated;
 
--- cliente físico não usa o cadastro
-set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000d1","session_id":"00000000-0000-0000-0000-0000000000d1","role":"authenticated"}';
-select throws_ok($$ select complete_registration('Cli', '111.444.777-35', '11912345678', 'X', 'x/photo') $$, '42501', null, 'cliente físico não usa o cadastro de equipe');
+-- admin não usa o cadastro de equipe
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000d1","session_id":"00000000-0000-0000-0000-0000000000d1","aal":"aal2","role":"authenticated"}';
+select throws_ok($$ select complete_registration('Cli', '111.444.777-35', '11912345678', 'X', 'x/photo') $$, '42501', null, 'admin não usa o cadastro de equipe');
 
 -- vendedor edita contato; nome/CPF intocados; auditoria sem o valor
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000f1","session_id":"00000000-0000-0000-0000-0000000000f1","role":"authenticated"}';

@@ -16,7 +16,7 @@ insert into profiles (id, role, company_id, is_owner, active, full_name, registr
   ('00000000-0000-0000-0000-0000000007a1', 'empresa', '40000000-0000-0000-0000-00000000000a', false, true, 'Ana Um', now()),
   ('00000000-0000-0000-0000-0000000007a2', 'empresa', '40000000-0000-0000-0000-00000000000a', false, true, 'Carla Dois', now()),
   ('00000000-0000-0000-0000-0000000007b1', 'empresa', '40000000-0000-0000-0000-00000000000b', true, true, 'Beto B', now()),
-  ('00000000-0000-0000-0000-0000000007f1', 'cliente_fisico', null, false, true, null, null);
+  ('00000000-0000-0000-0000-0000000007f1', 'admin', null, false, true, null, null);
 insert into user_sessions (user_id, session_id) select id, id from auth.users where email like '%cli.pgtap.local';
 
 create temp table ids (k text primary key, v uuid);
@@ -71,9 +71,9 @@ set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000007b1","s
 select is((select count(*)::int from clients), 0, 'outra empresa não vê');
 select is(client_duplicate_owner('11222333000181', null, null), null, 'duplicado não atravessa empresas');
 
--- cliente físico
-set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000007f1","session_id":"00000000-0000-0000-0000-0000000007f1","role":"authenticated"}';
-select throws_ok($$ insert into clients (company_id, seller_id, name, email) values ('40000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-0000000007f1', 'X', 'x@x.com') $$, '42501', null, 'cliente físico não usa clientes');
+-- admin não cadastra cliente em nome de vendedor
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000007f1","session_id":"00000000-0000-0000-0000-0000000007f1","aal":"aal2","role":"authenticated"}';
+select throws_ok($$ insert into clients (company_id, seller_id, name, email) values ('40000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-0000000007f1', 'X', 'x@x.com') $$, '42501', null, 'admin não cadastra cliente em nome de vendedor');
 
 -- dono
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000007a0","session_id":"00000000-0000-0000-0000-0000000007a0","role":"authenticated"}';

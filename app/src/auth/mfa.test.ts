@@ -23,9 +23,8 @@ beforeEach(() => {
 });
 
 describe("mfaStateFor", () => {
-  it("empresa e cliente não passam por código", async () => {
+  it("empresa não passa por código", async () => {
     expect(await mfaStateFor("empresa")).toBe("ok");
-    expect(await mfaStateFor("cliente_fisico")).toBe("ok");
     expect(mfa.getAuthenticatorAssuranceLevel).not.toHaveBeenCalled();
   });
 

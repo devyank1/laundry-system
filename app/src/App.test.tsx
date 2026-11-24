@@ -104,15 +104,6 @@ describe("Acesso por papel", () => {
     expect(screen.queryByRole("button", { name: /gerenciar máquinas/i })).not.toBeInTheDocument();
   });
 
-  it("cliente físico não vê ROI, Conectividade nem Gerenciar máquinas", () => {
-    loginAs("cliente_fisico");
-    render(<App />);
-    expect(screen.getByRole("button", { name: /planta 2d/i })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /retorno \(roi\)/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /conectividade/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /gerenciar máquinas/i })).not.toBeInTheDocument();
-  });
-
   it("só admin vê o botão Painel Admin, que abre o painel", async () => {
     const { default: userEvent } = await import("@testing-library/user-event");
     loginAs("admin");
@@ -121,22 +112,18 @@ describe("Acesso por papel", () => {
     expect(screen.getByRole("dialog", { name: /painel admin/i })).toBeInTheDocument();
   });
 
-  it("empresa e cliente físico não veem o botão Painel Admin", () => {
+  it("empresa não vê o botão Painel Admin", () => {
     loginAs("empresa", true);
-    const { unmount } = render(<App />);
-    expect(screen.queryByRole("button", { name: /painel admin/i })).not.toBeInTheDocument();
-    unmount();
-    loginAs("cliente_fisico");
     render(<App />);
     expect(screen.queryByRole("button", { name: /painel admin/i })).not.toBeInTheDocument();
   });
 
-  it("empresa vê o botão Minha empresa; admin e cliente físico não", async () => {
+  it("empresa vê o botão Minha empresa; admin não", async () => {
     loginAs("empresa", false);
     const first = render(<App />);
     expect(screen.getByRole("button", { name: /minha empresa/i })).toBeInTheDocument();
     first.unmount();
-    for (const role of ["admin", "cliente_fisico"] as const) {
+    for (const role of ["admin"] as const) {
       loginAs(role);
       const r = render(<App />);
       expect(screen.queryByRole("button", { name: /minha empresa/i })).not.toBeInTheDocument();
@@ -149,7 +136,7 @@ describe("Acesso por papel", () => {
     const first = render(<App />);
     expect(screen.getByRole("button", { name: /^clientes$/i })).toBeInTheDocument();
     first.unmount();
-    for (const role of ["admin", "cliente_fisico"] as const) {
+    for (const role of ["admin"] as const) {
       loginAs(role);
       const r = render(<App />);
       expect(screen.queryByRole("button", { name: /^clientes$/i })).not.toBeInTheDocument();
@@ -162,7 +149,7 @@ describe("Acesso por papel", () => {
     const first = render(<App />);
     expect(screen.getByRole("button", { name: /meus dados/i })).toBeInTheDocument();
     first.unmount();
-    for (const role of ["admin", "cliente_fisico"] as const) {
+    for (const role of ["admin"] as const) {
       loginAs(role);
       const r = render(<App />);
       expect(screen.queryByRole("button", { name: /meus dados/i })).not.toBeInTheDocument();
@@ -173,7 +160,7 @@ describe("Acesso por papel", () => {
   it("tem botão Sair que chama signOut", async () => {
     const { default: userEvent } = await import("@testing-library/user-event");
     const signOut = vi.fn(async () => {});
-    loginAs("cliente_fisico");
+    loginAs("empresa", true);
     auth.state = { ...auth.state, signOut };
     render(<App />);
     await userEvent.click(screen.getByRole("button", { name: /sair/i }));

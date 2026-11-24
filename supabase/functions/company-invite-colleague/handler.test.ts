@@ -30,8 +30,8 @@ describe("company-invite-colleague", () => {
     expect(deps.inviteColleague).not.toHaveBeenCalled();
   });
 
-  it("admin e cliente físico recebem 403 (convite de colega é coisa de empresa)", async () => {
-    for (const role of ["admin", "cliente_fisico"] as const) {
+  it("admin recebe 403 (convite de colega é coisa de empresa)", async () => {
+    for (const role of ["admin"] as const) {
       deps.getCaller = vi.fn(async () => ({ id: "x", role, companyId: null, isOwner: false }));
       expect((await handleInviteColleague(post({ email: "a@b.com" }), deps)).status).toBe(403);
     }

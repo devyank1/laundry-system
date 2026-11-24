@@ -21,7 +21,7 @@ export function json(status: number, body: Record<string, unknown>, allowedOrigi
 
 export interface Caller {
   id: string;
-  role: "admin" | "empresa" | "cliente_fisico";
+  role: "admin" | "empresa";
   companyId: string | null;
   isOwner: boolean;
 }

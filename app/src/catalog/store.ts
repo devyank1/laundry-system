@@ -5,7 +5,7 @@ import { parseCatalogJSON } from "./validate";
 export { isValidMachine, parseCatalogJSON } from "./validate";
 
 // Catálogo vem da tabela catalog_machines. A RLS já entrega só o que o papel
-// pode ver (empresa: subconjunto negociado; admin/cliente físico: completo),
+// pode ver (empresa: subconjunto negociado; admin: completo),
 // e só admin consegue escrever. Aqui fica um cache em memória pros
 // componentes lerem de forma síncrona (useSyncExternalStore).
 

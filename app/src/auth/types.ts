@@ -1,4 +1,4 @@
-export type Role = "admin" | "empresa" | "cliente_fisico";
+export type Role = "admin" | "empresa";
 
 // "ok": liberado; "enroll": admin precisa cadastrar o celular; "verify":
 // admin precisa digitar o código.
