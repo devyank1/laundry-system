@@ -5,7 +5,9 @@ import type { SupabaseClient } from "./supabaseAdmin.ts";
 function b64url(s: string): string {
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
-const token = `h.${b64url(JSON.stringify({ sub: "u1", session_id: "s-new" }))}.sig`;
+function tokenWith(aal: string) {
+  return `h.${b64url(JSON.stringify({ sub: "u1", session_id: "s-new", aal }))}.sig`;
+}
 
 function fakeAdmin(currentSession: string | null, registered: string | null = "2026-11-18T00:00:00Z", role = "empresa") {
   const rows: Record<string, unknown> = {
@@ -25,8 +27,8 @@ function fakeAdmin(currentSession: string | null, registered: string | null = "2
   } as unknown as SupabaseClient;
 }
 
-function req() {
-  return new Request("http://x", { headers: { Authorization: `Bearer ${token}` } });
+function req(aal = "aal1") {
+  return new Request("http://x", { headers: { Authorization: `Bearer ${tokenWith(aal)}` } });
 }
 
 describe("getCaller", () => {
@@ -43,6 +45,12 @@ describe("getCaller", () => {
     expect(await getCaller(fakeAdmin("s-new", null), req())).toBeNull();
   });
   it("admin não precisa de cadastro", async () => {
-    expect(await getCaller(fakeAdmin("s-new", null, "admin"), req())).toMatchObject({ role: "admin" });
+    expect(await getCaller(fakeAdmin("s-new", null, "admin"), req("aal2"))).toMatchObject({ role: "admin" });
+  });
+  it("recusa admin que ainda não passou pelo código do celular (aal1)", async () => {
+    expect(await getCaller(fakeAdmin("s-new", null, "admin"), req("aal1"))).toBeNull();
+  });
+  it("empresa continua só com senha (aal1)", async () => {
+    expect(await getCaller(fakeAdmin("s-new"), req("aal1"))).toMatchObject({ role: "empresa" });
   });
 });
