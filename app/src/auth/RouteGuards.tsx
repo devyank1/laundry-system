@@ -4,6 +4,7 @@ import { useAuth } from "./useAuth";
 import { useSessionGuard } from "./useSessionGuard";
 import { ForbiddenPage } from "../ui/ErrorPages";
 import { CompleteRegistrationPage } from "../ui/CompleteRegistrationPage";
+import { MfaPage } from "../ui/MfaPage";
 import type { Role } from "./types";
 
 export function AuthLoading() {
@@ -28,6 +29,15 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 export function RequireRole({ roles, children }: { roles: Role[]; children: ReactNode }) {
   const { profile } = useAuth();
   if (!profile || !roles.includes(profile.role)) return <ForbiddenPage />;
+  return <>{children}</>;
+}
+
+// Admin só entra depois do código do celular (o banco também exige: aal2).
+export function RequireMfa({ children }: { children: ReactNode }) {
+  const { profile, signOut, refreshProfile } = useAuth();
+  if (profile?.role === "admin" && profile.mfa !== "ok") {
+    return <MfaPage mode={profile.mfa === "enroll" ? "enroll" : "verify"} onDone={refreshProfile} onSignOut={signOut} />;
+  }
   return <>{children}</>;
 }
 

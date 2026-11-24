@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabaseClient";
 import { refreshCatalog, resetCatalog } from "../catalog/store";
 import { AuthContext, type AuthState } from "./authContext";
 import { waitForClaim } from "./session";
+import { mfaStateFor } from "./mfa";
 import type { Profile, Role } from "./types";
 import { resetWorkspace, workspaceOwnerChanged } from "../clients/resetWorkspace";
 
@@ -35,12 +36,16 @@ async function loadProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase.from("profiles").select(PROFILE_COLUMNS).eq("id", userId).single();
   const row = data as ProfileRow | null;
   if (error || !row || !row.active) return null;
-  try {
-    await refreshCatalog();
-  } catch {
-    /* catálogo indisponível: a tela abre e mostra a lista vazia */
+  const mfa = await mfaStateFor(row.role);
+  // Admin sem o código do celular: o banco nega tudo de admin, nem tenta.
+  if (mfa === "ok") {
+    try {
+      await refreshCatalog();
+    } catch {
+      /* catálogo indisponível: a tela abre e mostra a lista vazia */
+    }
   }
-  return toProfile(row);
+  return { ...toProfile(row), mfa };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {

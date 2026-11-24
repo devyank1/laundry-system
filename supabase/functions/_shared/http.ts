@@ -1,7 +1,7 @@
 // Utilitários HTTP das functions chamadas pelo navegador. Sem Deno.env aqui
 // (fica testável no vitest): a origem permitida vem de quem chama.
 import type { SupabaseClient } from "./supabaseAdmin.ts";
-import { jwtSessionId } from "./jwt.ts";
+import { jwtAal, jwtSessionId } from "./jwt.ts";
 
 export { normalizeEmail } from "./validation.ts";
 
@@ -40,6 +40,8 @@ export async function getCaller(admin: SupabaseClient, req: Request): Promise<Ca
     .eq("id", userData.user.id)
     .single();
   if (error || !data || !data.active) return null;
+  // Admin só age depois do código do celular (aal2), igual à RLS.
+  if (data.role === "admin" && jwtAal(token) !== "aal2") return null;
   // Conta de empresa só age depois do cadastro completo (igual à RLS).
   if (data.role === "empresa" && !data.registration_completed_at) return null;
   const sessionId = jwtSessionId(token);

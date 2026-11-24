@@ -30,12 +30,15 @@ vi.mock("../catalog/store", () => catalog);
 const session = vi.hoisted(() => ({ gate: null as Promise<void> | null }));
 vi.mock("./session", () => ({ waitForClaim: () => session.gate ?? Promise.resolve() }));
 
+const mfa = vi.hoisted(() => ({ mfaStateFor: vi.fn(async (_role: string) => "ok") }));
+vi.mock("./mfa", () => mfa);
+
 import { AuthProvider } from "./AuthProvider";
 import { useAuth } from "./useAuth";
 
 function Probe() {
   const { profile, loading } = useAuth();
-  return <p data-testid="state">{loading ? "loading" : profile ? `${profile.role}|${profile.companyId}|${profile.isOwner}` : "anon"}</p>;
+  return <p data-testid="state">{loading ? "loading" : profile ? `${profile.role}|${profile.companyId}|${profile.isOwner}${profile.mfa && profile.mfa !== "ok" ? `|mfa:${profile.mfa}` : ""}` : "anon"}</p>;
 }
 
 function mockProfileRow(row: Record<string, unknown> | null) {
@@ -51,6 +54,8 @@ beforeEach(() => {
   catalog.refreshCatalog.mockClear();
   catalog.resetCatalog.mockClear();
   session.gate = null;
+  mfa.mfaStateFor.mockReset();
+  mfa.mfaStateFor.mockImplementation(async () => "ok");
 });
 
 describe("AuthProvider", () => {
@@ -105,5 +110,16 @@ describe("AuthProvider", () => {
     expect(catalog.refreshCatalog).not.toHaveBeenCalled();
     release();
     await waitFor(() => expect(screen.getByTestId("state")).toHaveTextContent("admin|null|false"));
+  });
+
+  it("admin que ainda não digitou o código fica com mfa pendente e não carrega catálogo", async () => {
+    mfa.mfaStateFor.mockImplementation(async () => "verify");
+    mockProfileRow({ id: "u1", role: "admin", company_id: null, is_owner: false, active: true, full_name: null, registration_completed_at: null });
+    render(<AuthProvider><Probe /></AuthProvider>);
+    mocks.callback?.("SIGNED_IN", { user: { id: "u1" } });
+    await waitFor(() => expect(screen.getByTestId("state")).toHaveTextContent("admin|null|false|mfa:verify"));
+    expect(mfa.mfaStateFor).toHaveBeenCalledWith("admin");
+    expect(catalog.refreshCatalog).not.toHaveBeenCalled();
+    expect(mocks.signOut).not.toHaveBeenCalled();
   });
 });
