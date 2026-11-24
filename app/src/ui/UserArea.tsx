@@ -238,7 +238,7 @@ export function UserMenu() {
 
 const THEME_KEY = "lavanderia.tema";
 type Theme = "light" | "dark";
-const currentTheme = (): Theme => (document.documentElement.dataset.theme === "light" ? "light" : "dark");
+const currentTheme = (): Theme => (document.documentElement.dataset.theme === "dark" ? "dark" : "light");
 
 /** Sol/lua: troca entre claro e escuro e guarda a escolha (index.html aplica antes da 1ª pintura). */
 export function ThemeToggle() {
