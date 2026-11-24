@@ -10,8 +10,9 @@ const guard = vi.hoisted(() => ({ useSessionGuard: vi.fn() }));
 vi.mock("./useSessionGuard", () => guard);
 
 vi.mock("../ui/CompleteRegistrationPage", () => ({ CompleteRegistrationPage: () => <h1>Complete seu cadastro</h1> }));
+vi.mock("../ui/MfaPage", () => ({ MfaPage: ({ mode }: { mode: string }) => <h1>Código do celular ({mode})</h1> }));
 
-import { RequireAuth, RequireRegistration, RequireRole } from "./RouteGuards";
+import { RequireAuth, RequireMfa, RequireRegistration, RequireRole } from "./RouteGuards";
 
 function setAuth(partial: Partial<AuthState>) {
   auth.state = { profile: null, loading: false, signOut: async () => {}, refreshProfile: async () => {}, ...partial };
@@ -107,6 +108,37 @@ describe("RequireRegistration", () => {
   it("empresa com cadastro completo vê o app", () => {
     setAuth({ profile: empresa });
     renderApp();
+    expect(screen.getByText("o app")).toBeInTheDocument();
+  });
+});
+
+describe("RequireMfa", () => {
+  it("admin que precisa do código vê a tela do código, não o app", () => {
+    setAuth({ profile: { ...admin, mfa: "verify" } });
+    render(<RequireMfa><p>o app</p></RequireMfa>);
+    expect(screen.getByText("Código do celular (verify)")).toBeInTheDocument();
+    expect(screen.queryByText("o app")).not.toBeInTheDocument();
+  });
+
+  it("admin sem celular cadastrado vê o cadastro", () => {
+    setAuth({ profile: { ...admin, mfa: "enroll" } });
+    render(<RequireMfa><p>o app</p></RequireMfa>);
+    expect(screen.getByText("Código do celular (enroll)")).toBeInTheDocument();
+  });
+
+  it("admin sem estado de MFA conhecido também não entra", () => {
+    setAuth({ profile: admin });
+    render(<RequireMfa><p>o app</p></RequireMfa>);
+    expect(screen.queryByText("o app")).not.toBeInTheDocument();
+  });
+
+  it("admin com código ok e empresa entram direto", () => {
+    setAuth({ profile: { ...admin, mfa: "ok" } });
+    const { unmount } = render(<RequireMfa><p>o app</p></RequireMfa>);
+    expect(screen.getByText("o app")).toBeInTheDocument();
+    unmount();
+    setAuth({ profile: empresa });
+    render(<RequireMfa><p>o app</p></RequireMfa>);
     expect(screen.getByText("o app")).toBeInTheDocument();
   });
 });
