@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from "react-router";
 import { loginAndClaim, SESSION_REPLACED_MESSAGE } from "../auth/session";
 import { supabase } from "../lib/supabaseClient";
 import { LogoMark } from "./icons";
+import { TurnstileWidget } from "./TurnstileWidget";
+import { turnstileSiteKey } from "../lib/turnstile";
 import "./statusPages.css";
 
 // Mensagens fixas: nunca mostra error.message do servidor (vaza detalhe e
@@ -18,6 +20,19 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(params.get("motivo") === "outro-aparelho" ? SESSION_REPLACED_MESSAGE : null);
   const [busy, setBusy] = useState(false);
+  const siteKey = turnstileSiteKey();
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
+  const needsCaptcha = Boolean(siteKey) && !captchaToken;
+
+  // Token do captcha é de uso único: depois de cada tentativa, pede outro.
+  function consumeCaptcha(): string | undefined {
+    if (!siteKey) return undefined;
+    const token = captchaToken ?? undefined;
+    setCaptchaToken(null);
+    setCaptchaReset((n) => n + 1);
+    return token;
+  }
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -25,7 +40,9 @@ export function LoginPage() {
     setNotice(null);
     setBusy(true);
     try {
-      const { error: authError } = await loginAndClaim(() => supabase.auth.signInWithPassword({ email: email.trim(), password }));
+      const captcha = consumeCaptcha();
+      const credentials = { email: email.trim(), password, ...(captcha ? { options: { captchaToken: captcha } } : {}) };
+      const { error: authError } = await loginAndClaim(() => supabase.auth.signInWithPassword(credentials));
       if (authError) {
         setError(LOGIN_FAILED);
         return;
@@ -45,9 +62,17 @@ export function LoginPage() {
       setError("Digite seu email acima para receber o link.");
       return;
     }
+    if (needsCaptcha) {
+      setError("Confirme o captcha acima antes de pedir o link.");
+      return;
+    }
     setBusy(true);
     try {
-      await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/set-password` });
+      const captcha = consumeCaptcha();
+      await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/set-password`,
+        ...(captcha ? { captchaToken: captcha } : {}),
+      });
     } catch {
       /* mesma resposta de qualquer jeito */
     } finally {
@@ -71,9 +96,10 @@ export function LoginPage() {
             Senha
             <input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
           </label>
+          {siteKey && <TurnstileWidget siteKey={siteKey} onToken={setCaptchaToken} resetSignal={captchaReset} />}
           {error && <p className="status-error" role="alert">{error}</p>}
           {notice && <p className="status-ok" role="status">{notice}</p>}
-          <button type="submit" disabled={busy}>Entrar</button>
+          <button type="submit" disabled={busy || needsCaptcha}>Entrar</button>
         </form>
         <button type="button" className="status-link status-link-button" onClick={() => void onForgot()} disabled={busy}>
           Esqueci minha senha
