@@ -144,18 +144,13 @@ describe("Acesso por papel", () => {
     }
   });
 
-  it("botão Mostrar medidas liga as cotas extras da planta", async () => {
+  it("medidas fazem parte da planta, sem botão", async () => {
     loginAs("empresa", false);
     const { container } = render(<App />);
-    const { default: userEvent } = await import("@testing-library/user-event");
-    const btn = await screen.findByRole("button", { name: "Mostrar medidas" });
-    expect(btn).toHaveAttribute("aria-pressed", "false");
-    expect(container.querySelector("[data-measures]")).toBeNull();
-    await userEvent.click(btn);
-    expect(screen.getByRole("button", { name: "Ocultar medidas" })).toHaveAttribute("aria-pressed", "true");
+    await screen.findByRole("button", { name: /baixar png/i });
+    expect(screen.queryByRole("button", { name: /mostrar medidas/i })).not.toBeInTheDocument();
     expect(container.querySelector("[data-measures]")).not.toBeNull();
   });
-
   it("só empresa vê o botão Meus dados", () => {
     loginAs("empresa", false);
     const first = render(<App />);
