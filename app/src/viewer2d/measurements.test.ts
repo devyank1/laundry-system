@@ -64,6 +64,53 @@ describe("machineChainStops (junto das máquinas)", () => {
   });
 });
 
+describe("totais e distâncias novas", () => {
+  it("total das máquinas na frente delas", () => {
+    const l = layoutOf();
+    const total = planMeasurements(l).find((m) => m.id === "maquinas-total")!;
+    const start = Math.min(...l.machines.map((m) => m.x));
+    const end = Math.max(...l.machines.map((m) => m.x + m.widthMm));
+    expect(total.text).toBe(formatMeters(end - start));
+    expect(total.y0).toBeGreaterThan(l.drywall.y); // do lado do salão
+  });
+
+  it("mesa central até as máquinas", () => {
+    const l = layoutOf();
+    const t = l.furniture!.table!;
+    const m = planMeasurements(l).find((x) => x.id === "mesa-maquinas")!;
+    expect(m.text).toBe(formatMeters(t.y - l.drywall.y));
+    expect(m.x0).toBeGreaterThanOrEqual(t.x);
+    expect(m.x0).toBeLessThanOrEqual(t.x + t.width);
+  });
+
+  it("porta técnica (0,70) até o balcão", () => {
+    const l = layoutOf();
+    const td = l.techDoor;
+    const furniture = { ...l.furniture!, premium: { counter: { x: 4250, y: 2940, width: 750, height: 2000 }, counterWall: "right" as const, pufs: null } };
+    const m = planMeasurements({ ...l, furniture }).find((x) => x.id === "porta-balcao")!;
+    expect(m.text).toBe(formatMeters(2940 - l.drywall.y));
+    expect(m.x0).toBe(m.x1);
+    expect(m.y0).toBe(l.drywall.y);
+    expect(m.x0).toBeGreaterThanOrEqual(Math.max(td.x, 4250));
+    expect(m.x0).toBeLessThanOrEqual(td.x + td.width);
+  });
+
+  it("lateral: porta técnica até o balcão na horizontal", () => {
+    const l = layoutOf({ orientation: "side", roomWidthMm: 5000, roomDepthMm: 9000 });
+    const furniture = { ...l.furniture!, premium: { counter: { x: 3000, y: 7000, width: 2000, height: 750 }, counterWall: "right" as const, pufs: null } };
+    const m = planMeasurements({ ...l, furniture }).find((x) => x.id === "porta-balcao")!;
+    expect(m.y0).toBe(m.y1);
+    expect(m.text).toBe(formatMeters(3000 - l.drywall.y));
+  });
+  it("lateral: total e mesa até as máquinas na horizontal", () => {
+    const l = layoutOf({ orientation: "side", roomWidthMm: 5000, roomDepthMm: 9000 });
+    const ms = planMeasurements(l);
+    expect(ms.find((m) => m.id === "maquinas-total")?.x0).toBe(ms.find((m) => m.id === "maquinas-total")?.x1);
+    const mesa = ms.find((m) => m.id === "mesa-maquinas");
+    if (mesa) expect(mesa.y0).toBe(mesa.y1);
+  });
+});
+
 describe("sizeText", () => {
   it("maior × menor", () => {
     expect(sizeText({ x: 0, y: 0, width: 800, height: 2000 })).toBe("2,00 × 0,80");
@@ -76,7 +123,7 @@ describe("planMeasurements (dentro da loja)", () => {
     const poufs = [{ x: 100, y: 3000, width: 500, height: 500 }];
     const ms = planMeasurements({ ...l, furniture: { ...l.furniture!, poufs } });
     expect(ms.find((m) => m.id === "cadeiras-fachada")?.text).toBe(formatMeters(6000 - 3500));
-    for (const m of ms) expect(["balcao-fachada", "cadeiras-fachada"]).toContain(m.id);
+    expect(ms.some((m) => m.id === "cadeiras-fachada")).toBe(true);
   });
 
   it("balcão encostado na fachada não ganha distância", () => {
