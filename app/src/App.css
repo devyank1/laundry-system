@@ -1882,4 +1882,5 @@
 .obra-date { color: var(--accent-ink); }
 .obra-image { margin-top: 8px; max-width: 100%; border-radius: var(--radius-sm); }
 .obra-steps li button { flex: none; }
+.obra-steps li button.primary { background: var(--primary); color: var(--on-primary); border-color: transparent; font-weight: 600; }
 @media (max-width: 520px) { .obra-steps li { flex-wrap: wrap; } }
