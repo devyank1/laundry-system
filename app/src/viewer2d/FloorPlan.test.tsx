@@ -39,6 +39,17 @@ const state: ProjectState = {
 };
 
 describe("FloorPlan", () => {
+  it("medidas extras só aparecem com showMeasures", () => {
+    const { layout } = computeLayout(state, catalog);
+    const off = render(<FloorPlan layout={layout!} />);
+    expect(off.container.querySelector("[data-measures]")).toBeNull();
+    off.unmount();
+    const { container } = render(<FloorPlan layout={layout!} showMeasures />);
+    expect(container.querySelector('[data-measure="mesa"]')).not.toBeNull();
+    expect(container.querySelector('[data-measure="fundo-largura"]')).not.toBeNull();
+    expect(screen.getByText("2,00 × 0,80")).toBeInTheDocument();
+  });
+
   it("renderiza um svg com uma caixa por máquina posicionada", () => {
     const { layout } = computeLayout(state, catalog);
     render(<FloorPlan layout={layout!} />);

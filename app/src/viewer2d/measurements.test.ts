@@ -82,6 +82,14 @@ describe("planMeasurements", () => {
     expect(c.x0).toBe(950);
   });
 
+  it("espaço livre não passa por cima de móvel nem da porta", () => {
+    const l = layoutOf({ roomWidthMm: 6000, roomDepthMm: 7000 });
+    const x = byId(l).get("livre-fachada")!.x0;
+    const blockers = [l.furniture?.table, l.furniture?.premium?.counter, ...(l.furniture?.poufs ?? []), l.frontDoor].filter(Boolean);
+    expect(blockers.length).toBeGreaterThan(2);
+    for (const b of blockers) expect(x < b!.x || x > b!.x + b!.width).toBe(true);
+  });
+
   it("loja sem máquinas não quebra", () => {
     const l = layoutOf();
     expect(() => planMeasurements({ ...l, machines: [] })).not.toThrow();

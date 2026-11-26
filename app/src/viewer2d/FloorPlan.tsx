@@ -1,6 +1,7 @@
 import { forwardRef, useId, type ReactNode } from "react";
 import type { Layout, Rect, WallSide } from "../engine/types";
 import { CAD, formatMeters } from "./planTheme";
+import { planMeasurements } from "./measurements";
 import { DeviceSymbol, ElectricalOverlay, LuminaireSymbol, RunStroke } from "./ElectricalSheet";
 
 // Planta baixa no padrão das pranchas de projeto (pasta /plantas): fundo
@@ -239,8 +240,11 @@ function hexagon(cx: number, cy: number, r: number): string {
   }).join(" ") + " Z";
 }
 
-export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout; sheet?: PlanSheet }>(function FloorPlan(
-  { layout, sheet = "layout" },
+export const FloorPlan = forwardRef<
+  SVGSVGElement,
+  { layout: Layout; sheet?: PlanSheet; showMeasures?: boolean }
+>(function FloorPlan(
+  { layout, sheet = "layout", showMeasures = false },
   ref
 ) {
   const legend = LEGEND.filter((item) => SHEET_LEGEND[sheet].includes(item.sample));
@@ -979,6 +983,17 @@ export const FloorPlan = forwardRef<SVGSVGElement, { layout: Layout; sheet?: Pla
 
         {isElectric && (
           <ElectricalOverlay plan={layout.electricalPlan} mode={sheet === "iluminacao" ? "lighting" : "power"} px={mm} />
+        )}
+
+        {/* Medidas extras (botão "Mostrar medidas"): fundo, móveis, porta, espaços livres */}
+        {showMeasures && (
+          <g data-measures>
+            {planMeasurements(layout).map((m) => (
+              <g key={m.id} data-measure={m.id}>
+                <Dimension p0={{ x: mm(m.x0), y: mm(m.y0) }} p1={{ x: mm(m.x1), y: mm(m.y1) }} text={m.text} boxed />
+              </g>
+            ))}
+          </g>
         )}
 
         {/* Cotas: corrente das máquinas por fora da parede delas + gerais */}
