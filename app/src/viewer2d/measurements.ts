@@ -38,9 +38,13 @@ function vertical(id: MeasureId, x: number, y0: number, y1: number, text = forma
 // Cota no lado maior do móvel, por fora dele, com "maior × menor".
 function sizeOf(id: MeasureId, r: Rect): PlanMeasure {
   const text = `${formatMeters(Math.max(r.width, r.height))} × ${formatMeters(Math.min(r.width, r.height))}`;
-  return r.width >= r.height
-    ? horizontal(id, r.x, r.x + r.width, r.y - FURNITURE_GAP_MM, text)
-    : vertical(id, r.x - FURNITURE_GAP_MM, r.y, r.y + r.height, text);
+  // Do lado de cima/esquerda; se o móvel encosta nessa parede, do outro lado.
+  if (r.width >= r.height) {
+    const y = r.y - FURNITURE_GAP_MM >= 0 ? r.y - FURNITURE_GAP_MM : r.y + r.height + FURNITURE_GAP_MM;
+    return horizontal(id, r.x, r.x + r.width, y, text);
+  }
+  const x = r.x - FURNITURE_GAP_MM >= 0 ? r.x - FURNITURE_GAP_MM : r.x + r.width + FURNITURE_GAP_MM;
+  return vertical(id, x, r.y, r.y + r.height, text);
 }
 
 // Balcão encosta numa parede: a cota do tamanho vai por dentro, junto dela
@@ -64,7 +68,15 @@ function freeX(candidates: number[], y0: number, y1: number, obstacles: Rect[]):
   return candidates.find((x) => !hits(x)) ?? candidates[0];
 }
 
-// Candidatos de x, alternando das paredes pro meio (direita primeiro).
+// Primeiro y em que uma linha horizontal de x0 a x1 não cruza obstáculo.
+function freeY(candidates: number[], x0: number, x1: number, obstacles: Rect[]): number {
+  const pad = 120;
+  const hits = (y: number) =>
+    obstacles.some((o) => y > o.y - pad && y < o.y + o.height + pad && x1 > o.x - pad && x0 < o.x + o.width + pad);
+  return candidates.find((y) => !hits(y)) ?? candidates[0];
+}
+
+// Candidatos, alternando das duas pontas pro meio (fim primeiro).
 function steps(from: number, to: number): number[] {
   const xs: number[] = [];
   for (let k = 0; k < 12; k++) {
@@ -73,7 +85,7 @@ function steps(from: number, to: number): number[] {
     if (b - a < 0) break;
     xs.push(b, a);
   }
-  return xs;
+  return xs.length ? xs : [from];
 }
 
 // Da borda de baixo do móvel até a fachada, num x dentro dele que não cruze
@@ -115,11 +127,20 @@ export function planMeasurements(layout: Layout): PlanMeasure[] {
     const right = layout.machineWall === "right";
     const x0 = right ? W - D : 0;
     const x1 = right ? W : D;
-    out.push(horizontal("fundo-largura", x0, x1, INSET_MM));
-    out.push(vertical("fundo-comprimento", right ? x0 + INSET_MM : x1 - INSET_MM, 0, H));
+    const machineRects = layout.machines.map((m) => ({ x: m.x, y: m.y, width: m.widthMm, height: m.depthMm }));
+    // largura num trecho sem máquina; comprimento na área técnica (junto da parede)
+    const ys = steps(INSET_MM, H - INSET_MM).reverse();
+    out.push(horizontal("fundo-largura", x0, x1, freeY(ys, x0, x1, machineRects)));
+    out.push(vertical("fundo-comprimento", right ? W - INSET_MM : INSET_MM, 0, H));
     if (layout.machines.length > 0) {
       const rowEnd = Math.max(...layout.machines.map((m) => m.y + m.depthMm));
-      const x = right ? W - D - FACADE_INSET_MM : D + FACADE_INSET_MM;
+      const fd0 = layout.frontDoor;
+      const door = fd0 ? [{ x: fd0.x, y: H - fd0.width, width: fd0.width, height: fd0.width }] : [];
+      // salão adentro, a partir do drywall, até achar um x sem móvel
+      const xs = Array.from({ length: 12 }, (_, k) => FACADE_INSET_MM + k * 300)
+        .map((d) => (right ? W - D - d : D + d))
+        .filter((x) => x > 0 && x < W);
+      const x = freeX(xs.length ? xs : [right ? W - D - FACADE_INSET_MM : D + FACADE_INSET_MM], rowEnd, H, [...furnitureRects, ...door]);
       out.push(H - rowEnd >= MIN_MM ? vertical("livre-fachada", x, rowEnd, H) : null);
     }
   }

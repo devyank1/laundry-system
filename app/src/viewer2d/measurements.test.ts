@@ -90,6 +90,51 @@ describe("planMeasurements", () => {
     for (const b of blockers) expect(x < b!.x || x > b!.x + b!.width).toBe(true);
   });
 
+  it("toda medida fica dentro da loja (frente e lateral, máquinas dos dois lados)", () => {
+    const cases: Partial<ProjectState>[] = [
+      {},
+      { roomWidthMm: 6000, roomDepthMm: 7000 },
+      { orientation: "side", machineWall: "left", roomWidthMm: 5000, roomDepthMm: 9000 },
+      { orientation: "side", machineWall: "right", roomWidthMm: 5000, roomDepthMm: 9000 },
+      { orientation: "side", machineWall: "right", roomWidthMm: 5000, roomDepthMm: 9000, tableSlot: "farBottom", chairsSlot: "farBottom" },
+    ];
+    for (const c of cases) {
+      const l = layoutOf(c);
+      for (const m of planMeasurements(l)) {
+        for (const x of [m.x0, m.x1]) expect(x, `${m.id} ${JSON.stringify(c)}`).toBeGreaterThanOrEqual(0);
+        for (const x of [m.x0, m.x1]) expect(x, m.id).toBeLessThanOrEqual(l.roomWidthMm);
+        for (const y of [m.y0, m.y1]) expect(y, m.id).toBeGreaterThanOrEqual(0);
+        for (const y of [m.y0, m.y1]) expect(y, m.id).toBeLessThanOrEqual(l.roomDepthMm);
+      }
+    }
+  });
+
+  it("lateral: medidas do fundo não passam por cima das máquinas", () => {
+    for (const machineWall of ["left", "right"] as const) {
+      const l = layoutOf({ orientation: "side", machineWall, roomWidthMm: 5000, roomDepthMm: 9000 });
+      const m = byId(l);
+      const comp = m.get("fundo-comprimento")!;
+      const larg = m.get("fundo-largura")!;
+      for (const mc of l.machines) {
+        expect(comp.x0 < mc.x || comp.x0 > mc.x + mc.widthMm, `comprimento ${machineWall}`).toBe(true);
+        expect(larg.y0 < mc.y || larg.y0 > mc.y + mc.depthMm, `largura ${machineWall}`).toBe(true);
+      }
+    }
+  });
+
+  it("lateral: espaço livre não passa por cima de móvel", () => {
+    for (const machineWall of ["left", "right"] as const) {
+      const l = layoutOf({ orientation: "side", machineWall, roomWidthMm: 5000, roomDepthMm: 9000 });
+      const live = byId(l).get("livre-fachada")!;
+      const f = l.furniture!;
+      for (const b of [f.table, f.totem, f.ac, f.premium?.counter, ...f.poufs].filter(Boolean)) {
+        const crossesX = live.x0 > b!.x && live.x0 < b!.x + b!.width;
+        const crossesY = live.y1 > b!.y && live.y0 < b!.y + b!.height;
+        expect(crossesX && crossesY, `${machineWall}`).toBe(false);
+      }
+    }
+  });
+
   it("loja sem máquinas não quebra", () => {
     const l = layoutOf();
     expect(() => planMeasurements({ ...l, machines: [] })).not.toThrow();
