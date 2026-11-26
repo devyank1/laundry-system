@@ -39,7 +39,7 @@ export function captureMeeting(): MeetingSnapshot {
       fleet: i.fleet, cycles: i.cycles, needplaca: i.needplaca, issues: i.issues, visitcost: i.visitcost, pct: i.pct,
       downdays: i.downdays, gwprice: i.gwprice, gwqty: i.gwqty, boardprice: i.boardprice, licprice: i.licprice,
     }),
-    obra: { doneAt: [...useObraStore.getState().doneAt] },
+    obra: { doneAt: [...useObraStore.getState().doneAt], checked: [...useObraStore.getState().checked] },
   };
 }
 

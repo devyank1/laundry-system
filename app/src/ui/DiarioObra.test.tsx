@@ -3,6 +3,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DiarioObra } from "./DiarioObra";
 import { useObraStore } from "../obra/obraStore";
+import { OBRA_STEPS } from "../obra/steps";
 
 beforeEach(() => {
   localStorage.clear();
@@ -30,20 +31,46 @@ describe("DiarioObra", () => {
     expect(screen.getByText("1 de 25 etapas concluídas")).toBeInTheDocument();
   });
 
+  it("checklist da etapa atual libera o Concluir quando tudo marcado", async () => {
+    render(<DiarioObra />);
+    await userEvent.click(screen.getByRole("button", { name: "Concluir etapa" }));
+    const step = screen.getByText("Escolha do ponto").closest("li")!;
+    const boxes = within(step).getAllByRole("checkbox");
+    expect(boxes).toHaveLength(8);
+    expect(within(step).getByText("0 de 8")).toBeInTheDocument();
+    const btn = within(step).getByRole("button", { name: "Concluir etapa" });
+    expect(btn).toBeDisabled();
+    for (const b of boxes) await userEvent.click(b);
+    expect(within(step).getByText("8 de 8")).toBeInTheDocument();
+    expect(btn).toBeEnabled();
+    await userEvent.click(btn);
+    expect(step).toHaveAttribute("data-state", "done");
+    expect(within(step).getAllByRole("checkbox").every((b) => (b as HTMLInputElement).disabled && (b as HTMLInputElement).checked)).toBe(true);
+  });
+
+  it("checklist de etapa futura não dá pra marcar", () => {
+    render(<DiarioObra />);
+    const future = screen.getByText("Obrigações legais").closest("li")!;
+    expect(within(future).getByText("Abrir CNPJ ou MEI")).toBeInTheDocument();
+    expect(within(future).getAllByRole("checkbox").every((b) => (b as HTMLInputElement).disabled)).toBe(true);
+  });
+
   it("desfazer só na última concluída", async () => {
     render(<DiarioObra />);
     expect(screen.queryByRole("button", { name: "Desfazer" })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Concluir etapa" }));
-    await userEvent.click(screen.getByRole("button", { name: "Concluir etapa" }));
     const undo = screen.getAllByRole("button", { name: "Desfazer" });
     expect(undo).toHaveLength(1);
-    expect(screen.getByText("Escolha do ponto").closest("li")).toContainElement(undo[0]);
+    expect(screen.getByText("Prazos").closest("li")).toContainElement(undo[0]);
     await userEvent.click(undo[0]);
-    expect(screen.getByText("Escolha do ponto").closest("li")).toHaveAttribute("data-state", "current");
+    expect(screen.getByText("Prazos").closest("li")).toHaveAttribute("data-state", "current");
   });
 
   it("tudo concluído mostra a obra finalizada", () => {
-    for (let i = 0; i < 25; i++) useObraStore.getState().complete();
+    for (const step of OBRA_STEPS) {
+      for (const c of step.checklist ?? []) useObraStore.getState().toggle(c.id);
+      useObraStore.getState().complete();
+    }
     render(<DiarioObra />);
     expect(screen.getByText("25 de 25 etapas concluídas")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Concluir etapa" })).not.toBeInTheDocument();
@@ -52,7 +79,7 @@ describe("DiarioObra", () => {
 
   it("mostra objetivo e prazo", () => {
     render(<DiarioObra />);
-    expect(screen.getByText("Abrir CNPJ")).toBeInTheDocument();
+    expect(screen.getByText(/contador alinha/)).toBeInTheDocument();
     expect(screen.getByText("Até 10 dias")).toBeInTheDocument();
   });
 });

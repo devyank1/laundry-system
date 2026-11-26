@@ -81,10 +81,14 @@ describe("diário de obra na reunião", () => {
     useObraStore.getState().reset();
     useObraStore.getState().complete(new Date("2026-11-20T10:00:00Z"));
     const snap = captureMeeting();
-    expect(snap.obra).toEqual({ doneAt: ["2026-11-20T10:00:00.000Z"] });
+    useObraStore.getState().toggle("1b");
+    const snap2 = captureMeeting();
+    expect(snap2.obra).toEqual({ doneAt: ["2026-11-20T10:00:00.000Z"], checked: ["1b"] });
+    expect(snap.obra).toEqual({ doneAt: ["2026-11-20T10:00:00.000Z"], checked: [] });
     useObraStore.getState().reset();
-    applyMeeting(JSON.parse(JSON.stringify(snap)), null);
+    applyMeeting(JSON.parse(JSON.stringify(snap2)), null);
     expect(useObraStore.getState().doneAt).toEqual(["2026-11-20T10:00:00.000Z"]);
+    expect(useObraStore.getState().checked).toEqual(["1b"]);
   });
 
   it("reunião salva antes do diário abre zerada", () => {
@@ -97,6 +101,9 @@ describe("diário de obra na reunião", () => {
     useMeetingSession.getState().bind({ id: "c1", name: "Lava Já", canSave: true });
     expect(useMeetingSession.getState().isDirty()).toBe(false);
     useObraStore.getState().complete();
+    expect(useMeetingSession.getState().isDirty()).toBe(true);
+    useMeetingSession.getState().markSaved();
+    useObraStore.getState().toggle("1a");
     expect(useMeetingSession.getState().isDirty()).toBe(true);
   });
 });
