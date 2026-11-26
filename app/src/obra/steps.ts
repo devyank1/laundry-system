@@ -61,12 +61,12 @@ export const OBRA_STEPS: ObraStep[] = [
   { id: "redes", title: "Criação do Instagram e do Google Meu Negócio" },
   { id: "trifasico", title: "Alteração para trifásico", goal: "Caso realmente precise da alteração para trifásico, ela deve ser feita nesta etapa" },
   { id: "planta", title: "Planta arquitetônica simples", goal: "Criar planta do local para posicionamento dos elementos" },
+  { id: "planta-eletrica", title: "Planta elétrica e hidráulica" },
   {
     id: "aprovacao-projetos",
     title: "Aprovação dos projetos hidráulico e elétrico pelos engenheiros",
     goal: "Contém o projeto certo para o layout e os materiais necessários que devem ser comprados",
   },
-  { id: "planta-eletrica", title: "Planta elétrica e hidráulica" },
   { id: "mobiliario", title: "Compra do mobiliário", deadline: "Mobiliário chegando em até 12 dias" },
   {
     id: "compras-materiais",

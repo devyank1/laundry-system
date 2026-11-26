@@ -29,7 +29,7 @@ describe("etapas", () => {
 
   it("etapas novas no lugar pedido", () => {
     expect(titles()[idx("inpi") + 1]).toBe("Criação do Instagram e do Google Meu Negócio");
-    expect(OBRA_STEPS[idx("planta-eletrica") - 1].title).toBe("Aprovação dos projetos hidráulico e elétrico pelos engenheiros");
+    expect(OBRA_STEPS[idx("planta-eletrica") + 1].title).toBe("Aprovação dos projetos hidráulico e elétrico pelos engenheiros");
     expect(OBRA_STEPS[idx("eletrica") - 1]).toMatchObject({ title: "Início das compras de materiais hidráulicos e elétricos", extras: true });
   });
 

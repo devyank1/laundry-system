@@ -47,7 +47,7 @@ progresso.
 ## Revisão 2026-11-26 (pedido do dono)
 
 - 28 etapas. Novas: Instagram + Google Meu Negócio (após INPI), aprovação
-  dos projetos hidráulico/elétrico pelos engenheiros (antes da planta
+  dos projetos hidráulico/elétrico pelos engenheiros (depois da planta
   elétrica), compras de materiais hidráulicos/elétricos com "+ Adicionar"
   materiais extras (antes do início da elétrica).
 - Checklists (A, B, C…): escolha do ponto (8), obrigações legais (4),
