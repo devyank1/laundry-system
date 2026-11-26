@@ -1875,7 +1875,7 @@
 .obra-steps li[data-state="todo"] { opacity: 0.55; }
 .obra-steps li[data-state="current"] { border-color: var(--accent-ink); box-shadow: 0 0 0 1px var(--accent-ink); }
 .obra-mark { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 600; border: 1px solid var(--border-strong); }
-.obra-steps li[data-state="done"] .obra-mark { background: var(--accent); color: var(--on-primary); border-color: transparent; }
+.obra-steps li[data-state="done"] .obra-mark { background: var(--accent-ink); color: var(--on-primary); border-color: transparent; }
 .obra-body { flex: 1; min-width: 0; display: grid; gap: 2px; }
 .obra-goal, .obra-deadline, .obra-date { font-size: 13px; color: var(--text-muted); }
 .obra-deadline::before { content: "Prazo: "; }
