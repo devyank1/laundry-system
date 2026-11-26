@@ -94,7 +94,6 @@ export function App() {
     };
   }, [userId, showMyData]);
   const [svgEl, setSvgEl] = useState<SVGSVGElement | null>(null);
-  const [showMeasures, setShowMeasures] = useState(false);
   const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
   // "Visão do cliente": número = passeio rodando (novo número reinicia); null = órbita livre.
   const [tourRun, setTourRun] = useState<number | null>(null);
@@ -251,14 +250,6 @@ export function App() {
         <div className="export-actions tabs-actions">
           <button
             type="button"
-            aria-pressed={showMeasures}
-            title="Mostrar na planta as medidas do fundo, móveis, porta e espaços livres"
-            onClick={() => setShowMeasures((v) => !v)}
-          >
-            {showMeasures ? "Ocultar medidas" : "Mostrar medidas"}
-          </button>
-          <button
-            type="button"
             title="Baixar PNG"
             disabled={!canExport || !svgEl}
             onClick={() => svgEl && exportFloorPlanPNG(svgEl, `planta-${sheet}.png`)}
@@ -369,7 +360,7 @@ export function App() {
           </div>
           </div>
           <div className="plan-viewport" style={{ "--plan-zoom": planZoom } as CSSProperties}>
-            <FloorPlan ref={setSvgEl} layout={layout} sheet={sheet} showMeasures={showMeasures} />
+            <FloorPlan ref={setSvgEl} layout={layout} sheet={sheet} />
           </div>
           </div>
         </>

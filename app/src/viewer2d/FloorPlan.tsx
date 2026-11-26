@@ -1,7 +1,7 @@
 import { forwardRef, useId, type ReactNode } from "react";
 import type { Layout, Rect, WallSide } from "../engine/types";
 import { CAD, formatMeters } from "./planTheme";
-import { planMeasurements } from "./measurements";
+import { machineChainStops, outsideChains, planMeasurements, sizeText } from "./measurements";
 import { DeviceSymbol, ElectricalOverlay, LuminaireSymbol, RunStroke } from "./ElectricalSheet";
 
 // Planta baixa no padrão das pranchas de projeto (pasta /plantas): fundo
@@ -23,6 +23,9 @@ const MARQUISE_MM = 1200; // projeção da marquise além da fachada
 const CHAIN_OFFSET_MM = WALL_MM + 450; // cota das máquinas, por fora da parede
 const CHAIN_STEP_MM = 350; // distância entre duas correntes de cota
 const OVERALL_OFFSET_MM = 700; // cota geral, por fora de tudo
+const SIDE_CHAIN_MM = WALL_MM + 300; // fundo + espaço livre, por fora da parede lateral
+const FRONT_CHAIN_MM = WALL_MM + 450; // porta até as paredes, por fora da fachada
+const MACHINE_CHAIN_GAP_MM = 150; // corrente das máquinas, logo atrás delas
 
 const JUG_W_MM = 190; // galão: base ~19 x 13 cm
 const JUG_D_MM = 130;
@@ -242,9 +245,9 @@ function hexagon(cx: number, cy: number, r: number): string {
 
 export const FloorPlan = forwardRef<
   SVGSVGElement,
-  { layout: Layout; sheet?: PlanSheet; showMeasures?: boolean }
+  { layout: Layout; sheet?: PlanSheet }
 >(function FloorPlan(
-  { layout, sheet = "layout", showMeasures = false },
+  { layout, sheet = "layout" },
   ref
 ) {
   const legend = LEGEND.filter((item) => SHEET_LEGEND[sheet].includes(item.sample));
@@ -267,7 +270,9 @@ export const FloorPlan = forwardRef<
   const chainOuterMm = CHAIN_OFFSET_MM + (sheet === "hidraulica" ? CHAIN_STEP_MM : 0);
   const marginLeft = PAD + mm(isSide && !mirrored ? chainOuterMm : OVERALL_OFFSET_MM);
   const marginRight = PAD + mm(isSide && mirrored ? chainOuterMm : OVERALL_OFFSET_MM);
-  const marginTop = PAD + (isSide ? wall : mm(chainOuterMm));
+  // Cota do fundo por cima da loja (na água e esgoto, além das 2 correntes).
+  const topChainMm = !isSide && sheet === "hidraulica" ? CHAIN_OFFSET_MM + 2 * CHAIN_STEP_MM : CHAIN_OFFSET_MM;
+  const marginTop = PAD + mm(topChainMm) + 8;
   const drawingW = marginLeft + width + marginRight;
   const viewWidth = Math.max(drawingW, MIN_CONTENT_WIDTH + PAD);
   const offsetX = marginLeft + (viewWidth - drawingW) / 2;
@@ -352,7 +357,17 @@ export const FloorPlan = forwardRef<
           offsetMm: CHAIN_OFFSET_MM + CHAIN_STEP_MM,
         },
       ]
-    : [{ stops: uniqSorted(machineSpans.flatMap((sp) => [sp.a0, sp.a1])), offsetMm: CHAIN_OFFSET_MM }];
+    : // junto das máquinas, na área técnica logo atrás delas
+      [{ stops: machineChainStops(layout), offsetMm: -(techDepthMm - MACHINE_CHAIN_GAP_MM) }];
+  // Correntes por fora da loja: fundo/espaço livre, largura do fundo, porta.
+  const outside = outsideChains(layout).map((c) => {
+    const at = (v: number): Pt => {
+      if (c.side === "top") return { x: mm(v), y: -mm(topChainMm) };
+      if (c.side === "bottom") return { x: mm(v), y: height + mm(FRONT_CHAIN_MM) };
+      return { x: c.side === "left" ? -mm(SIDE_CHAIN_MM) : width + mm(SIDE_CHAIN_MM), y: mm(v) };
+    };
+    return { side: c.side, stops: c.stops, at };
+  });
 
   // Centro do salão (entre o drywall e a fachada / parede oposta).
   // Mais pra frente do salão, onde costuma sobrar piso livre.
@@ -834,6 +849,9 @@ export const FloorPlan = forwardRef<
                   <Label x={totem.x + totem.w / 2} y={totem.y - 2} size={4.5} fill={CAD.gray}>
                     NICHO TOTEM
                   </Label>
+                  <Label x={totem.x + totem.w / 2} y={totem.y + totem.h + 6} size={4.5} fill={CAD.ink}>
+                    {sizeText(fur.totem!)}
+                  </Label>
                 </>
               )}
               {fur.poufs.map((p, i) => (
@@ -844,6 +862,9 @@ export const FloorPlan = forwardRef<
                   <rect x={table.x} y={table.y} width={table.w} height={table.h} rx={2} />
                   <Label x={table.x + table.w / 2} y={table.y + table.h / 2 + 2} size={5} fill={CAD.gray}>
                     MESA CENTRAL
+                  </Label>
+                  <Label x={table.x + table.w / 2} y={table.y + table.h / 2 + 9} size={5} fill={CAD.ink}>
+                    {sizeText(fur.table!)}
                   </Label>
                 </>
               )}
@@ -876,6 +897,15 @@ export const FloorPlan = forwardRef<
                       rotate={vertical ? -90 : 0}
                     >
                       BALCÃO
+                    </Label>
+                    <Label
+                      x={counter.x + counter.w / 2 + (vertical ? 7 : 0)}
+                      y={counter.y + counter.h / 2 + (vertical ? 2 : 9)}
+                      size={5}
+                      fill={CAD.ink}
+                      rotate={vertical ? -90 : 0}
+                    >
+                      {sizeText(fur.premium.counter!)}
                     </Label>
                   </>
                 );
@@ -985,16 +1015,21 @@ export const FloorPlan = forwardRef<
           <ElectricalOverlay plan={layout.electricalPlan} mode={sheet === "iluminacao" ? "lighting" : "power"} px={mm} />
         )}
 
-        {/* Medidas extras (botão "Mostrar medidas"): fundo, móveis, porta, espaços livres */}
-        {showMeasures && (
-          <g data-measures>
-            {planMeasurements(layout).map((m) => (
-              <g key={m.id} data-measure={m.id}>
-                <Dimension p0={{ x: mm(m.x0), y: mm(m.y0) }} p1={{ x: mm(m.x1), y: mm(m.y1) }} text={m.text} boxed />
+        {/* Medidas: por fora (fundo, espaço livre, porta) e móveis até a fachada */}
+        <g data-measures>
+          {outside.flatMap((c) =>
+            c.stops.slice(1).map((st, i) => (
+              <g key={`${c.side}-${i}`} data-measure={`fora-${c.side}`}>
+                <Dimension p0={c.at(c.stops[i])} p1={c.at(st)} text={formatMeters(st - c.stops[i])} boxed />
               </g>
-            ))}
-          </g>
-        )}
+            ))
+          )}
+          {planMeasurements(layout).map((m) => (
+            <g key={m.id} data-measure={m.id}>
+              <Dimension p0={{ x: mm(m.x0), y: mm(m.y0) }} p1={{ x: mm(m.x1), y: mm(m.y1) }} text={m.text} boxed />
+            </g>
+          ))}
+        </g>
 
         {/* Cotas: corrente das máquinas por fora da parede delas + gerais */}
         {chains.flatMap((chain, k) =>

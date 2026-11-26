@@ -39,17 +39,15 @@ const state: ProjectState = {
 };
 
 describe("FloorPlan", () => {
-  it("medidas extras só aparecem com showMeasures", () => {
+  it("medidas fazem parte do desenho: por fora da loja e tamanho dos móveis só em texto", () => {
     const { layout } = computeLayout(state, catalog);
-    const off = render(<FloorPlan layout={layout!} />);
-    expect(off.container.querySelector("[data-measures]")).toBeNull();
-    off.unmount();
-    const { container } = render(<FloorPlan layout={layout!} showMeasures />);
-    expect(container.querySelector('[data-measure="mesa"]')).not.toBeNull();
-    expect(container.querySelector('[data-measure="fundo-largura"]')).not.toBeNull();
+    const { container } = render(<FloorPlan layout={layout!} />);
+    expect(container.querySelector('[data-measure="fora-left"]')).not.toBeNull();
+    expect(container.querySelector('[data-measure="fora-top"]')).not.toBeNull();
+    expect(container.querySelector('[data-measure="fora-bottom"]')).not.toBeNull();
+    expect(container.querySelector('[data-measure="mesa"]')).toBeNull();
     expect(screen.getByText("2,00 × 0,80")).toBeInTheDocument();
   });
-
   it("renderiza um svg com uma caixa por máquina posicionada", () => {
     const { layout } = computeLayout(state, catalog);
     render(<FloorPlan layout={layout!} />);
@@ -217,7 +215,7 @@ describe("FloorPlan — padrão das pranchas de projeto", () => {
     expect(screen.getByText("PLANTA BAIXA: LAYOUT")).toBeInTheDocument();
     // corrente das máquinas (2 máquinas) + comprimento e fachada
     expect(container.querySelectorAll("[data-dimension]").length).toBeGreaterThanOrEqual(4);
-    expect(screen.getByText("5,00")).toBeInTheDocument();
+    expect(screen.getAllByText("5,00").length).toBeGreaterThanOrEqual(2); // geral + largura do fundo
     expect(screen.getByText("4,20")).toBeInTheDocument();
   });
 });
