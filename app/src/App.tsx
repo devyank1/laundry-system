@@ -10,8 +10,10 @@ import { ClientsPanel } from "./ui/ClientsPanel";
 import { MeetingBar } from "./ui/MeetingBar";
 import { RoiCalculator } from "./roi/RoiCalculator";
 import { InsightsCalculator } from "./insights/InsightsCalculator";
+import { DiarioObra } from "./ui/DiarioObra";
 import {
   IconChart,
+  IconClipboard,
   IconCube,
   IconDownload,
   IconEye,
@@ -70,7 +72,8 @@ export function App() {
   const roofVisible = useProjectStore((s) => s.roofVisible);
   const inauguracao = useProjectStore((s) => s.inauguracao);
   const toggleInauguracao = useProjectStore((s) => s.toggleInauguracao);
-  const [tab, setTab] = useState<"2d" | "3d" | "roi" | "insights">("2d");
+  const [tab, setTab] = useState<"2d" | "3d" | "roi" | "insights" | "obra">("2d");
+  const wideTab = tab === "roi" || tab === "insights" || tab === "obra";
   const [sheet, setSheet] = useState<PlanSheet>("layout");
   // Zoom da planta 2D (o desenho alarga e a área rola).
   const [planZoom, setPlanZoom] = useState(1);
@@ -124,7 +127,7 @@ export function App() {
 
   return (
     // ROI e Conectividade não usam os parâmetros da planta: sem barra lateral.
-    <div className={tab === "roi" || tab === "insights" ? "app app-wide" : "app"}>
+    <div className={wideTab ? "app app-wide" : "app"}>
       <header className="topbar">
         <div className="brand">
           <LogoMark />
@@ -174,7 +177,7 @@ export function App() {
       </header>
       {isEmpresa && <MeetingBar />}
 
-      {tab !== "roi" && tab !== "insights" && (
+      {!wideTab && (
         <aside className="sidebar">
           <div className="sidebar-head">
             <h2>Parâmetros do projeto</h2>
@@ -242,6 +245,10 @@ export function App() {
             <button type="button" aria-pressed={tab === "insights"} onClick={() => setTab("insights")}>
               <IconSignal />
               Conectividade
+            </button>
+            <button type="button" aria-pressed={tab === "obra"} onClick={() => setTab("obra")}>
+              <IconClipboard />
+              Diário de Obra
             </button>
           </>
         )}
@@ -317,8 +324,13 @@ export function App() {
           <InsightsCalculator />
         </RequireRole>
       )}
+      {tab === "obra" && (
+        <RequireRole roles={["admin", "empresa"]}>
+          <DiarioObra />
+        </RequireRole>
+      )}
 
-      {!layout && tab !== "roi" && tab !== "insights" && (
+      {!layout && !wideTab && (
         <p className="empty-state">Ajuste as dimensões para visualizar a planta.</p>
       )}
 

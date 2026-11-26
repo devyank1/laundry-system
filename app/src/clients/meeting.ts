@@ -1,6 +1,7 @@
 import { getCatalog } from "../catalog/store";
 import type { MachineSelection, ProjectState } from "../engine/types";
 import { normalizeInsights, useInsightsStore } from "../insights/insightsStore";
+import { normalizeObra, useObraStore, type ObraState } from "../obra/obraStore";
 import type { InsightsInputs } from "../insights/model";
 import { markPlantSynced } from "../plantLink";
 import type { RoiState } from "../roi/model";
@@ -17,6 +18,8 @@ export interface MeetingSnapshot {
   project: ProjectState & FacadeState;
   roi: RoiState;
   insights: InsightsInputs;
+  /** Diário de Obra; reuniões antigas não têm (abre zerado). */
+  obra?: ObraState;
 }
 
 const PROJECT_DEFAULTS: ProjectState & FacadeState = { ...initialProjectState, ...initialFacadeState };
@@ -36,6 +39,7 @@ export function captureMeeting(): MeetingSnapshot {
       fleet: i.fleet, cycles: i.cycles, needplaca: i.needplaca, issues: i.issues, visitcost: i.visitcost, pct: i.pct,
       downdays: i.downdays, gwprice: i.gwprice, gwqty: i.gwqty, boardprice: i.boardprice, licprice: i.licprice,
     }),
+    obra: (({ doneAt, checked, extras }) => structuredClone({ doneAt, checked, extras }))(useObraStore.getState()),
   };
 }
 
@@ -75,6 +79,7 @@ export function applyMeeting(raw: unknown, logoDataUrl: string | null): { remove
   useProjectStore.setState({ ...(next as Partial<ProjectState & FacadeState>), logoDataUrl });
   useRoiStore.getState().replaceAll(normalizeRoi(snap.roi));
   useInsightsStore.getState().replaceAll(normalizeInsights(snap.insights));
+  useObraStore.getState().replaceAll(normalizeObra(snap.obra));
   // O ROI/Conectividade da reunião valem: a sincronização com a planta não
   // pode sobrescrever ao detectar a planta "nova".
   markPlantSynced(project.machines, catalog);

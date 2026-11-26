@@ -4,6 +4,7 @@ import { useRoiStore } from "../roi/roiStore";
 import { defaultRoiState } from "../roi/model";
 import { useMeetingSession } from "./sessionStore";
 import { resetWorkspace, workspaceOwnerChanged } from "./resetWorkspace";
+import { useObraStore } from "../obra/obraStore";
 
 describe("resetWorkspace", () => {
   it("só limpa quando a conta muda ou sai", () => {
@@ -18,7 +19,9 @@ describe("resetWorkspace", () => {
     useMeetingSession.getState().bind({ id: "c1", name: "Lava Já", canSave: true });
     useProjectStore.setState({ roomWidthMm: 9999, logoDataUrl: "data:image/png;base64,AA", facadeColor: "#000000" });
     useRoiStore.getState().setOp("preco", 77);
+    useObraStore.getState().complete();
     resetWorkspace();
+    expect(useObraStore.getState().doneAt).toEqual({});
     expect(useMeetingSession.getState().clientId).toBeNull();
     expect(useProjectStore.getState()).toMatchObject({ roomWidthMm: initialProjectState.roomWidthMm, logoDataUrl: null, facadeColor: "#8fa892" });
     expect(useRoiStore.getState().op).toEqual(defaultRoiState().op);

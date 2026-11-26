@@ -144,6 +144,14 @@ describe("Acesso por papel", () => {
     }
   });
 
+  it("aba Diário de Obra abre as etapas da obra", async () => {
+    loginAs("empresa", false);
+    render(<App />);
+    const { default: userEvent } = await import("@testing-library/user-event");
+    await userEvent.click(screen.getByRole("button", { name: /diário de obra/i }));
+    expect(await screen.findByText("0 de 28 etapas concluídas")).toBeInTheDocument();
+  });
+
   it("medidas fazem parte da planta, sem botão", async () => {
     loginAs("empresa", false);
     const { container } = render(<App />);
