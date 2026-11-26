@@ -8,7 +8,7 @@ import { formatMeters } from "./planTheme";
 //  - dentro da loja, só a distância dos móveis até a fachada.
 // O tamanho dos móveis vai como texto, sem linha (sizeText).
 
-export type MeasureId = "balcao-fachada" | "cadeiras-fachada";
+export type MeasureId = "balcao-fachada" | "cadeiras-fachada" | "maquinas-total" | "mesa-maquinas" | "porta-balcao";
 
 export interface PlanMeasure {
   id: MeasureId;
@@ -84,10 +84,67 @@ function toFacade(id: MeasureId, r: Rect, facadeY: number, others: Rect[]): Plan
   return { id, x0: x, y0: bottom, x1: x, y1: facadeY, text: formatMeters(facadeY - bottom) };
 }
 
+const FRONT_GAP_MM = 150; // total das máquinas, logo na frente delas
+
+function seg(id: MeasureId, x0: number, y0: number, x1: number, y1: number): PlanMeasure {
+  return { id, x0, y0, x1, y1, text: formatMeters(Math.abs(x1 - x0) + Math.abs(y1 - y0)) };
+}
+
+// Meio do trecho em comum entre [a0,a1] e [b0,b1]; sem trecho em comum, o meio de a.
+function overlapMid(a0: number, a1: number, b0: number, b1: number): number {
+  const lo = Math.max(a0, b0);
+  const hi = Math.min(a1, b1);
+  return hi > lo ? (lo + hi) / 2 : (a0 + a1) / 2;
+}
+
+// Total da fileira (na frente das máquinas) e mesa central até as máquinas.
+function machineMeasures(layout: Layout): PlanMeasure[] {
+  if (layout.machines.length === 0) return [];
+  const out: PlanMeasure[] = [];
+  const W = layout.roomWidthMm;
+  const D = layout.drywall.y;
+  const table = layout.furniture?.table ?? null;
+  if (layout.orientation === "back") {
+    const start = Math.min(...layout.machines.map((m) => m.x));
+    const end = Math.max(...layout.machines.map((m) => m.x + m.widthMm));
+    out.push(seg("maquinas-total", start, D + FRONT_GAP_MM, end, D + FRONT_GAP_MM));
+    if (table && table.y - D >= MIN_MM) {
+      const x = overlapMid(table.x, table.x + table.width, start, end);
+      out.push(seg("mesa-maquinas", x, D, x, table.y));
+    }
+  } else {
+    const right = layout.machineWall === "right";
+    const drywallX = right ? W - D : D;
+    const start = Math.min(...layout.machines.map((m) => m.y));
+    const end = Math.max(...layout.machines.map((m) => m.y + m.depthMm));
+    const x = right ? drywallX - FRONT_GAP_MM : drywallX + FRONT_GAP_MM;
+    out.push(seg("maquinas-total", x, start, x, end));
+    if (table) {
+      const y = overlapMid(table.y, table.y + table.height, start, end);
+      const gap = right ? drywallX - (table.x + table.width) : table.x - drywallX;
+      if (gap >= MIN_MM) out.push(right ? seg("mesa-maquinas", table.x + table.width, y, drywallX, y) : seg("mesa-maquinas", drywallX, y, table.x, y));
+    }
+  }
+  return out;
+}
+
+// Da porta de entrada até o balcão, na horizontal, logo acima da fachada.
+function doorToCounter(layout: Layout): PlanMeasure | null {
+  const fd = layout.frontDoor;
+  const c = layout.furniture?.premium?.counter ?? null;
+  if (!fd || !c) return null;
+  const y = Math.min(c.y + c.height, layout.roomDepthMm) - FRONT_GAP_MM;
+  const doorEnd = fd.x + fd.width;
+  if (c.x - doorEnd >= MIN_MM) return seg("porta-balcao", doorEnd, y, c.x, y);
+  if (fd.x - (c.x + c.width) >= MIN_MM) return seg("porta-balcao", c.x + c.width, y, fd.x, y);
+  return null;
+}
+
 export function planMeasurements(layout: Layout): PlanMeasure[] {
   const H = layout.roomDepthMm;
   const f = layout.furniture;
-  if (!f) return [];
+  const extra = [...machineMeasures(layout), ...[doorToCounter(layout)].filter((m): m is PlanMeasure => m !== null)];
+  if (!f) return extra;
   const fd = layout.frontDoor;
   const door = fd ? [{ x: fd.x, y: H - fd.width, width: fd.width, height: fd.width }] : [];
   const furnitureRects: Rect[] = [f.table, f.totem, f.ac, f.premium?.counter ?? null, f.premium?.pufs ?? null, ...f.poufs].filter(
@@ -100,5 +157,5 @@ export function planMeasurements(layout: Layout): PlanMeasure[] {
     const nearest = f.poufs.reduce((a, b) => (b.y + b.height > a.y + a.height ? b : a));
     out.push(toFacade("cadeiras-fachada", nearest, H, [...furnitureRects.filter((o) => !f.poufs.includes(o)), ...door]));
   }
-  return out.filter((m): m is PlanMeasure => m !== null);
+  return [...extra, ...out.filter((m): m is PlanMeasure => m !== null)];
 }
