@@ -101,10 +101,18 @@ describe("useObraStore", () => {
     st().addExtra("  Piso vinílico  ");
     st().addExtra("   ");
     st().addExtra("x".repeat(300));
-    expect(st().extras).toEqual(["Piso vinílico", "x".repeat(120)]);
+    expect(st().extras).toEqual([
+      { text: "Piso vinílico", bought: false },
+      { text: "x".repeat(120), bought: false },
+    ]);
+    st().toggleExtra(0);
+    expect(st().extras[0].bought).toBe(true);
+    st().toggleExtra(0);
+    expect(st().extras[0].bought).toBe(false);
+    st().toggleExtra(9);
     st().removeExtra(0);
     st().removeExtra(9);
-    expect(st().extras).toEqual(["x".repeat(120)]);
+    expect(st().extras).toEqual([{ text: "x".repeat(120), bought: false }]);
     for (let i = 0; i < 80; i++) st().addExtra(`m${i}`);
     expect(st().extras).toHaveLength(EXTRA_MAX);
   });
@@ -116,6 +124,10 @@ describe("useObraStore", () => {
       prazos: "2026-11-01T00:00:00.000Z",
     });
     expect(normalizeObra({ checked: ["ponto-a", "ponto-a", "zz", 5] }).checked).toEqual(["ponto-a"]);
-    expect(normalizeObra({ extras: ["Piso", 3, " ", null] }).extras).toEqual(["Piso"]);
+    expect(normalizeObra({ extras: [{ text: "Piso", bought: true }, { text: "Rodapé", bought: "sim" }, "Tinta", 3, { text: " " }, null] }).extras).toEqual([
+      { text: "Piso", bought: true },
+      { text: "Rodapé", bought: false },
+      { text: "Tinta", bought: false },
+    ]);
   });
 });

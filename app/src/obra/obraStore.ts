@@ -5,15 +5,20 @@ import { OBRA_STEPS, type ObraStep } from "./steps";
 // bagunça reuniões salvas).
 // doneAt: id da etapa -> quando foi concluída (ISO).
 // checked: ids dos itens de checklist marcados (ex.: "ponto-a").
-// extras: materiais extras digitados na etapa de compras.
+// extras: materiais extras digitados na etapa de compras, com "comprado".
 const STORAGE_KEY = "lavanderia.obra.v2";
 export const EXTRA_MAX = 50;
 export const EXTRA_MAX_LEN = 120;
 
+export interface ExtraMaterial {
+  text: string;
+  bought: boolean;
+}
+
 export interface ObraState {
   doneAt: Record<string, string>;
   checked: string[];
-  extras: string[];
+  extras: ExtraMaterial[];
 }
 
 const STEP_IDS = new Set(OBRA_STEPS.map((s) => s.id));
@@ -33,10 +38,22 @@ export function canComplete(step: ObraStep, checked: string[]): boolean {
   return (step.checklist ?? []).every((c) => checked.includes(c.id));
 }
 
-function cleanExtra(v: unknown): string | null {
+function cleanText(v: unknown): string | null {
   if (typeof v !== "string") return null;
   const t = v.trim().slice(0, EXTRA_MAX_LEN);
   return t ? t : null;
+}
+
+// Aceita { text, bought } ou só o texto.
+function cleanExtra(v: unknown): ExtraMaterial | null {
+  if (typeof v === "string") {
+    const text = cleanText(v);
+    return text ? { text, bought: false } : null;
+  }
+  if (!v || typeof v !== "object") return null;
+  const o = v as { text?: unknown; bought?: unknown };
+  const text = cleanText(o.text);
+  return text ? { text, bought: o.bought === true } : null;
 }
 
 export function normalizeObra(raw: unknown): ObraState {
@@ -52,7 +69,7 @@ export function normalizeObra(raw: unknown): ObraState {
     ? [...new Set(obj.checked.filter((v): v is string => typeof v === "string" && CHECK_IDS.has(v)))]
     : [];
   const extras = Array.isArray(obj.extras)
-    ? obj.extras.map(cleanExtra).filter((v): v is string => v !== null).slice(0, EXTRA_MAX)
+    ? obj.extras.map(cleanExtra).filter((v): v is ExtraMaterial => v !== null).slice(0, EXTRA_MAX)
     : [];
   return { doneAt, checked, extras };
 }
@@ -81,6 +98,8 @@ interface ObraStore extends ObraState {
   /** Volta a etapa concluída logo antes da atual. */
   undo: () => void;
   addExtra: (text: string) => void;
+  /** Marca/desmarca o material como comprado. */
+  toggleExtra: (index: number) => void;
   removeExtra: (index: number) => void;
   reset: () => void;
   replaceAll: (s: ObraState) => void;
@@ -119,9 +138,14 @@ export const useObraStore = create<ObraStore>((set, get) => {
       apply({ doneAt: next });
     },
     addExtra: (text) => {
-      const t = cleanExtra(text);
+      const t = cleanText(text);
       const { extras } = get();
-      if (t && extras.length < EXTRA_MAX) apply({ extras: [...extras, t] });
+      if (t && extras.length < EXTRA_MAX) apply({ extras: [...extras, { text: t, bought: false }] });
+    },
+    toggleExtra: (index) => {
+      const { extras } = get();
+      if (index >= 0 && index < extras.length)
+        apply({ extras: extras.map((m, i) => (i === index ? { ...m, bought: !m.bought } : m)) });
     },
     removeExtra: (index) => {
       const { extras } = get();

@@ -1898,3 +1898,6 @@
 .obra-extra-remove { padding: 0 6px; line-height: 1.4; }
 .obra-extras form { display: flex; gap: 6px; }
 .obra-extras input { flex: 1; min-width: 0; }
+.obra-extras label { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; cursor: pointer; }
+.obra-extras label input { flex: none; margin: 0; accent-color: var(--accent-ink); }
+.obra-extras li[data-bought] label span { text-decoration: line-through; color: var(--text-muted); }

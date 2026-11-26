@@ -78,9 +78,24 @@ describe("DiarioObra", () => {
     await userEvent.type(within(step).getByRole("textbox", { name: "Material extra" }), "Piso vinílico");
     await userEvent.click(add);
     expect(within(step).getByText("Piso vinílico")).toBeInTheDocument();
-    expect(st().extras).toEqual(["Piso vinílico"]);
+    expect(st().extras).toEqual([{ text: "Piso vinílico", bought: false }]);
+    expect(within(step).getByText(/0 de 1 comprados/)).toBeInTheDocument();
+    await userEvent.click(within(step).getByRole("checkbox", { name: "Piso vinílico" }));
+    expect(st().extras[0].bought).toBe(true);
+    expect(within(step).getByText(/1 de 1 comprados/)).toBeInTheDocument();
     await userEvent.click(within(step).getByRole("button", { name: "Remover Piso vinílico" }));
     expect(st().extras).toEqual([]);
+  });
+
+  it("material extra pode ser marcado como comprado depois da etapa concluída", async () => {
+    goTo("compras-materiais");
+    st().addExtra("Rodapé");
+    st().complete();
+    render(<DiarioObra />);
+    const step = stepLi("Início das compras de materiais hidráulicos e elétricos");
+    expect(step).toHaveAttribute("data-state", "done");
+    await userEvent.click(within(step).getByRole("checkbox", { name: "Rodapé" }));
+    expect(st().extras[0].bought).toBe(true);
   });
 
   it("desfazer só na última concluída", async () => {

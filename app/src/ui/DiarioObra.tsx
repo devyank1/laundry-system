@@ -13,6 +13,7 @@ function ExtraMaterials({ editable }: { editable: boolean }) {
   const extras = useObraStore((s) => s.extras);
   const addExtra = useObraStore((s) => s.addExtra);
   const removeExtra = useObraStore((s) => s.removeExtra);
+  const toggleExtra = useObraStore((s) => s.toggleExtra);
   const [text, setText] = useState("");
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -22,14 +23,21 @@ function ExtraMaterials({ editable }: { editable: boolean }) {
   if (!editable && extras.length === 0) return null;
   return (
     <div className="obra-extras">
-      <span className="obra-check-count">Materiais extras</span>
+      <span className="obra-check-count">
+        {extras.length > 0
+          ? `Materiais extras · ${extras.filter((m) => m.bought).length} de ${extras.length} comprados`
+          : "Materiais extras"}
+      </span>
       {extras.length > 0 && (
         <ul>
           {extras.map((m, i) => (
-            <li key={`${i}-${m}`}>
-              <span>{m}</span>
+            <li key={`${i}-${m.text}`} data-bought={m.bought || undefined}>
+              <label>
+                <input type="checkbox" checked={m.bought} disabled={!editable} onChange={() => toggleExtra(i)} />
+                <span>{m.text}</span>
+              </label>
               {editable && (
-                <button type="button" className="obra-extra-remove" aria-label={`Remover ${m}`} onClick={() => removeExtra(i)}>
+                <button type="button" className="obra-extra-remove" aria-label={`Remover ${m.text}`} onClick={() => removeExtra(i)}>
                   ×
                 </button>
               )}
