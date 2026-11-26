@@ -149,7 +149,7 @@ describe("Acesso por papel", () => {
     render(<App />);
     const { default: userEvent } = await import("@testing-library/user-event");
     await userEvent.click(screen.getByRole("button", { name: /diário de obra/i }));
-    expect(await screen.findByText("0 de 25 etapas concluídas")).toBeInTheDocument();
+    expect(await screen.findByText("0 de 28 etapas concluídas")).toBeInTheDocument();
   });
 
   it("medidas fazem parte da planta, sem botão", async () => {

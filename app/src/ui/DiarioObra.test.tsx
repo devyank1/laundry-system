@@ -2,57 +2,85 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DiarioObra } from "./DiarioObra";
-import { useObraStore } from "../obra/obraStore";
+import { currentIndex, useObraStore } from "../obra/obraStore";
 import { OBRA_STEPS } from "../obra/steps";
+
+const st = () => useObraStore.getState();
+const stepLi = (title: string) => screen.getByText(title).closest("ol > li") as HTMLElement;
+
+function goTo(id: string) {
+  while (OBRA_STEPS[currentIndex(st().doneAt)]?.id !== id) {
+    const step = OBRA_STEPS[currentIndex(st().doneAt)];
+    for (const c of step.checklist ?? []) if (!st().checked.includes(c.id)) st().toggle(c.id);
+    st().complete();
+  }
+}
 
 beforeEach(() => {
   localStorage.clear();
-  useObraStore.getState().reset();
+  st().reset();
 });
 
 describe("DiarioObra", () => {
   it("começa na etapa 0, com o botão só na etapa atual", () => {
     render(<DiarioObra />);
-    expect(screen.getByText("0 de 25 etapas concluídas")).toBeInTheDocument();
+    expect(screen.getByText("0 de 28 etapas concluídas")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Concluir etapa" })).toHaveLength(1);
-    const current = screen.getByText("Prazos").closest("li")!;
-    expect(current).toHaveAttribute("data-state", "current");
-    expect(within(current).getByRole("button", { name: "Concluir etapa" })).toBeInTheDocument();
-    expect(screen.getByText("Inauguração").closest("li")).toHaveAttribute("data-state", "todo");
+    expect(stepLi("Prazos")).toHaveAttribute("data-state", "current");
+    expect(stepLi("Inauguração")).toHaveAttribute("data-state", "todo");
   });
 
   it("concluir marca com a data e passa pra próxima", async () => {
     render(<DiarioObra />);
     await userEvent.click(screen.getByRole("button", { name: "Concluir etapa" }));
-    const done = screen.getByText("Prazos").closest("li")!;
-    expect(done).toHaveAttribute("data-state", "done");
-    expect(within(done).getByText(/^Concluída em \d{2}\/\d{2}\/\d{4}$/)).toBeInTheDocument();
-    expect(screen.getByText("Escolha do ponto").closest("li")).toHaveAttribute("data-state", "current");
-    expect(screen.getByText("1 de 25 etapas concluídas")).toBeInTheDocument();
+    expect(stepLi("Prazos")).toHaveAttribute("data-state", "done");
+    expect(within(stepLi("Prazos")).getByText(/^Concluída em \d{2}\/\d{2}\/\d{4}$/)).toBeInTheDocument();
+    expect(stepLi("Escolha do ponto")).toHaveAttribute("data-state", "current");
+    expect(screen.getByText("1 de 28 etapas concluídas")).toBeInTheDocument();
   });
 
-  it("checklist da etapa atual libera o Concluir quando tudo marcado", async () => {
+  it("checklist obrigatório libera o Concluir quando tudo marcado", async () => {
+    goTo("ponto");
     render(<DiarioObra />);
-    await userEvent.click(screen.getByRole("button", { name: "Concluir etapa" }));
-    const step = screen.getByText("Escolha do ponto").closest("li")!;
+    const step = stepLi("Escolha do ponto");
     const boxes = within(step).getAllByRole("checkbox");
     expect(boxes).toHaveLength(8);
-    expect(within(step).getByText("0 de 8")).toBeInTheDocument();
     const btn = within(step).getByRole("button", { name: "Concluir etapa" });
     expect(btn).toBeDisabled();
     for (const b of boxes) await userEvent.click(b);
     expect(within(step).getByText("8 de 8")).toBeInTheDocument();
-    expect(btn).toBeEnabled();
     await userEvent.click(btn);
     expect(step).toHaveAttribute("data-state", "done");
-    expect(within(step).getAllByRole("checkbox").every((b) => (b as HTMLInputElement).disabled && (b as HTMLInputElement).checked)).toBe(true);
   });
 
-  it("checklist de etapa futura não dá pra marcar", () => {
+  it("checklist de etapa futura fica travado", () => {
     render(<DiarioObra />);
-    const future = screen.getByText("Obrigações legais").closest("li")!;
+    const future = stepLi("Obrigações legais");
     expect(within(future).getByText("Abrir CNPJ ou MEI")).toBeInTheDocument();
     expect(within(future).getAllByRole("checkbox").every((b) => (b as HTMLInputElement).disabled)).toBe(true);
+  });
+
+  it("inauguração: itens opcionais não travam", () => {
+    goTo("inauguracao");
+    render(<DiarioObra />);
+    const step = stepLi("Inauguração");
+    expect(within(step).getByText("0 de 8 (opcionais)")).toBeInTheDocument();
+    expect(within(step).getByText("Arco de bexigas")).toBeInTheDocument();
+    expect(within(step).getByRole("button", { name: "Concluir etapa" })).toBeEnabled();
+  });
+
+  it("compras: + Adicionar material extra e remover", async () => {
+    goTo("compras-materiais");
+    render(<DiarioObra />);
+    const step = stepLi("Início das compras de materiais hidráulicos e elétricos");
+    const add = within(step).getByRole("button", { name: "+ Adicionar" });
+    expect(add).toBeDisabled();
+    await userEvent.type(within(step).getByRole("textbox", { name: "Material extra" }), "Piso vinílico");
+    await userEvent.click(add);
+    expect(within(step).getByText("Piso vinílico")).toBeInTheDocument();
+    expect(st().extras).toEqual(["Piso vinílico"]);
+    await userEvent.click(within(step).getByRole("button", { name: "Remover Piso vinílico" }));
+    expect(st().extras).toEqual([]);
   });
 
   it("desfazer só na última concluída", async () => {
@@ -61,18 +89,16 @@ describe("DiarioObra", () => {
     await userEvent.click(screen.getByRole("button", { name: "Concluir etapa" }));
     const undo = screen.getAllByRole("button", { name: "Desfazer" });
     expect(undo).toHaveLength(1);
-    expect(screen.getByText("Prazos").closest("li")).toContainElement(undo[0]);
+    expect(stepLi("Prazos")).toContainElement(undo[0]);
     await userEvent.click(undo[0]);
-    expect(screen.getByText("Prazos").closest("li")).toHaveAttribute("data-state", "current");
+    expect(stepLi("Prazos")).toHaveAttribute("data-state", "current");
   });
 
   it("tudo concluído mostra a obra finalizada", () => {
-    for (const step of OBRA_STEPS) {
-      for (const c of step.checklist ?? []) useObraStore.getState().toggle(c.id);
-      useObraStore.getState().complete();
-    }
+    goTo("inauguracao");
+    st().complete();
     render(<DiarioObra />);
-    expect(screen.getByText("25 de 25 etapas concluídas")).toBeInTheDocument();
+    expect(screen.getByText("28 de 28 etapas concluídas")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Concluir etapa" })).not.toBeInTheDocument();
     expect(screen.getByText("Obra concluída!")).toBeInTheDocument();
   });

@@ -81,20 +81,20 @@ describe("diário de obra na reunião", () => {
     useObraStore.getState().reset();
     useObraStore.getState().complete(new Date("2026-11-20T10:00:00Z"));
     const snap = captureMeeting();
-    useObraStore.getState().toggle("1b");
+    useObraStore.getState().toggle("ponto-b");
     const snap2 = captureMeeting();
-    expect(snap2.obra).toEqual({ doneAt: ["2026-11-20T10:00:00.000Z"], checked: ["1b"] });
-    expect(snap.obra).toEqual({ doneAt: ["2026-11-20T10:00:00.000Z"], checked: [] });
+    expect(snap2.obra).toEqual({ doneAt: { prazos: "2026-11-20T10:00:00.000Z" }, checked: ["ponto-b"], extras: [] });
+    expect(snap.obra).toEqual({ doneAt: { prazos: "2026-11-20T10:00:00.000Z" }, checked: [], extras: [] });
     useObraStore.getState().reset();
     applyMeeting(JSON.parse(JSON.stringify(snap2)), null);
-    expect(useObraStore.getState().doneAt).toEqual(["2026-11-20T10:00:00.000Z"]);
-    expect(useObraStore.getState().checked).toEqual(["1b"]);
+    expect(useObraStore.getState().doneAt).toEqual({ prazos: "2026-11-20T10:00:00.000Z" });
+    expect(useObraStore.getState().checked).toEqual(["ponto-b"]);
   });
 
   it("reunião salva antes do diário abre zerada", () => {
     useObraStore.getState().complete();
     applyMeeting({ v: 1, project: {} }, null);
-    expect(useObraStore.getState().doneAt).toEqual([]);
+    expect(useObraStore.getState().doneAt).toEqual({});
   });
 
   it("concluir etapa conta como alteração não salva", () => {
@@ -103,7 +103,7 @@ describe("diário de obra na reunião", () => {
     useObraStore.getState().complete();
     expect(useMeetingSession.getState().isDirty()).toBe(true);
     useMeetingSession.getState().markSaved();
-    useObraStore.getState().toggle("1a");
+    useObraStore.getState().addExtra("Piso");
     expect(useMeetingSession.getState().isDirty()).toBe(true);
   });
 });

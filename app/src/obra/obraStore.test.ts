@@ -1,90 +1,121 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { OBRA_STEPS } from "./steps";
-import { normalizeObra, useObraStore } from "./obraStore";
+import { EXTRA_MAX, currentIndex, normalizeObra, useObraStore } from "./obraStore";
+
+const st = () => useObraStore.getState();
+const titles = () => OBRA_STEPS.map((s) => s.title);
+const idx = (id: string) => OBRA_STEPS.findIndex((s) => s.id === id);
 
 // Marca o checklist da etapa atual e conclui.
 function finishStep() {
-  const step = OBRA_STEPS[useObraStore.getState().doneAt.length];
-  for (const c of step?.checklist ?? []) if (!useObraStore.getState().checked.includes(c.id)) useObraStore.getState().toggle(c.id);
-  useObraStore.getState().complete();
+  const step = OBRA_STEPS[currentIndex(st().doneAt)];
+  for (const c of step?.checklist ?? []) if (!st().checked.includes(c.id)) st().toggle(c.id);
+  st().complete();
 }
 
 beforeEach(() => {
   localStorage.clear();
-  useObraStore.getState().reset();
+  st().reset();
 });
 
 describe("etapas", () => {
-  it("25 etapas em ordem, de Prazos até Inauguração", () => {
-    expect(OBRA_STEPS).toHaveLength(25);
-    expect(OBRA_STEPS.map((s) => s.n)).toEqual(Array.from({ length: 25 }, (_, i) => i));
-    expect(OBRA_STEPS[0].title).toBe("Prazos");
-    expect(OBRA_STEPS[24].title).toBe("Inauguração");
-    expect(OBRA_STEPS[3]).toMatchObject({ title: "Obrigações legais", deadline: "Até 10 dias" });
+  it("28 etapas, de Prazos até Inauguração, ids únicos", () => {
+    expect(OBRA_STEPS).toHaveLength(28);
+    expect(titles()[0]).toBe("Prazos");
+    expect(titles()[27]).toBe("Inauguração");
+    const ids = [...OBRA_STEPS.map((s) => s.id), ...OBRA_STEPS.flatMap((s) => (s.checklist ?? []).map((c) => c.id))];
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("checklists: ponto de A a H, obrigações legais de A a D", () => {
-    expect(OBRA_STEPS[1].checklist!.map((c) => c.id)).toEqual(["1a", "1b", "1c", "1d", "1e", "1f", "1g", "1h"]);
-    expect(OBRA_STEPS[1].checklist![2].text).toMatch(/1,5 km/);
-    expect(OBRA_STEPS[3].checklist!.map((c) => c.id)).toEqual(["3a", "3b", "3c", "3d"]);
-    expect(OBRA_STEPS[3].checklist![1].text).toMatch(/CNPJ ou MEI/);
-    expect(OBRA_STEPS[2].goal).toMatch(/plano/);
-    expect(OBRA_STEPS[5].goal).toMatch(/realmente precise/);
-    const ids = OBRA_STEPS.flatMap((s) => (s.checklist ?? []).map((c) => c.id));
-    expect(new Set(ids).size).toBe(ids.length);
+  it("etapas novas no lugar pedido", () => {
+    expect(titles()[idx("inpi") + 1]).toBe("Criação do Instagram e do Google Meu Negócio");
+    expect(OBRA_STEPS[idx("planta-eletrica") - 1].title).toBe("Aprovação dos projetos hidráulico e elétrico pelos engenheiros");
+    expect(OBRA_STEPS[idx("eletrica") - 1]).toMatchObject({ title: "Início das compras de materiais hidráulicos e elétricos", extras: true });
+  });
+
+  it("nomes e checklists alterados", () => {
+    expect(OBRA_STEPS[idx("gesso")].title).toBe("Estrutura de gesso / drywall");
+    expect(idx("gesso")).toBeGreaterThan(idx("eletrica"));
+    expect(OBRA_STEPS[idx("pagamento")].title).toBe("Solicitação do sistema de pagamento da Cicclo ou Lavecom");
+    expect(OBRA_STEPS[idx("instalacao")].title).toBe("Instalação técnica do maquinário com sistema de pagamento e automações");
+    expect(OBRA_STEPS[idx("comunicacao-visual")].checklist).toHaveLength(4);
+    expect(OBRA_STEPS[idx("ponto")].checklist).toHaveLength(8);
+    expect(OBRA_STEPS[idx("legal")].checklist![1].text).toBe("Abrir CNPJ ou MEI");
+    expect(OBRA_STEPS[idx("inauguracao")]).toMatchObject({ optionalChecklist: true });
+    expect(OBRA_STEPS[idx("inauguracao")].checklist).toHaveLength(8);
   });
 });
 
 describe("useObraStore", () => {
-  it("concluir guarda a data e persiste", () => {
-    useObraStore.getState().complete(new Date("2026-11-25T12:00:00Z"));
-    expect(useObraStore.getState().doneAt).toEqual(["2026-11-25T12:00:00.000Z"]);
-    expect(JSON.parse(localStorage.getItem("lavanderia.obra.v1")!).doneAt).toHaveLength(1);
+  it("concluir guarda a data pelo id e persiste", () => {
+    st().complete(new Date("2026-11-25T12:00:00Z"));
+    expect(st().doneAt).toEqual({ prazos: "2026-11-25T12:00:00.000Z" });
+    expect(JSON.parse(localStorage.getItem("lavanderia.obra.v2")!).doneAt.prazos).toBeTruthy();
+  });
+
+  it("checklist obrigatório trava; opcional não", () => {
+    st().complete();
+    st().complete();
+    expect(currentIndex(st().doneAt)).toBe(idx("ponto"));
+    for (const c of OBRA_STEPS[idx("ponto")].checklist!.slice(0, -1)) st().toggle(c.id);
+    st().complete();
+    expect(currentIndex(st().doneAt)).toBe(idx("ponto"));
+    st().toggle("ponto-h");
+    st().complete();
+    expect(currentIndex(st().doneAt)).toBe(idx("internet"));
+    while (currentIndex(st().doneAt) < idx("inauguracao")) finishStep();
+    st().complete(); // inauguração sem marcar nada
+    expect(currentIndex(st().doneAt)).toBe(OBRA_STEPS.length);
   });
 
   it("depois da última etapa não conclui mais nada", () => {
-    for (let i = 0; i < 30; i++) finishStep();
-    expect(useObraStore.getState().doneAt).toHaveLength(25);
+    for (let i = 0; i < 40; i++) finishStep();
+    expect(Object.keys(st().doneAt)).toHaveLength(28);
   });
 
-  it("desfazer tira só a última; vazio não faz nada", () => {
-    useObraStore.getState().undo();
-    expect(useObraStore.getState().doneAt).toEqual([]);
-    finishStep();
-    finishStep();
-    useObraStore.getState().undo();
-    expect(useObraStore.getState().doneAt).toHaveLength(1);
+  it("marcar só da etapa atual", () => {
+    st().complete();
+    st().toggle("ponto-c");
+    expect(st().checked).toEqual(["ponto-c"]);
+    st().toggle("ponto-c");
+    st().toggle("legal-a");
+    st().toggle("xx");
+    expect(st().checked).toEqual([]);
   });
 
-  it("etapa com checklist só conclui com tudo marcado", () => {
-    finishStep(); // 0, sem checklist
-    useObraStore.getState().complete();
-    expect(useObraStore.getState().doneAt).toHaveLength(1);
-    for (const c of OBRA_STEPS[1].checklist!.slice(0, -1)) useObraStore.getState().toggle(c.id);
-    useObraStore.getState().complete();
-    expect(useObraStore.getState().doneAt).toHaveLength(1);
-    useObraStore.getState().toggle("1h");
-    useObraStore.getState().complete();
-    expect(useObraStore.getState().doneAt).toHaveLength(2);
+  it("desfazer volta a anterior à atual; vazio não faz nada", () => {
+    st().undo();
+    expect(st().doneAt).toEqual({});
+    finishStep();
+    finishStep();
+    st().undo();
+    expect(Object.keys(st().doneAt)).toEqual(["prazos"]);
   });
 
-  it("marcar e desmarcar item; só da etapa atual; persiste", () => {
-    finishStep();
-    useObraStore.getState().toggle("1c");
-    expect(useObraStore.getState().checked).toEqual(["1c"]);
-    expect(JSON.parse(localStorage.getItem("lavanderia.obra.v1")!).checked).toEqual(["1c"]);
-    useObraStore.getState().toggle("1c");
-    expect(useObraStore.getState().checked).toEqual([]);
-    useObraStore.getState().toggle("3a"); // etapa futura
-    useObraStore.getState().toggle("xx"); // desconhecido
-    expect(useObraStore.getState().checked).toEqual([]);
+  it("etapa nova inserida antes de concluídas vira a atual", () => {
+    st().replaceAll({ doneAt: { prazos: "2026-11-01T00:00:00.000Z", internet: "2026-11-02T00:00:00.000Z" }, checked: [], extras: [] });
+    expect(currentIndex(st().doneAt)).toBe(idx("ponto"));
+  });
+
+  it("materiais extras: adiciona, ignora vazio, limita, remove", () => {
+    st().addExtra("  Piso vinílico  ");
+    st().addExtra("   ");
+    st().addExtra("x".repeat(300));
+    expect(st().extras).toEqual(["Piso vinílico", "x".repeat(120)]);
+    st().removeExtra(0);
+    st().removeExtra(9);
+    expect(st().extras).toEqual(["x".repeat(120)]);
+    for (let i = 0; i < 80; i++) st().addExtra(`m${i}`);
+    expect(st().extras).toHaveLength(EXTRA_MAX);
   });
 
   it("normalizeObra saneia lixo", () => {
-    expect(normalizeObra(null)).toEqual({ doneAt: [], checked: [] });
-    expect(normalizeObra({ doneAt: "x" })).toEqual({ doneAt: [], checked: [] });
-    expect(normalizeObra({ doneAt: ["2026-11-01T00:00:00.000Z", "não é data", 3] })).toEqual({ doneAt: ["2026-11-01T00:00:00.000Z"], checked: [] });
-    expect(normalizeObra({ doneAt: [], checked: ["1a", "1a", "zz", 5] }).checked).toEqual(["1a"]);
-    expect(normalizeObra({ doneAt: Array(40).fill("2026-11-01T00:00:00.000Z") }).doneAt).toHaveLength(25);
+    expect(normalizeObra(null)).toEqual({ doneAt: {}, checked: [], extras: [] });
+    expect(normalizeObra({ doneAt: ["2026-11-01T00:00:00.000Z"] }).doneAt).toEqual({});
+    expect(normalizeObra({ doneAt: { prazos: "2026-11-01T00:00:00.000Z", zz: "2026-11-01T00:00:00.000Z", ponto: "não" } }).doneAt).toEqual({
+      prazos: "2026-11-01T00:00:00.000Z",
+    });
+    expect(normalizeObra({ checked: ["ponto-a", "ponto-a", "zz", 5] }).checked).toEqual(["ponto-a"]);
+    expect(normalizeObra({ extras: ["Piso", 3, " ", null] }).extras).toEqual(["Piso"]);
   });
 });

@@ -43,3 +43,16 @@ progresso.
 
 - Fotos/GIFs agora (só o lugar reservado).
 - Notificar o cliente final, prazos com calendário, etapas fora de ordem.
+
+## Revisão 2026-11-26 (pedido do dono)
+
+- 28 etapas. Novas: Instagram + Google Meu Negócio (após INPI), aprovação
+  dos projetos hidráulico/elétrico pelos engenheiros (antes da planta
+  elétrica), compras de materiais hidráulicos/elétricos com "+ Adicionar"
+  materiais extras (antes do início da elétrica).
+- Checklists (A, B, C…): escolha do ponto (8), obrigações legais (4),
+  adesivagem do maquinário/avisos/banners (4), inauguração (8, opcionais —
+  não travam a conclusão). Checklist obrigatório trava "Concluir etapa".
+- Andamento salvo por id de etapa (`lavanderia.obra.v2`,
+  `obra: { doneAt: {id: data}, checked, extras }`), para inserir etapas
+  sem bagunçar reuniões salvas.

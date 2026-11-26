@@ -1892,3 +1892,9 @@
 .obra-checklist input { margin: 2px 0 0; flex: none; accent-color: var(--accent-ink); }
 .obra-checklist input:disabled + .obra-check-letter, .obra-checklist input:disabled ~ span { cursor: default; }
 .obra-check-letter { flex: none; width: 14px; font-weight: 600; color: var(--text-muted); }
+.obra-extras { margin-top: 6px; display: grid; gap: 6px; }
+.obra-extras ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.obra-extras li { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; padding: 4px 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.obra-extra-remove { padding: 0 6px; line-height: 1.4; }
+.obra-extras form { display: flex; gap: 6px; }
+.obra-extras input { flex: 1; min-width: 0; }

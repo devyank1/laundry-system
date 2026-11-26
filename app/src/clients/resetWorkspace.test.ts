@@ -21,7 +21,7 @@ describe("resetWorkspace", () => {
     useRoiStore.getState().setOp("preco", 77);
     useObraStore.getState().complete();
     resetWorkspace();
-    expect(useObraStore.getState().doneAt).toEqual([]);
+    expect(useObraStore.getState().doneAt).toEqual({});
     expect(useMeetingSession.getState().clientId).toBeNull();
     expect(useProjectStore.getState()).toMatchObject({ roomWidthMm: initialProjectState.roomWidthMm, logoDataUrl: null, facadeColor: "#8fa892" });
     expect(useRoiStore.getState().op).toEqual(defaultRoiState().op);
