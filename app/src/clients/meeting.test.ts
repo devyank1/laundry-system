@@ -12,6 +12,7 @@ import { defaultRoiState } from "../roi/model";
 import { defaultInsightsInputs } from "../insights/model";
 import { applyMeeting, captureMeeting, MEETING_VERSION } from "./meeting";
 import { useMeetingSession } from "./sessionStore";
+import { useObraStore } from "../obra/obraStore";
 
 const machineId = CATALOG_SEED[0].id;
 
@@ -72,6 +73,31 @@ describe("captureMeeting / applyMeeting", () => {
     const sync = JSON.parse(localStorage.getItem("lavanderia.plantSync.v1") ?? "{}");
     expect(sync.roi).toBeTruthy();
     expect(sync.roi).toBe(sync.insights);
+  });
+});
+
+describe("diário de obra na reunião", () => {
+  it("entra no que é salvo e volta ao abrir", () => {
+    useObraStore.getState().reset();
+    useObraStore.getState().complete(new Date("2026-11-20T10:00:00Z"));
+    const snap = captureMeeting();
+    expect(snap.obra).toEqual({ doneAt: ["2026-11-20T10:00:00.000Z"] });
+    useObraStore.getState().reset();
+    applyMeeting(JSON.parse(JSON.stringify(snap)), null);
+    expect(useObraStore.getState().doneAt).toEqual(["2026-11-20T10:00:00.000Z"]);
+  });
+
+  it("reunião salva antes do diário abre zerada", () => {
+    useObraStore.getState().complete();
+    applyMeeting({ v: 1, project: {} }, null);
+    expect(useObraStore.getState().doneAt).toEqual([]);
+  });
+
+  it("concluir etapa conta como alteração não salva", () => {
+    useMeetingSession.getState().bind({ id: "c1", name: "Lava Já", canSave: true });
+    expect(useMeetingSession.getState().isDirty()).toBe(false);
+    useObraStore.getState().complete();
+    expect(useMeetingSession.getState().isDirty()).toBe(true);
   });
 });
 

@@ -1,4 +1,5 @@
 import { useInsightsStore } from "../insights/insightsStore";
+import { useObraStore } from "../obra/obraStore";
 import { useRoiStore } from "../roi/roiStore";
 import { initialFacadeState, initialProjectState, useProjectStore } from "../state/projectStore";
 import { useMeetingSession } from "./sessionStore";
@@ -15,5 +16,6 @@ export function resetWorkspace(): void {
   useProjectStore.setState({ ...structuredClone(initialProjectState), ...initialFacadeState, logoDataUrl: null });
   useRoiStore.getState().reset();
   useInsightsStore.getState().reset();
+  useObraStore.getState().reset();
   useMeetingSession.getState().markSaved();
 }
