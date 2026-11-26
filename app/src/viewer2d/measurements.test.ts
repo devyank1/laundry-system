@@ -83,15 +83,25 @@ describe("totais e distâncias novas", () => {
     expect(m.x0).toBeLessThanOrEqual(t.x + t.width);
   });
 
-  it("porta até o balcão", () => {
+  it("porta técnica (0,70) até o balcão", () => {
     const l = layoutOf();
-    const fd = l.frontDoor!;
+    const td = l.techDoor;
     const furniture = { ...l.furniture!, premium: { counter: { x: 4250, y: 2940, width: 750, height: 2000 }, counterWall: "right" as const, pufs: null } };
     const m = planMeasurements({ ...l, furniture }).find((x) => x.id === "porta-balcao")!;
-    expect(m.text).toBe(formatMeters(4250 - (fd.x + fd.width)));
-    expect(m.y0).toBe(m.y1);
+    expect(m.text).toBe(formatMeters(2940 - l.drywall.y));
+    expect(m.x0).toBe(m.x1);
+    expect(m.y0).toBe(l.drywall.y);
+    expect(m.x0).toBeGreaterThanOrEqual(Math.max(td.x, 4250));
+    expect(m.x0).toBeLessThanOrEqual(td.x + td.width);
   });
 
+  it("lateral: porta técnica até o balcão na horizontal", () => {
+    const l = layoutOf({ orientation: "side", roomWidthMm: 5000, roomDepthMm: 9000 });
+    const furniture = { ...l.furniture!, premium: { counter: { x: 3000, y: 7000, width: 2000, height: 750 }, counterWall: "right" as const, pufs: null } };
+    const m = planMeasurements({ ...l, furniture }).find((x) => x.id === "porta-balcao")!;
+    expect(m.y0).toBe(m.y1);
+    expect(m.text).toBe(formatMeters(3000 - l.drywall.y));
+  });
   it("lateral: total e mesa até as máquinas na horizontal", () => {
     const l = layoutOf({ orientation: "side", roomWidthMm: 5000, roomDepthMm: 9000 });
     const ms = planMeasurements(l);

@@ -128,22 +128,28 @@ function machineMeasures(layout: Layout): PlanMeasure[] {
   return out;
 }
 
-// Da porta de entrada até o balcão, na horizontal, logo acima da fachada.
-function doorToCounter(layout: Layout): PlanMeasure | null {
-  const fd = layout.frontDoor;
+// Da porta técnica (no drywall) até o balcão, reto pro salão adentro.
+function techDoorToCounter(layout: Layout): PlanMeasure | null {
   const c = layout.furniture?.premium?.counter ?? null;
-  if (!fd || !c) return null;
-  const y = Math.min(c.y + c.height, layout.roomDepthMm) - FRONT_GAP_MM;
-  const doorEnd = fd.x + fd.width;
-  if (c.x - doorEnd >= MIN_MM) return seg("porta-balcao", doorEnd, y, c.x, y);
-  if (fd.x - (c.x + c.width) >= MIN_MM) return seg("porta-balcao", c.x + c.width, y, fd.x, y);
-  return null;
+  if (!c) return null;
+  const td = layout.techDoor;
+  const D = layout.drywall.y;
+  if (layout.orientation === "back") {
+    if (c.y - D < MIN_MM) return null;
+    const x = overlapMid(td.x, td.x + td.width, c.x, c.x + c.width);
+    return seg("porta-balcao", x, D, x, c.y);
+  }
+  const right = layout.machineWall === "right";
+  const drywallX = right ? layout.roomWidthMm - D : D;
+  const y = overlapMid(td.y, td.y + td.width, c.y, c.y + c.height);
+  if (right) return drywallX - (c.x + c.width) >= MIN_MM ? seg("porta-balcao", c.x + c.width, y, drywallX, y) : null;
+  return c.x - drywallX >= MIN_MM ? seg("porta-balcao", drywallX, y, c.x, y) : null;
 }
 
 export function planMeasurements(layout: Layout): PlanMeasure[] {
   const H = layout.roomDepthMm;
   const f = layout.furniture;
-  const extra = [...machineMeasures(layout), ...[doorToCounter(layout)].filter((m): m is PlanMeasure => m !== null)];
+  const extra = [...machineMeasures(layout), ...[techDoorToCounter(layout)].filter((m): m is PlanMeasure => m !== null)];
   if (!f) return extra;
   const fd = layout.frontDoor;
   const door = fd ? [{ x: fd.x, y: H - fd.width, width: fd.width, height: fd.width }] : [];
