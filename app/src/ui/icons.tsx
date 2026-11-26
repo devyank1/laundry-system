@@ -53,6 +53,13 @@ export const IconSignal = () => (
   </Svg>
 );
 
+export const IconClipboard = () => (
+  <Svg>
+    <rect x="5" y="4" width="14" height="17" rx="2" />
+    <path d="M9 4V3h6v1M9 11l2 2 4-4M9 17h6" />
+  </Svg>
+);
+
 export const IconSettings = () => (
   <Svg>
     <path d="M4 7h10M18 7h2M4 17h4M12 17h8" />
